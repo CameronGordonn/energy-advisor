@@ -50,11 +50,16 @@ adders:
       PG&E PCIA 2018 vintage, derived from bill statements 2026-05-29 & 2026-06-28
       (16.86/458.359, 8.96/243.56, 1.49/40.388 all = 0.03679). Cross-ref PCIA schedule.
   - name: Generation Credit (PG&E generation not supplied)
-    per_kwh_summer: -0.1201              # APPROX: derived seasonal blend; PG&E gen is TOU-weighted
-    per_kwh_winter: -0.1071
+    # Winter is an exact TOU decomposition (peak/off) least-squares-fit across the
+    # 2026 winter bills (predicts each to <=$0.01). Summer stays a seasonal blend —
+    # only one summer bill (06/28) exists so peak/off can't yet be separated.
+    per_kwh_winter_peak:    -0.12705
+    per_kwh_winter_offpeak: -0.10030
+    per_kwh_summer:         -0.12013     # APPROX blend; refine to TOU with a 2nd summer bill
     citation: >-
-      PG&E generation credit for CCA customers, derived (seasonal blended $/kWh) from
-      bills. APPROXIMATE — true rate is TOU/seasonal; cross-ref PG&E generation tariff.
+      PG&E generation credit for CCA (departing-load) customers, derived from customer
+      bills 2026-01-29..06-28. Winter TOU peak/off fit exact to the cent; summer is a
+      single-bill blend. Cross-ref PG&E generation (PABA/generation-credit) tariff.
 
 # Franchise fee: small ($0.02-0.27); exact basis not cleanly derivable from the bill.
 # Modeled as a percent of energy charges (residual < $0.05). Cross-ref franchise fee tariff.

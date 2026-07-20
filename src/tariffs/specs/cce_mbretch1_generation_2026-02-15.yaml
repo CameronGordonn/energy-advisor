@@ -3,14 +3,21 @@
 # statements 2026-05-29 & 2026-06-28 (schedule MBRETCH1 "3Cchoice", RIN USCA-XXMB-0338-PGE).
 # 3CE generation is charged at one rate set (no CARE variant on the generation page;
 # the CARE discount is applied entirely on the PG&E delivery layer).
+#
+# effective_date 2026-02-15: statement 2026-03-01 (period 01/28-02/26) itemizes BOTH the
+# old winter rate (0.15386/0.12883) and this new one (0.12572/0.09930). The changeover
+# was DERIVED from the customer's own interval data: splitting the period at 2026-02-15
+# reproduces the bill's split kWh (peak 75.168, off 265.363) to within the ~0.3 kWh
+# read-boundary residual. Earlier rates live in cce_mbretch1_generation_2025-01-01.yaml.
 schedule_id: MBRETCH1
 name: 3Cchoice Time-of-Use (Peak Pricing 4-9 p.m. Every Day) - Generation
 provider: Central Coast Community Energy (3CE)
 layer: generation
-effective_date: 2026-01-01
+effective_date: 2026-02-15
 citation: >-
-  3CE MBRETCH1 generation, observed on customer bill statements 2026-05-29 & 2026-06-28
-  (RIN USCA-XXMB-0338-PGE). Cross-ref 3cenergy.org/billing for published rate updates.
+  3CE MBRETCH1 generation, observed on customer bill statements 2026-03-01 (new-rate
+  sub-block), 2026-03-31, 2026-05-29 & 2026-06-28 (RIN USCA-XXMB-0338-PGE). Change date
+  2026-02-15 derived from interval-data split match. Cross-ref 3cenergy.org for rates.
 
 seasons:
   summer_months: [6, 7, 8, 9]

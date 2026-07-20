@@ -130,21 +130,54 @@ class Baseline(_Base):
 
 
 class PerKwhAdder(_Base):
-    """A flat or per-season $/kWh line (PCIA, generation credit, etc.)."""
+    """A $/kWh line (PCIA, generation credit, ...): flat, per-season, or per-season TOU.
+
+    Resolution order for a given season, most specific first:
+    1. TOU: ``per_kwh_<season>_peak`` / ``_offpeak`` (billed against peak/off kWh).
+    2. Seasonal flat: ``per_kwh_<season>``.
+    3. Flat: ``per_kwh``.
+
+    The PG&E "Generation Credit" for CCA customers is a TOU-weighted PG&E generation
+    rate, so where two bills pin down the peak/off split it is modeled as TOU (exact);
+    where only one bill exists (summer, here) it falls back to a seasonal blend.
+    """
 
     name: str
     per_kwh: float | None = None
     per_kwh_summer: float | None = None
     per_kwh_winter: float | None = None
+    per_kwh_summer_peak: float | None = None
+    per_kwh_summer_offpeak: float | None = None
+    per_kwh_winter_peak: float | None = None
+    per_kwh_winter_offpeak: float | None = None
     citation: str
 
+    def _tou(self, season: Season) -> tuple[float, float] | None:
+        pk = getattr(self, f"per_kwh_{season.value}_peak")
+        of = getattr(self, f"per_kwh_{season.value}_offpeak")
+        if pk is not None and of is not None:
+            return pk, of
+        return None
+
     def rate(self, season: Season) -> float:
+        """Flat/seasonal $/kWh. Raises for TOU adders (use :meth:`amount`)."""
+        if self._tou(season) is not None:
+            raise ValueError(f"adder {self.name!r} is TOU for {season}; call amount()")
         if self.per_kwh is not None:
             return self.per_kwh
         val = self.per_kwh_summer if season is Season.SUMMER else self.per_kwh_winter
         if val is None:
             raise ValueError(f"adder {self.name!r} has no rate for {season}")
         return val
+
+    def amount(self, season: Season, peak_kwh: float, off_kwh: float) -> tuple[float, float | None]:
+        """(amount, per-kwh rate or None). Rate is None for TOU adders (blended line)."""
+        tou = self._tou(season)
+        if tou is not None:
+            pk, of = tou
+            return peak_kwh * pk + off_kwh * of, None
+        r = self.rate(season)
+        return (peak_kwh + off_kwh) * r, r
 
 
 class PercentSurcharge(_Base):

@@ -1,0 +1,68 @@
+# PG&E E-TOU-C — DELIVERY layer, 2026 rate cycle but still PRE-IGFC (before the
+# 2026-03-01 Base Services Charge). Rates observed on the 01/01/2026-01/27/2026
+# sub-block of statement 2026-01-29, statement 2026-03-01, and the 02/27-02/28
+# sub-block of statement 2026-03-31 (RIN USCA-PGXX-0102-0000).
+#
+# Per-kWh rates dropped 2026-01-01 (annual true-up) and again 2026-03-01 when the
+# Base Services Charge unbundled fixed costs. Summer left null: this version is always
+# superseded by the 2026-03-01 spec before summer (Jun 1), so no summer date reaches it.
+schedule_id: E-TOU-C
+name: Time-of-Use (Peak Pricing 4-9 p.m. Every Day) - Delivery [2026 pre-IGFC]
+provider: PG&E
+layer: delivery
+effective_date: 2026-01-01
+citation: >-
+  PG&E E-TOU-C delivery, observed on the 01/01/2026-01/27/2026 sub-block of statement
+  2026-01-29, statement 2026-03-01, and the 02/27/2026-02/28/2026 sub-block of statement
+  2026-03-31 (RIN USCA-PGXX-0102-0000). Pre-IGFC (no Base Services Charge). Cross-ref
+  PG&E tariff sheet ELEC_SCHEDS_E-TOU-C.pdf.
+
+seasons:
+  summer_months: [6, 7, 8, 9]
+  winter_months: [1, 2, 3, 4, 5, 10, 11, 12]
+
+tou:
+  peak_hours: [16, 17, 18, 19, 20]
+
+fixed_per_day: null
+
+energy:
+  summer_peak:    {}
+  summer_offpeak: {}
+  winter_peak:    {standard: 0.46460, care: 0.28627}
+  winter_offpeak: {standard: 0.43460, care: 0.26677}
+
+baseline:
+  territory: T
+  allowance_kwh_per_day_summer: 7.1
+  allowance_kwh_per_day_winter: 12.9
+  credit_per_kwh: {standard: -0.09566, care: -0.06218}
+
+adders:
+  - name: Power Charge Indifference Adjustment (2018 vintage)
+    per_kwh: 0.03679
+    citation: >-
+      PG&E PCIA 2018 vintage (2026), derived flat from bills 2026-01-29 (18.16/493.706),
+      2026-03-01 (21.11/573.900) = 0.03679. Cross-ref PCIA schedule.
+  - name: Generation Credit (PG&E generation not supplied)
+    per_kwh_winter_peak:    -0.12705
+    per_kwh_winter_offpeak: -0.10030
+    citation: >-
+      PG&E generation credit for CCA customers, winter TOU peak/off least-squares fit
+      across the 2026 winter sub-blocks (predicts each to <=$0.008); same winter rate as
+      the 2026-03-01 spec. Cross-ref PG&E generation tariff.
+
+surcharges:
+  - name: Franchise Fee Surcharge
+    rate: 0.00140
+    of: energy
+    citation: >-
+      PG&E Franchise Fee Surcharge, 2026. APPROXIMATE (~0.14% of energy) — derived from
+      bills; exact basis unconfirmed, residual <$0.05.
+  - name: City of Santa Cruz Utility Users' Tax
+    rate: 0.085
+    of: pretax
+    citation: >-
+      City of Santa Cruz UUT 8.5% on delivery subtotal (pre-FF); gross matches bill to
+      the cent. A separate observed 'UUT Adjustment' offsets most of it (see
+      SESSION_NOTES); applied by the reconciliation harness, not this spec.

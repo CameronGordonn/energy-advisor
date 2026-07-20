@@ -75,3 +75,26 @@ def load_specs(
             f"(found {len(candidates)} version(s) for this schedule)"
         )
     return max(effective, key=lambda s: s.effective_date)
+
+
+def load_spec_versions(
+    schedule_id: str,
+    layer: Layer,
+    *,
+    specs_dir: str | Path = SPECS_DIR,
+) -> list[TariffSpec]:
+    """Return every version of ``schedule_id``/``layer``, sorted by effective_date.
+
+    A billing period can straddle a rate change, so the billing function needs all
+    versions (not just the one effective on the period start) to split the period at
+    each effective date. Raises if none are found.
+    """
+    specs_dir = Path(specs_dir)
+    versions = [
+        spec
+        for p in sorted(specs_dir.glob("*.yaml"))
+        if (spec := load_spec_file(p)).schedule_id == schedule_id and spec.layer is layer
+    ]
+    if not versions:
+        raise ValueError(f"no {layer} spec found for schedule {schedule_id!r}")
+    return sorted(versions, key=lambda s: s.effective_date)

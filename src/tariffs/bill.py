@@ -8,6 +8,7 @@ reconciliation against a real statement is direct.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from datetime import date, timedelta
 
 import pandas as pd
@@ -90,6 +91,46 @@ def _season_subperiods(
     return runs
 
 
+def _version_for(day: date, versions: Sequence[TariffSpec]) -> TariffSpec:
+    """Newest spec version whose effective_date is on or before ``day``."""
+    chosen = None
+    for v in versions:  # versions arrive sorted ascending by effective_date
+        if v.effective_date <= day:
+            chosen = v
+    if chosen is None:
+        raise ValueError(
+            f"no {versions[0].schedule_id} {versions[0].layer} spec effective on {day} "
+            f"(earliest version is {versions[0].effective_date})"
+        )
+    return chosen
+
+
+def _rate_subperiods(
+    start: date, end_inclusive: date, versions: Sequence[TariffSpec]
+) -> list[tuple[TariffSpec, Season, date, date]]:
+    """Split [start, end] into maximal runs sharing one (spec version, season).
+
+    A single billing period can cross both a season boundary (Jun 1) and a rate-version
+    effective date (e.g. PG&E's 2026-03-01 IGFC change, or 3CE's 2026-02-15 generation
+    update), and the two layers change on different dates. PG&E itemizes each such run as
+    its own sub-block; this reproduces that split so line items sum to the bill.
+    """
+    runs: list[tuple[TariffSpec, Season, date, date]] = []
+    d = start
+    run_start = start
+    cur_v = _version_for(start, versions)
+    cur_s = cur_v.seasons.season_for(start.month)
+    while d <= end_inclusive:
+        v = _version_for(d, versions)
+        s = v.seasons.season_for(d.month)
+        if v is not cur_v or s != cur_s:
+            runs.append((cur_v, cur_s, run_start, d - timedelta(days=1)))
+            run_start, cur_v, cur_s = d, v, s
+        d += timedelta(days=1)
+    runs.append((cur_v, cur_s, run_start, end_inclusive))
+    return runs
+
+
 def _usage(
     series: IntervalSeries, spec: TariffSpec, d0: date, d1_inclusive: date
 ) -> tuple[float, float]:
@@ -109,25 +150,42 @@ def _usage(
 
 def compute_layer(
     series: IntervalSeries,
-    spec: TariffSpec,
+    spec: TariffSpec | Sequence[TariffSpec],
     period_start: date,
     period_end: date,
     *,
     care: bool = False,
 ) -> LayerBill:
-    """Itemize one layer (delivery or generation) over an inclusive date period."""
+    """Itemize one layer (delivery or generation) over an inclusive date period.
+
+    ``spec`` may be a single :class:`TariffSpec` or several effective-dated versions of
+    the same layer; when the period spans a version's effective date the period is split
+    at that boundary (see :func:`_rate_subperiods`) and each run billed on its version.
+    """
+    if isinstance(spec, TariffSpec):
+        versions = [spec]
+    else:
+        versions = sorted(spec, key=lambda s: s.effective_date)
+    if not versions:
+        raise ValueError("compute_layer: no spec version supplied")
+    meta = versions[-1]  # schedule_id/provider/layer are shared across versions
     items: list[LineItem] = []
 
-    for season, d0, d1 in _season_subperiods(period_start, period_end, spec):
+    for spec, season, d0, d1 in _rate_subperiods(period_start, period_end, versions):
         days = (d1 - d0).days + 1
         peak_kwh, off_kwh = _usage(series, spec, d0, d1)
         total_kwh = peak_kwh + off_kwh
         tag = season.value
+        # Build this sub-period's lines locally: percent surcharges below must apply to
+        # THIS run's subtotal only. Two runs can share a season tag (a version change
+        # within one season, e.g. 3CE's 2026-02-15 update), so filtering by season tag
+        # would let a later run's surcharge double-count an earlier run's charges.
+        sub: list[LineItem] = []
 
         # Fixed charge (per day).
         if spec.fixed_per_day is not None:
             rate = spec.fixed_per_day.for_customer(care=care, what=spec.fixed_name)
-            items.append(
+            sub.append(
                 LineItem(
                     name=spec.fixed_name,
                     season=tag,
@@ -146,7 +204,7 @@ def compute_layer(
             ):
                 r = spec.energy.rate(season, peak=peak)
                 std = r.for_customer(care=False, what=f"{label} energy")
-                items.append(
+                sub.append(
                     LineItem(
                         name=f"Energy {label}",
                         season=tag,
@@ -163,7 +221,7 @@ def compute_layer(
             allowance = days * spec.baseline.allowance_per_day(season)
             credited_kwh = min(total_kwh, allowance)
             cr = spec.baseline.credit_per_kwh.for_customer(care=False, what="baseline credit")
-            items.append(
+            sub.append(
                 LineItem(
                     name="Baseline Credit",
                     season=tag,
@@ -190,26 +248,27 @@ def compute_layer(
                     disc += credited_kwh * (bc.care - bc.standard)
                     has_care = True
             if has_care:
-                items.append(LineItem(name="CARE Discount", season=tag, amount=_r(disc)))
+                sub.append(LineItem(name="CARE Discount", season=tag, amount=_r(disc)))
 
-        # Per-kWh adders (PCIA, generation credit, ...).
+        # Per-kWh adders (PCIA, generation credit, ...). May be flat, seasonal, or TOU;
+        # a TOU adder (e.g. the TOU-weighted Generation Credit) reports no single rate.
         for adder in spec.adders:
-            rate = adder.rate(season)
-            items.append(
+            amt, rate = adder.amount(season, peak_kwh, off_kwh)
+            sub.append(
                 LineItem(
                     name=adder.name,
                     season=tag,
                     quantity=_r(total_kwh),
                     unit="kWh",
                     rate=rate,
-                    amount=_r(total_kwh * rate),
+                    amount=_r(amt),
                 )
             )
 
         # Energy Commission Tax (generation layer), per kWh.
         if spec.energy_commission_tax_per_kwh is not None:
             r = spec.energy_commission_tax_per_kwh
-            items.append(
+            sub.append(
                 LineItem(
                     name="Energy Commission Tax",
                     season=tag,
@@ -220,22 +279,23 @@ def compute_layer(
                 )
             )
 
-        # Percent surcharges (franchise fee on energy; UUT on pretax subtotal).
-        pretax = sum(li.amount for li in items if li.season == tag)
-        energy_sub = sum(
-            li.amount for li in items if li.season == tag and li.name.startswith("Energy ")
-        )
+        # Percent surcharges (franchise fee on energy; UUT on pretax subtotal), each on
+        # this sub-period's own subtotal.
+        pretax = sum(li.amount for li in sub)
+        energy_sub = sum(li.amount for li in sub if li.name.startswith("Energy "))
         for sur in spec.surcharges:
             base = energy_sub if sur.of == "energy" else pretax
-            items.append(
+            sub.append(
                 LineItem(name=sur.name, season=tag, rate=sur.rate, amount=_r(base * sur.rate))
             )
 
+        items.extend(sub)
+
     total = _r(sum(li.amount for li in items))
     return LayerBill(
-        layer=spec.layer,
-        provider=spec.provider,
-        schedule_id=spec.schedule_id,
+        layer=meta.layer,
+        provider=meta.provider,
+        schedule_id=meta.schedule_id,
         line_items=items,
         total=total,
     )
@@ -243,16 +303,22 @@ def compute_layer(
 
 def compute_bill(
     series: IntervalSeries,
-    specs: list[TariffSpec],
+    specs: Sequence[TariffSpec | Sequence[TariffSpec]],
     period_start: date,
     period_end: date,
     *,
     care: bool = False,
     observed_adjustments: list[LineItem] | None = None,
 ) -> Bill:
-    """Itemize a full multi-layer bill (delivery + generation + observed adjustments)."""
+    """Itemize a full multi-layer bill (delivery + generation + observed adjustments).
+
+    Each element of ``specs`` is one layer, given either as a single spec or as several
+    effective-dated versions of that layer (see :func:`compute_layer`).
+    """
     layers = [compute_layer(series, s, period_start, period_end, care=care) for s in specs]
-    peak, off = _usage(series, specs[0], period_start, period_end)
+    first = specs[0]
+    tou_spec = first if isinstance(first, TariffSpec) else next(iter(first))
+    peak, off = _usage(series, tou_spec, period_start, period_end)
     return Bill(
         period_start=period_start,
         period_end=period_end,

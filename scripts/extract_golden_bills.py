@@ -50,9 +50,11 @@ def _one(pattern: str, text: str) -> str | None:
 def extract(pdf: Path) -> dict | None:
     t = _text(pdf)
     stmt = _one(r"Statement Date:\s*([\d/]+)", t)
+    # Period separator drifts by bill vintage: newer bills use " to ", older ones a
+    # spaced hyphen/en-dash ("10/27/2025 - 11/24/2025").
     period = re.search(
         r"Details of PG&E Electric Delivery Charges\s+"
-        r"(\d\d)/(\d\d)/(\d{4}) to (\d\d)/(\d\d)/(\d{4})",
+        r"(\d\d)/(\d\d)/(\d{4}) (?:to|[-\u2013]) (\d\d)/(\d\d)/(\d{4})",
         t,
     )
     if not stmt or not period:
@@ -68,11 +70,12 @@ def extract(pdf: Path) -> dict | None:
     gen_sec = t[g0:gas0] if g0 >= 0 else ""
     uut = rf"City of Santa Cruz Utility Users' Tax \(8\.500%\)\s+\$?{_NUM}"
 
+    # Older (pre-IGFC) statements prefix every line amount with '$'; newer ones don't.
     delivery = {
         "Base Services Charge": _sum(rf"Base Services Charge[^\n]*?@\$[\d.]+ \$?{_NUM}", deliv_sec),
-        "Energy Peak": _sum(rf"Energy Charges Peak [\d.]+kWh@\$[\d.]+ {_NUM}", deliv_sec),
-        "Energy Off Peak": _sum(rf"Off Peak [\d.]+kWh@\$[\d.]+ {_NUM}", deliv_sec),
-        "Baseline Credit": _sum(rf"Baseline Credit\s+[\d.]+kWh@-?\$?[\d.]+ {_NUM}", deliv_sec),
+        "Energy Peak": _sum(rf"Energy Charges Peak [\d.]+kWh@\$[\d.]+ \$?{_NUM}", deliv_sec),
+        "Energy Off Peak": _sum(rf"Off Peak [\d.]+kWh@\$[\d.]+ \$?{_NUM}", deliv_sec),
+        "Baseline Credit": _sum(rf"Baseline Credit\s+[\d.]+kWh@-?\$?[\d.]+ \$?{_NUM}", deliv_sec),
         "CARE Discount": _sum(rf"CARE Discount\s+{_NUM}", deliv_sec),
         PCIA: _sum(rf"(?<!Vintaged )Power Charge Indifference Adjustment\s+{_NUM}", deliv_sec),
         GEN_CREDIT: _sum(rf"Generation Credit\s+{_NUM}", deliv_sec),

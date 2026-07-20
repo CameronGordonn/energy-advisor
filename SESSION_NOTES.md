@@ -2,6 +2,74 @@
 
 Running log of decisions made and decisions pending. Newest first.
 
+## 2026-07-20 — Session 2 (M0 polish + approximation cleanup)
+
+Goal (Cameron): reconcile the remaining machine-readable bills, and resolve the flagged
+approximations. Result: **8 of 8 text-readable statements now reconcile within ±$2**
+(was 3), worst residual **+$0.21**. 36 tests green, ruff clean. README table has 8 rows.
+
+### Engine change — intra-period rate-version splitting (NEW capability)
+A single billing period can straddle a rate change, and **delivery and generation change
+on different dates**. Added `_rate_subperiods` + `load_spec_versions`: `compute_layer`
+now accepts a *list* of effective-dated versions and splits the period at the union of
+season boundaries and per-layer effective dates. Backward compatible (a single spec still
+works). `reconcile.py` loads all versions per layer.
+
+**Rate-version map discovered (all derived from the bills, cited in specs):**
+- E-TOU-C **delivery**: three winter versions —
+  `≤2025-12-31` (Peak 0.48974 / off 0.45974 / BLC −0.10084, no BSC),
+  `2026-01-01` (0.46460 / 0.43460 / −0.09566, no BSC),
+  `2026-03-01` (0.39757 / 0.36757 / −0.08140 + BSC $0.19713/day, IGFC). CARE rates + PCIA
+  (pre-2026 **0.00670**, 2026 **0.03679**) all on the bills.
+- 3CE **generation**: winter rate changed **2026-02-15** (peak 0.15386→0.12572,
+  off 0.12883→0.09930). The old gen spec was mislabeled `effective 2026-01-01`; **renamed
+  to `_2026-02-15`** and an earlier `_2025-01-01` version added. The **02-15 date was
+  derived from Cameron's interval data**: splitting the 01/28–02/26 period there reproduces
+  the bill's split kWh (peak 75.168 / off 265.363) to within the ~0.3 kWh read residual.
+
+### BUG FIXED — percent-surcharge double-count across same-season sub-periods
+Surcharges (UUT, franchise fee) were scoped by *season tag*. When one season has two
+sub-periods (a version change within winter, e.g. 3CE @ 02-15), the second run's surcharge
+base summed the first run's charges too → 03-01 bill was +$4.41 (gen UUT $10.22 vs $5.97).
+Fix: build each sub-period's lines in a local list and compute surcharges over just those.
+Regression test added (`test_surcharge_scoped_per_subperiod_not_per_season`).
+
+### RESOLVED — Generation Credit is now exact TOU (was flagged APPROX #4)
+The PG&E "Generation Credit" for CCA customers is a TOU-weighted avoided generation rate.
+Extended `PerKwhAdder` with optional TOU fields (`per_kwh_<season>_peak/_offpeak`) and
+`amount()`. Least-squares fit across bills gives an **exact** winter decomposition
+(predicts every winter bill to ≤$0.01): pre-2026 peak −0.16354 / off −0.13746; 2026 peak
+−0.12705 / off −0.10030. **Summer stays a single-bill blend −0.12013** (only 06/28 exists;
+can't separate peak/off yet — refine with a 2nd summer bill).
+
+### Franchise Fee — improved + bounded, still flagged
+Basis is **not cleanly recoverable** from the bills: FF is $0.02–0.39/sub-block and fits
+no single base consistently (0.13–0.16% of energy in 2026, ~0.23% pre-2026, and no better
+against pre-FF subtotal, PCIA+gen-credit, or 3CE generation). Modeled per-era as % of
+energy; residual <$0.05/bill. Kept APPROXIMATE with citation. Revisit from the PG&E
+franchise-fee tariff sheet if ever material.
+
+### OPEN — Santa Cruz "UUT Adjustment": prior "phase-out" hypothesis is WRONG
+With 8 bills (vs 2 last session), the net UUT does **not** trend to 0. Instead the
+*adjustment itself* is **roughly constant ~$6.5/month** (−5.55 to −7.47), largely
+independent of the gross UUT (which swings $6.2–$13.8 with usage). Net effective UUT is
+0.3%–48.5% with no trend. Looks like a **near-fixed monthly UUT credit/cap/exemption**,
+not a percentage or phase-out. Still not derivable from the bills. Handling unchanged:
+**observed per-bill input** for reconciliation; mechanism UNVERIFIED. **Needs Cameron**:
+does he know of a Santa Cruz UUT cap/exemption/rebate (esp. CARE-related)? Matters for the
+M2 counterfactual (can't read an adjustment off a bill that doesn't exist).
+Per-bill: 01/29 −6.58, 03/01 −7.47, 03/31 −6.58, 04/29 −6.49, 05/29 −6.28, 06/28 −6.71,
+11/26 −5.55, 12/28 −6.09 (delivery+generation adjustment combined).
+
+### Extractor generalized for the pre-IGFC bill format
+Older statements use a spaced hyphen/en-dash period separator (not " to ") and `$`-prefix
+every line amount. Loosened the regexes; the self-check (line items must sum to layer
+total) now passes for all 8 text bills. The **3 earliest (Aug–Oct 2025) are image-only**
+(pypdf yields whitespace) → need OCR; **no OCR tooling is installed** (no tesseract/
+poppler/pytesseract). Decision for Cameron: install OCR vs hand-enter line items vs skip.
+Note: one Oct 2025 statement likely carries an **electric** Climate Credit (needs modeling
+if OCR'd; the April CCC on this account was on GAS).
+
 ## 2026-07-19 — Session 1 (M0 kickoff)
 
 ### greenbutton parser — DONE (kickoff item 1), validated on the real export

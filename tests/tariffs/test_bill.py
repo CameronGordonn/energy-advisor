@@ -9,8 +9,7 @@ import pandas as pd
 import pytest
 
 from greenbutton.models import COL_ESTIMATED, COL_KWH, LOCAL_TZ, IntervalSeries, MeterMeta, Utility
-from tariffs.bill import _season_subperiods, compute_bill, compute_layer
-from tariffs.loader import load_spec_file
+from tariffs.bill import _rate_subperiods, _season_subperiods, compute_bill, compute_layer
 from tariffs.schema import Season, TariffSpec
 
 # --- helpers ---------------------------------------------------------------
@@ -70,6 +69,51 @@ def test_single_season_one_run():
     assert len(runs) == 1 and runs[0][0] is Season.WINTER
 
 
+# --- rate-version splitting within one billing period ----------------------
+
+
+def _versioned_spec(effective: str, peak_rate: float) -> TariffSpec:
+    """A minimal winter-only delivery spec with an 8.5% pretax surcharge."""
+    return TariffSpec.model_validate(
+        {
+            **SPEC,
+            "effective_date": effective,
+            "energy": {
+                "winter_peak": {"standard": peak_rate},
+                "winter_offpeak": {"standard": peak_rate},
+                "summer_peak": {"standard": peak_rate},
+                "summer_offpeak": {"standard": peak_rate},
+            },
+            "fixed_per_day": None,
+            "baseline": None,
+            "surcharges": [{"name": "UUT", "rate": 0.085, "of": "pretax", "citation": "test"}],
+        }
+    )
+
+
+def test_rate_subperiods_split_at_version_within_one_season():
+    v1 = _versioned_spec("2026-01-01", 0.40)
+    v2 = _versioned_spec("2026-01-15", 0.30)
+    runs = _rate_subperiods(date(2026, 1, 10), date(2026, 1, 20), [v1, v2])
+    assert [(r[0].effective_date, r[1], r[2], r[3]) for r in runs] == [
+        (date(2026, 1, 1), Season.WINTER, date(2026, 1, 10), date(2026, 1, 14)),
+        (date(2026, 1, 15), Season.WINTER, date(2026, 1, 15), date(2026, 1, 20)),
+    ]
+
+
+def test_surcharge_scoped_per_subperiod_not_per_season():
+    # Two versions, same (winter) season, split at Jan 15. The 8.5% surcharge must apply
+    # to each run's own energy subtotal — not the running season total (regression: a
+    # season-tag filter double-counted the first run in the second run's surcharge base).
+    v1 = _versioned_spec("2026-01-01", 0.40)
+    v2 = _versioned_spec("2026-01-15", 0.30)
+    # 1 kWh/hour, 24 kWh/day. Days 10-14 on v1 (5 days), 15-20 on v2 (6 days).
+    series = make_series("2026-01-10", 11)
+    lb = compute_layer(series, [v1, v2], date(2026, 1, 10), date(2026, 1, 20))
+    energy = lb.bucket()["Energy Peak"] + lb.bucket()["Energy Off Peak"]
+    assert lb.bucket()["UUT"] == round(0.085 * energy + 1e-9, 2)
+
+
 # --- exact synthetic reconciliation ---------------------------------------
 
 
@@ -126,10 +170,12 @@ def _interval_file() -> str | None:
 def test_real_bill_within_tolerance(ps, pe, net_total):
     from greenbutton import parse_pge_interval_csv
     from tariffs.bill import LineItem
+    from tariffs.loader import load_spec_versions
+    from tariffs.schema import Layer
 
     series, _ = parse_pge_interval_csv(_interval_file())
-    deliv = load_spec_file("src/tariffs/specs/pge_etou_c_delivery_2026-03-01.yaml")
-    gen = load_spec_file("src/tariffs/specs/cce_mbretch1_generation_2026-01-01.yaml")
+    deliv = load_spec_versions("E-TOU-C", Layer.DELIVERY)
+    gen = load_spec_versions("MBRETCH1", Layer.GENERATION)
     # observed UUT adjustments read from the statements
     adj = {
         (date(2026, 4, 28)): [-3.47, -2.81],

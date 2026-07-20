@@ -16,7 +16,7 @@ from pydantic import BaseModel
 
 from greenbutton.models import IntervalSeries
 from tariffs.bill import LineItem, compute_bill
-from tariffs.loader import load_specs
+from tariffs.loader import load_spec_versions
 from tariffs.schema import Layer
 
 GOLDEN_DIR = Path("tests/golden_bills")
@@ -64,8 +64,8 @@ def reconcile(
     pe = date.fromisoformat(fixture["period_end"])
     care = fixture.get("customer_class") == "CARE"
 
-    deliv = load_specs(fixture["specs"]["delivery"], Layer.DELIVERY, on=ps, specs_dir=specs_dir)
-    gen = load_specs(fixture["specs"]["generation"], Layer.GENERATION, on=ps, specs_dir=specs_dir)
+    deliv = load_spec_versions(fixture["specs"]["delivery"], Layer.DELIVERY, specs_dir=specs_dir)
+    gen = load_spec_versions(fixture["specs"]["generation"], Layer.GENERATION, specs_dir=specs_dir)
 
     exp = fixture["expected"]
     obs = [
