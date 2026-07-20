@@ -2,6 +2,22 @@
 
 Running log of decisions made and decisions pending. Newest first.
 
+## 2026-07-20 — Session 2 addendum (direction for next session)
+
+Session-2 work **merged to main** (`2b19e28`, fast-forward). Cameron: dad's SDG&E bills
+not available yet; asked whether to build CLI/API/Docker/deployment. **Decided NO** —
+those are roadmap "Later" (gated behind the M5 demand verdict); building delivery infra
+for one household with no validated demand is exactly what the roadmap guards against.
+Instead, next session runs **two parallel, data-unblocked workstreams** (full detail in
+HANDOFF.md "Plan for next session"):
+- **A: Build M1 from public sources** — SDG&E Green Button parser + SDG&E residential
+  schedule specs (TOU-DR1/2/-P, EV-TOU-5) + San Diego CCA generation overlay, all from
+  public tariff sheets with citations. Only the reconciliation DoD is blocked (needs dad's
+  bills); construction is not.
+- **B: Finish PG&E for non-CARE [M2 prep]** — the engine already bills non-CARE everywhere
+  except one gap: the standard (income-graduated) Base Services Charge in the 2026-03-01
+  spec. Fill from the tariff sheet; verify FF/UUT are class-independent.
+
 ## 2026-07-20 — Session 2 (M0 polish + approximation cleanup)
 
 Goal (Cameron): reconcile the remaining machine-readable bills, and resolve the flagged
