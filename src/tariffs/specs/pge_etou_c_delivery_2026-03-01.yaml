@@ -1,0 +1,74 @@
+# PG&E E-TOU-C — DELIVERY layer (generation supplied separately by CCA / 3CE).
+# Rates observed on customer bill statements 2026-05-29 and 2026-06-28
+# (RIN USCA-PGXX-0102-0000). The bill is a primary source for what was charged;
+# cross-reference the PG&E E-TOU-C tariff sheet (ELEC_SCHEDS_E-TOU-C.pdf) before
+# using for non-CARE customers or dates outside the observed window.
+schedule_id: E-TOU-C
+name: Time-of-Use (Peak Pricing 4-9 p.m. Every Day) - Delivery
+provider: PG&E
+layer: delivery
+effective_date: 2026-03-01   # Base Services Charge introduced Mar 2026; pre-Mar needs its own version
+citation: >-
+  PG&E E-TOU-C delivery, observed on customer bill statements 2026-05-29 & 2026-06-28
+  (RIN USCA-PGXX-0102-0000). Cross-ref PG&E tariff sheet ELEC_SCHEDS_E-TOU-C.pdf.
+
+seasons:
+  summer_months: [6, 7, 8, 9]        # PG&E summer = Jun 1 - Sep 30
+  winter_months: [1, 2, 3, 4, 5, 10, 11, 12]
+
+tou:
+  peak_hours: [16, 17, 18, 19, 20]   # 4:00-9:00 p.m. every day
+
+# Base Services Charge ($/day). CARE value exact from bill; non-CARE (standard) is
+# NOT on Cameron's bill -> left null. Billing a non-CARE customer raises until filled
+# from the tariff sheet (published ~$24.15/mo; exact daily rate to be confirmed).
+fixed_name: Base Services Charge
+fixed_per_day:
+  standard: null
+  care: 0.19713
+
+# Energy $/kWh. `standard` = full E-TOU-C rate (the bill's primary line); `care` =
+# the printed CARE rate. The billing function charges standard and emits a CARE
+# Discount line = sum (standard - care) x kWh, matching the bill's presentation.
+energy:
+  summer_peak:    {standard: 0.52240, care: 0.32918}
+  summer_offpeak: {standard: 0.39940, care: 0.24923}
+  winter_peak:    {standard: 0.39757, care: 0.24804}
+  winter_offpeak: {standard: 0.36757, care: 0.22854}
+
+baseline:
+  territory: T
+  allowance_kwh_per_day_summer: 7.1      # Territory T, all-electric (Heat Source H)
+  allowance_kwh_per_day_winter: 12.9
+  credit_per_kwh: {standard: -0.08140, care: -0.05291}
+
+# Per-kWh adders unique to CCA (departing-load) customers.
+adders:
+  - name: Power Charge Indifference Adjustment (2018 vintage)
+    per_kwh: 0.03679                     # flat; exact & consistent across all observed periods
+    citation: >-
+      PG&E PCIA 2018 vintage, derived from bill statements 2026-05-29 & 2026-06-28
+      (16.86/458.359, 8.96/243.56, 1.49/40.388 all = 0.03679). Cross-ref PCIA schedule.
+  - name: Generation Credit (PG&E generation not supplied)
+    per_kwh_summer: -0.1201              # APPROX: derived seasonal blend; PG&E gen is TOU-weighted
+    per_kwh_winter: -0.1071
+    citation: >-
+      PG&E generation credit for CCA customers, derived (seasonal blended $/kWh) from
+      bills. APPROXIMATE — true rate is TOU/seasonal; cross-ref PG&E generation tariff.
+
+# Franchise fee: small ($0.02-0.27); exact basis not cleanly derivable from the bill.
+# Modeled as a percent of energy charges (residual < $0.05). Cross-ref franchise fee tariff.
+surcharges:
+  - name: Franchise Fee Surcharge
+    rate: 0.00140
+    of: energy
+    citation: >-
+      PG&E Franchise Fee Surcharge. APPROXIMATE (~0.14% of energy) — derived from bills
+      (0.27/171.97, 0.14/104.67, 0.02/15.11); exact basis to confirm from tariff.
+  - name: City of Santa Cruz Utility Users' Tax
+    rate: 0.085
+    of: pretax
+    citation: >-
+      City of Santa Cruz UUT 8.5% on delivery subtotal (pre-FF); gross value matches
+      bill to the cent. NOTE: a separate observed 'UUT Adjustment' offsets most of this
+      (see SESSION_NOTES) and is applied by the reconciliation harness, not this spec.

@@ -1,0 +1,22 @@
+name: energy-advisor
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - pandas
+  - numpy
+  - scipy
+  - matplotlib
+  - pydantic
+  - pyyaml
+  - requests
+  - pytest
+  - pytest-cov
+  - jupyterlab
+  - ruff
+  - pip
+  - pip:
+      - cvxpy          # battery dispatch optimization (LP/QP)
+      - typer          # CLI
+      - rich           # CLI output
+      - pypdf          # bill-PDF extraction for golden fixtures (dev tool)

@@ -1,0 +1,46 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "energy-advisor"
+version = "0.0.0"
+description = "Independent home energy decision engine for California IOU customers (reconciliation-first)."
+requires-python = ">=3.12"
+# Runtime deps are managed via environment.yml (conda). This section is
+# intentionally minimal; the package is developed/run inside the `energy-advisor`
+# conda env, not pip-installed standalone.
+dependencies = []
+
+[tool.setuptools]
+# Flat package layout under src/ per CLAUDE.md architecture:
+#   src/greenbutton, src/tariffs, src/nem3, ...
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+addopts = "-ra"
+filterwarnings = ["error"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "F",    # pyflakes
+    "I",    # isort
+    "UP",   # pyupgrade
+    "B",    # flake8-bugbear
+    "SIM",  # flake8-simplify
+    "RUF",  # ruff-specific
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["greenbutton", "tariffs", "nem3", "scenarios", "uncertainty", "report"]

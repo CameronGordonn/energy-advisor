@@ -1,0 +1,37 @@
+# Central Coast Community Energy (3CE) — GENERATION layer (CCA overlay on PG&E delivery).
+# 3CE supplies generation; PG&E does delivery/billing. Rates observed on customer bill
+# statements 2026-05-29 & 2026-06-28 (schedule MBRETCH1 "3Cchoice", RIN USCA-XXMB-0338-PGE).
+# 3CE generation is charged at one rate set (no CARE variant on the generation page;
+# the CARE discount is applied entirely on the PG&E delivery layer).
+schedule_id: MBRETCH1
+name: 3Cchoice Time-of-Use (Peak Pricing 4-9 p.m. Every Day) - Generation
+provider: Central Coast Community Energy (3CE)
+layer: generation
+effective_date: 2026-01-01
+citation: >-
+  3CE MBRETCH1 generation, observed on customer bill statements 2026-05-29 & 2026-06-28
+  (RIN USCA-XXMB-0338-PGE). Cross-ref 3cenergy.org/billing for published rate updates.
+
+seasons:
+  summer_months: [6, 7, 8, 9]
+  winter_months: [1, 2, 3, 4, 5, 10, 11, 12]
+
+tou:
+  peak_hours: [16, 17, 18, 19, 20]   # aligned to PG&E E-TOU-C peak window
+
+energy:
+  summer_peak:    {standard: 0.19573}
+  summer_offpeak: {standard: 0.09376}
+  winter_peak:    {standard: 0.12572}
+  winter_offpeak: {standard: 0.09930}
+
+# California Energy Commission surcharge, $/kWh (fixed statewide).
+energy_commission_tax_per_kwh: 0.0003
+
+surcharges:
+  - name: City of Santa Cruz Utility Users' Tax
+    rate: 0.085
+    of: pretax
+    citation: >-
+      City of Santa Cruz UUT 8.5% on generation subtotal; gross matches bill to the cent.
+      A separate observed 'UUT Adjustment' offsets most of it (applied by the harness).

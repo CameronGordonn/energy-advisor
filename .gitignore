@@ -1,0 +1,43 @@
+# --- Privacy: real customer data never enters git (see CLAUDE.md) ---
+data/
+tests/golden_bills/raw/
+*.pdf
+
+# Secrets / API keys (PVWatts, etc.)
+.env
+.env.*
+!.env.example
+secrets.yaml
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+.installed.cfg
+
+# Virtual envs (conda env is external; ignore any local ones)
+.venv/
+venv/
+env/
+
+# --- Tooling caches ---
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# --- Jupyter ---
+.ipynb_checkpoints/
+
+# --- Editors / OS ---
+.vscode/
+.idea/
+.DS_Store
+*.swp
