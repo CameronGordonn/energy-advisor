@@ -1,24 +1,21 @@
-# PG&E E-TOU-C — DELIVERY layer, PRE-IGFC (before the Mar-2026 Base Services Charge)
-# and pre-2026 rate cycle. Rates observed on customer bill statements 2025-11-26,
-# 2025-12-28 and the 12/27-12/31 sub-block of 2026-01-29 (RIN USCA-PGXX-0102-0000).
-# Delivery per-kWh rates were HIGHER pre-IGFC because fixed costs had not yet been
-# unbundled into the Base Services Charge (introduced 2026-03-01).
+# PG&E E-TOU-C — DELIVERY layer, EARLY-2025 summer cycle (through 2025-08-31), PRE-IGFC.
+# Rates observed on customer bill statements 2025-08-27 and the 08/26–08/31 block of
+# 2025-09-26 (older RIN USCA-PGXX-0100-0000).
 #
-# effective_date is an OBSERVED LOWER BOUND: these rates are confirmed on the winter
-# 2025 bills we hold (Oct–Dec 2025). The true start is unconfirmed and summer-2025
-# rates are unknown (the Aug–Sep 2025 statements are image-only) — hence summer energy
-# and the summer generation credit are left null so billing a summer-2025 date REFUSES
-# rather than guesses.
+# Superseded 2025-09-01 (see pge_etou_c_delivery_2025-09-01.yaml): energy and baseline
+# credit both stepped that date. Winter rates for this cycle are unknown (no readable
+# pre-Sep-2025 winter bill) — left null so billing a winter-2025 date REFUSES rather than
+# guesses. effective_date is an observed lower bound.
 schedule_id: E-TOU-C
-name: Time-of-Use (Peak Pricing 4-9 p.m. Every Day) - Delivery [pre-IGFC]
+name: Time-of-Use (Peak Pricing 4-9 p.m. Every Day) - Delivery [early-2025 summer]
 provider: PG&E
 layer: delivery
 effective_date: 2025-01-01
 citation: >-
-  PG&E E-TOU-C delivery, observed on customer bill statements 2025-11-26 & 2025-12-28
-  and the 12/27/2025-12/31/2025 sub-block of statement 2026-01-29 (RIN
-  USCA-PGXX-0102-0000). Pre-IGFC (no Base Services Charge). effective_date is an
-  observed lower bound; cross-ref PG&E tariff sheet ELEC_SCHEDS_E-TOU-C.pdf.
+  PG&E E-TOU-C delivery, observed on customer bill statement 2025-08-27 and the
+  08/26/2025-08/31/2025 block of 2025-09-26 (RIN USCA-PGXX-0100-0000). Pre-IGFC.
+  effective_date is an observed lower bound; cross-ref PG&E tariff sheet
+  ELEC_SCHEDS_E-TOU-C.pdf.
 
 seasons:
   summer_months: [6, 7, 8, 9]
@@ -27,35 +24,34 @@ seasons:
 tou:
   peak_hours: [16, 17, 18, 19, 20]
 
-# No Base Services Charge before 2026-03-01.
 fixed_per_day: null
 
-# Summer left null: no summer-2025 bill is machine-readable (image-only statements).
+# Winter left null: no readable pre-Sep-2025 winter bill.
 energy:
-  summer_peak:    {}
-  summer_offpeak: {}
-  winter_peak:    {standard: 0.48974, care: 0.30393}
-  winter_offpeak: {standard: 0.45974, care: 0.28443}
+  summer_peak:    {standard: 0.62569, care: 0.39142}
+  summer_offpeak: {standard: 0.50269, care: 0.31147}
+  winter_peak:    {}
+  winter_offpeak: {}
 
 baseline:
   territory: T
   allowance_kwh_per_day_summer: 7.1
   allowance_kwh_per_day_winter: 12.9
-  credit_per_kwh: {standard: -0.10084, care: -0.06555}
+  credit_per_kwh: {standard: -0.10301, care: -0.06695}
 
 adders:
   - name: Power Charge Indifference Adjustment (2018 vintage)
     per_kwh: 0.00670
     citation: >-
-      PG&E PCIA 2018 vintage (pre-2026), derived flat from bills 2025-11-26 (2.42/361.421)
-      & 2025-12-28 (2.21/330.400) = 0.00670. Cross-ref PCIA schedule.
+      PG&E PCIA 2018 vintage (pre-2026), derived flat from bill 2025-08-27
+      (1.62/241.474 = 0.00671). Cross-ref PCIA schedule.
   - name: Generation Credit (PG&E generation not supplied)
-    per_kwh_winter_peak:    -0.16354
-    per_kwh_winter_offpeak: -0.13746
+    per_kwh_summer_peak:    -0.23395
+    per_kwh_summer_offpeak: -0.13206
     citation: >-
-      PG&E generation credit for CCA customers, winter TOU peak/off least-squares fit
-      across the 3 pre-2026 winter sub-blocks (predicts each to <=$0.003). Summer null
-      (no readable summer-2025 bill). Cross-ref PG&E generation tariff.
+      PG&E generation credit for CCA customers, summer TOU peak/off least-squares fit
+      across the 2025 summer sub-blocks (<=$0.003); winter null (no readable pre-Sep-2025
+      winter bill). Cross-ref PG&E generation tariff.
 
 surcharges:
   - name: Franchise Fee Surcharge
@@ -63,7 +59,7 @@ surcharges:
     of: energy
     citation: >-
       PG&E Franchise Fee Surcharge, pre-2026. APPROXIMATE (~0.23% of energy) — derived
-      from bills (0.39/169.25, 0.36/154.34); exact basis unconfirmed, residual <$0.05.
+      from bills; exact basis unconfirmed, residual <$0.05.
   - name: City of Santa Cruz Utility Users' Tax
     rate: 0.085
     of: pretax

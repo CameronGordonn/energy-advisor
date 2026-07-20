@@ -14,6 +14,10 @@ dependencies:
   - pytest-cov
   - jupyterlab
   - ruff
+  - tesseract        # OCR for the image-only (scanned) bill PDFs (dev tool)
+  - poppler          # pdftoppm: rasterize PDF pages for OCR
+  - pytesseract      # tesseract Python wrapper
+  - pdf2image        # PDF -> PIL images for OCR
   - pip
   - pip:
       - cvxpy          # battery dispatch optimization (LP/QP)

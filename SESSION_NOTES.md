@@ -61,6 +61,33 @@ M2 counterfactual (can't read an adjustment off a bill that doesn't exist).
 Per-bill: 01/29 −6.58, 03/01 −7.47, 03/31 −6.58, 04/29 −6.49, 05/29 −6.28, 06/28 −6.71,
 11/26 −5.55, 12/28 −6.09 (delivery+generation adjustment combined).
 
+### OCR'd the 3 image bills — full 12-month history now reconciles (11/11 within ±$2)
+Cameron chose to install OCR. Added tesseract 5.5.2 + poppler + pytesseract + pdf2image
+to the conda env. OCR'd the 3 image statements (300 dpi): **08/27, 09/26, 10/28 2025**
+(periods 08/02–10/26). These are summer/fall and revealed a richer rate history:
+- **Two summer-2025 delivery rate versions** with a step on **2025-09-01**:
+  ≤08/31 Peak 0.62569 / off 0.50269 / BLC −0.10301 (CARE 0.39142 / 0.31147 / −0.06695);
+  09/01+ Peak 0.61457 / off 0.49157 / BLC −0.10084 (CARE 0.38507 / 0.30512 / −0.06555).
+  The existing pre-2026 delivery spec was really the 09/01 version — **renamed to
+  `_2025-09-01`** and a new **`_2025-01-01`** (early-summer) added.
+- **3CE summer generation** 0.21021 / 0.13233 (constant Aug–Sep; the 09/01 PG&E step did
+  not move 3CE). Added to the 3CE `_2025-01-01` spec.
+- **Summer Generation Credit** TOU (delivery adder) peak −0.23395 / off −0.13206
+  (least-squares fit across the 2025 summer sub-blocks, ≤$0.003).
+- **California Climate Credit −$58.23** on the 10/28 statement (electric). PG&E folds it
+  into the account-summary "Electric Adjustments −60.97" (= climate −58.23 + UUT adj
+  −2.74). Modeled as an **observed adjustment** line (like the UUT adjustment), since it's
+  a fixed regulatory credit, not usage-derived. For M2, model as a versioned semiannual
+  (Apr/Oct) credit line.
+
+The 2-column bill layout doesn't survive OCR into the extractor's single-flow regexes, so
+these 3 fixtures were **hand-built from OCR and verified** (line items sum to each layer
+total to the cent). The extractor skips them, so `--write` won't clobber them. All rates
+transcribed from OCR are validated by the reconciliation gate itself (model vs OCR'd
+totals): **08/27 +$0.16, 09/26 +$0.22, 10/28 +$0.21** — all PASS. Note 2025 summer gen
+credit (peak 0.234) is much higher than 2026 summer (blend 0.120): PG&E generation/avoided
+cost fell year-over-year (different version specs, expected).
+
 ### Extractor generalized for the pre-IGFC bill format
 Older statements use a spaced hyphen/en-dash period separator (not " to ") and `$`-prefix
 every line amount. Loosened the regexes; the self-check (line items must sum to layer

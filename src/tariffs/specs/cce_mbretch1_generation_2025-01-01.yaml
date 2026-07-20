@@ -3,9 +3,9 @@
 # old-rate sub-block of 2026-03-01 (schedule MBRETCH1 "3Cchoice", RIN USCA-XXMB-0338-PGE).
 # Superseded 2026-02-15 (see cce_mbretch1_generation_2026-02-15.yaml).
 #
-# effective_date is an OBSERVED LOWER BOUND (confirmed on winter-2025 bills). Summer left
-# null: no summer-2025 3CE bill is machine-readable (Aug–Sep 2025 statements are images),
-# so billing a summer-2025 date refuses rather than guesses.
+# effective_date is an OBSERVED LOWER BOUND (confirmed on Aug 2025 – Feb 2026 bills; the
+# Aug–Oct 2025 statements are image PDFs read via OCR). 3CE summer and winter rates held
+# constant across this whole span (the 09/01/2025 PG&E rate step did not move 3CE).
 schedule_id: MBRETCH1
 name: 3Cchoice Time-of-Use (Peak Pricing 4-9 p.m. Every Day) - Generation [pre-2026-02-15]
 provider: Central Coast Community Energy (3CE)
@@ -25,8 +25,8 @@ tou:
   peak_hours: [16, 17, 18, 19, 20]
 
 energy:
-  summer_peak:    {}
-  summer_offpeak: {}
+  summer_peak:    {standard: 0.21021}
+  summer_offpeak: {standard: 0.13233}
   winter_peak:    {standard: 0.15386}
   winter_offpeak: {standard: 0.12883}
 

@@ -1,0 +1,34 @@
+statement_date: 10-28-2025
+period_start: '2025-09-25'
+period_end: '2025-10-26'
+utility: PG&E
+customer_class: CARE
+specs:
+  delivery: E-TOU-C
+  generation: MBRETCH1
+expected:
+  delivery:
+    line_items:
+      Energy Peak: 70.9
+      Energy Off Peak: 138.76
+      Baseline Credit: -38.12
+      CARE Discount: -66.33
+      Power Charge Indifference Adjustment (2018 vintage): 2.92
+      Generation Credit (PG&E generation not supplied): -64.81
+      Franchise Fee Surcharge: 0.47
+      City of Santa Cruz Utility Users' Tax: 3.68
+    total: 47.47
+  generation:
+    line_items:
+      Energy Peak: 22.65
+      Energy Off Peak: 38.52
+      Energy Commission Tax: 0.13
+      City of Santa Cruz Utility Users' Tax: 5.2
+    total: 66.5
+  observed_adjustments:
+    California Climate Credit (observed): -58.23
+    UUT Adjustment (delivery, observed): -2.74
+    UUT Adjustment (generation, observed): -3.89
+  electric_net_total: 49.11
+tolerance_dollars: 2.0
+source: PG&E statement 10/28/2025 (anonymized; no PII; extracted via OCR of image PDF).

@@ -7,6 +7,12 @@ regression targets the reconciliation harness checks the engine against.
 Anonymization: only statement date, billing period, per-line dollar amounts, and the
 schedule identity survive. No name, address, account/meter number, or usage-by-day.
 
+Handles the text (pypdf-readable) statements. The 3 earliest (Aug-Oct 2025) are image
+PDFs whose two-column layout doesn't survive OCR into these single-flow regexes; their
+fixtures (`pge_08-27-2025`, `pge_09-26-2025`, `pge_10-28-2025`) were built by hand from
+OCR and verified (line items sum to each layer total). This script skips them, so a
+re-run with --write will not clobber those hand-built fixtures.
+
 Usage:  python scripts/extract_golden_bills.py [--write]
 """
 

@@ -16,6 +16,9 @@ and is regenerated from the golden-bill regression suite.
 <!-- RECONCILIATION-TABLE:START -->
 | Utility | Schedule | Bill period | Actual $ | Modeled $ | Δ $ | Within ±$2 |
 |---------|----------|-------------|---------:|----------:|----:|:----------:|
+| PG&E | E-TOU-C + 3CE (CARE) | 2025-08-02 → 2025-08-25 | 70.57 | 70.73 | +0.16 | ✅ |
+| PG&E | E-TOU-C + 3CE (CARE) | 2025-08-26 → 2025-09-24 | 107.52 | 107.74 | +0.22 | ✅ |
+| PG&E | E-TOU-C + 3CE (CARE) | 2025-09-25 → 2025-10-26 | 49.11 | 49.32 | +0.21 | ✅ |
 | PG&E | E-TOU-C + 3CE (CARE) | 2025-10-27 → 2025-11-24 | 82.08 | 82.10 | +0.02 | ✅ |
 | PG&E | E-TOU-C + 3CE (CARE) | 2025-11-25 → 2025-12-26 | 73.77 | 73.87 | +0.10 | ✅ |
 | PG&E | E-TOU-C + 3CE (CARE) | 2025-12-27 → 2026-01-27 | 156.88 | 157.09 | +0.21 | ✅ |
