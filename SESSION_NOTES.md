@@ -2,6 +2,122 @@
 
 Running log of decisions made and decisions pending. Newest first.
 
+## 2026-07-23 — Session 3 (Workstream B complete; Workstream A step 1 complete)
+
+Committed `70677c2`. **56 tests green, ruff clean, all 11 PG&E golden bills still
+reconcile** (worst +$0.22) after the parser refactor.
+
+### DONE — Workstream B: non-CARE PG&E billing unblocked
+Pulled the real PG&E E-TOU-C tariff sheet (`ELEC_SCHEDS_E-TOU-C.pdf`, **Cal. P.U.C.
+Sheet 61364-E**, Advice 7846-E, effective 2026-03-01). It is a **primary-source
+cross-check of M0**: the sheet's Total Usage rates (S 0.52240/0.39940, W 0.39757/0.36757)
+and Baseline Credit (−0.08140) **match the values M0 derived from the bills exactly**.
+Good independent confirmation the reconciliation wasn't curve-fitting.
+
+**The March-2026 Base Services Charge is income-graduated (IGFC), $ per customer per day:**
+- **Income Tier 1** (0–200% FPG / CARE): **0.19713** ← matches Cameron's bill to the cent
+- **Income Tier 2** (200–250% FPG / FERA, or affordable-housing ≤80% AMI): **0.39688**
+- **Income Tier 3** (everyone else — the non-CARE default): **0.79343** (~$24.13/mo)
+
+Filled `standard: 0.79343` (Tier 3). All three tiers documented in the spec; **FERA
+(Tier 2) is a distinct customer class the engine does not yet model** — the `Rate` type
+only has `standard`/`care`. Add a third variant if a FERA customer ever appears.
+
+**FF/UUT class-independence — VERIFIED.** The IGFC is the *only* income-graduated
+component. Franchise Fee and UUT are percentages of a subtotal and their rates do not
+vary by CARE/FERA/income tier, so non-CARE billing reuses them unchanged. Noted in-spec.
+
+Also on that sheet, for the still-open Climate Credit item: **California Climate Credit
+$(36.18) per household, semi-annual, paid in the August and September bill cycles**
+(PG&E E-TOU-C). That's the versioned-credit figure M2 needs — note it is Aug/Sep on this
+schedule, not the Apr/Oct the earlier notes assumed.
+
+### DONE — Workstream A step 1: SDG&E Green Button parser
+**Both IOUs run the same Opower "Download My Data" platform**, so the file skeleton and
+all the hard parts (interval inference, DST folding policy, PII masking, gap accounting)
+are identical. Extracted them into **`src/greenbutton/_common.py`** and refactored
+`pge.py` onto it — behavior byte-identical, verified by the 13 PG&E tests *and* the
+11-bill reconciliation. `sdge.py` then only carries what genuinely differs:
+- **`M/D/YYYY` unpadded dates** (vs PG&E's ISO) — wrong-format input is rejected clearly.
+- **IMPORT/EXPORT register split** for NEM/solar accounts. M1 bills **grid import**; a
+  non-zero export register is surfaced in `ParseReport.notes` rather than silently
+  dropped (NEM export netting is M3). Non-solar accounts use the single USAGE column.
+16 tests. Built to the documented format — **validate against dad's first real export.**
+
+### BLOCKER FOUND — the tariff engine is 2-period; SDG&E needs 3-period + day-type TOU
+This is the reason Workstream A steps 2–3 (specs + CCA overlay) did **not** land. Pulled
+SDG&E **Schedule TOU-DR1, Cal. P.U.C. Sheets 29952–29955-E**. SDG&E residential TOU is
+structurally richer than anything the engine can currently express:
+
+1. **Three TOU periods** (On-Peak / Off-Peak / Super-Off-Peak). `TouDef` has a single
+   `peak_hours` list and treats off-peak as the complement — it cannot represent a third.
+2. **Weekday vs weekend/holiday schedules differ.** Weekday super-off-peak is
+   midnight–6am; weekend/holiday super-off-peak is **midnight–2pm**. The engine's
+   `_usage()` keys off hour only, never the day type.
+3. **Month-conditional periods.** Winter weekday **10am–2pm in March and April only** is
+   super-off-peak, carved out of off-peak.
+4. Per public reporting, **SDG&E expands weekday super-off-peak to 10am–2pm year-round
+   from 2026-05-01** — i.e. this needs its own effective-dated version (the engine's
+   version-splitting already handles that part).
+
+**TOU-DR1 periods as filed** (all local time):
+- *Weekdays* — On-Peak 16:00–21:00; Off-Peak 06:00–16:00 + 21:00–24:00 (winter excluding
+  10:00–14:00 in Mar/Apr); Super-Off-Peak 00:00–06:00 (+ winter 10:00–14:00 in Mar/Apr).
+- *Weekends & holidays* — On-Peak 16:00–21:00; Off-Peak 14:00–16:00 + 21:00–24:00;
+  Super-Off-Peak 00:00–14:00.
+  (The filed sheet mislabels the second table "Weekdays and Holidays"; context and the
+  period definitions make clear it is **weekends** and holidays.)
+
+**Proposed engine design (backward compatible — carry into next session):** replace
+`TouDef.peak_hours` with an ordered, first-match-wins rule list —
+`{period, hours: [[start,end)], days: all|weekday|weekend, months: [...]}` plus a
+`default_period`. Legacy `peak_hours` stays as sugar that normalizes to periods
+`peak`/`offpeak`, so **every existing PG&E spec and its YAML energy keys
+(`summer_peak`, `winter_offpeak`, …) keep working untouched**; SDG&E specs use periods
+`on_peak`/`off_peak`/`super_off_peak` with keys `summer_on_peak`, etc. Then `energy`
+becomes `dict[str, Rate]` keyed `f"{season}_{period}"`, `_usage()` returns kWh **per
+period** instead of `(peak, off)`, and the energy/CARE/TOU-adder loops iterate periods.
+**The 11-bill golden reconciliation is the regression gate for this refactor.**
+
+### SDG&E structural facts captured (from Sheets 29952–29955-E) — for the specs
+- **Delivery/generation split is explicit in the tariff**, which maps cleanly onto our
+  layer model: **UDC Total** (delivery) + **DWR-BC** (bond charge) + **EECC** (commodity
+  = the generation layer a CCA replaces) = Total Rate. This is the SDG&E analog of the
+  PG&E/3CE split and is exactly how the CCA overlay should be layered.
+- **UDC components** (and therefore the non-bypassable charges, invariant #4):
+  Transmission, Distribution, **PPP** 0.01347, **ND** (0.00005), **CTC** 0.00165, LGC,
+  RS, TRAC. With **DWR-BC 0.00549**, the NBC set (PPP + ND + CTC + DWR-BC) ≈ **0.0206/kWh**
+  on this sheet — the documented core of the ~2.5¢ import floor (wildfire-fund and other
+  components to be added from current sheets).
+- **Minimum Bill $0.329/day**, CARE/FERA 50% discount → **$0.164/day**. NOTE this is a
+  *second, distinct* floor from the NBC import floor — **decide which governs** when both
+  bind (see open decisions).
+- **Baseline credit applies up to 130% of baseline** — materially different from PG&E's
+  100%. `Baseline` in the schema currently credits `min(usage, allowance)`; SDG&E needs
+  `min(usage, 1.30 × allowance)`. Add a multiplier field.
+- **Franchise Fee Differential 5.78%** within the City of San Diego (cited, unlike the
+  PG&E franchise fee which is still APPROXIMATE).
+- **CARE surcharge $0.00437/kWh**, CARE customers exempt.
+- **California Climate Credit $(33.50)** semi-annual per Schedule GHG-ARR.
+
+**CAVEAT — these rate *values* are from the schedule's Jan-1-2018 filing (Advice 3167-E)
+and are STALE.** The *structure* above is authoritative and reusable; the *numbers* must
+be re-pulled from the current "Total Rates Table" regulatory PDFs before any spec ships.
+TOU-DR1 is also the "experimental" pilot schedule — confirm which of TOU-DR1 / TOU-DR2 /
+TOU-DR-P / EV-TOU-5 dad is actually on before treating any as the default.
+
+### Open decisions (need Cameron / need dad's bill)
+1. **Holiday calendar.** SDG&E prices holidays as weekend days, which moves 16:00–21:00
+   usage from On-Peak to a cheaper period on ~6–10 days/year — real dollars. The exact
+   observed-holiday list must come from the tariff (Rule 1 / the schedule's definitions),
+   **not guessed**. Blocks a correct day-type implementation.
+2. **Minimum bill vs NBC import floor** — which governs when both bind, and does the
+   minimum bill apply to the delivery layer only or the combined bill? Affects every
+   low-usage and high-solar month.
+3. **Which CCA** — San Diego Community Power (City of SD) vs Clean Energy Alliance (parts
+   of N. County). Unresolvable until dad's bill; drives which generation overlay to author.
+4. **Which schedule** dad is actually on (TOU-DR1 vs TOU-DR2 vs TOU-DR-P vs EV-TOU-5).
+
 ## 2026-07-20 — Session 2 addendum (direction for next session)
 
 Session-2 work **merged to main** (`2b19e28`, fast-forward). Cameron: dad's SDG&E bills
