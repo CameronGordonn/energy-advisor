@@ -1,16 +1,21 @@
 # PG&E E-TOU-C — DELIVERY layer (generation supplied separately by CCA / 3CE).
 # Rates observed on customer bill statements 2026-05-29 and 2026-06-28
-# (RIN USCA-PGXX-0102-0000). The bill is a primary source for what was charged;
-# cross-reference the PG&E E-TOU-C tariff sheet (ELEC_SCHEDS_E-TOU-C.pdf) before
-# using for non-CARE customers or dates outside the observed window.
+# (RIN USCA-PGXX-0102-0000), CROSS-VERIFIED against the published PG&E E-TOU-C tariff
+# sheet (Cal. P.U.C. Sheet 61364-E, Advice 7846-E, effective 2026-03-01): the sheet's
+# Total Usage rates (S peak 0.52240 / off 0.39940; W peak 0.39757 / off 0.36757) and
+# Baseline Credit (-0.08140) match this spec's `standard` values exactly, and its Base
+# Services Charge tiers supply the non-CARE value below.
 schedule_id: E-TOU-C
 name: Time-of-Use (Peak Pricing 4-9 p.m. Every Day) - Delivery
 provider: PG&E
 layer: delivery
 effective_date: 2026-03-01   # Base Services Charge introduced Mar 2026; pre-Mar needs its own version
 citation: >-
-  PG&E E-TOU-C delivery, observed on customer bill statements 2026-05-29 & 2026-06-28
-  (RIN USCA-PGXX-0102-0000). Cross-ref PG&E tariff sheet ELEC_SCHEDS_E-TOU-C.pdf.
+  PG&E E-TOU-C delivery. Rates observed on customer bill statements 2026-05-29 &
+  2026-06-28 (RIN USCA-PGXX-0102-0000) and cross-verified against PG&E tariff sheet
+  Cal. P.U.C. Sheet 61364-E (Sheet 2, ELEC_SCHEDS_E-TOU-C.pdf; Advice 7846-E, cancels
+  61249-E), effective 2026-03-01. Total Usage + Baseline Credit + Base Services Charge
+  tiers all match the sheet.
 
 seasons:
   summer_months: [6, 7, 8, 9]        # PG&E summer = Jun 1 - Sep 30
@@ -19,13 +24,19 @@ seasons:
 tou:
   peak_hours: [16, 17, 18, 19, 20]   # 4:00-9:00 p.m. every day
 
-# Base Services Charge ($/day). CARE value exact from bill; non-CARE (standard) is
-# NOT on Cameron's bill -> left null. Billing a non-CARE customer raises until filled
-# from the tariff sheet (published ~$24.15/mo; exact daily rate to be confirmed).
+# Base Services Charge ($/day) — the March-2026 Income-Graduated Fixed Charge (IGFC).
+# It is graduated by income tier (per Cal. P.U.C. Sheet 61364-E, $ per customer per day):
+#   Income Tier 1 (0-200% FPG / CARE-eligible):        0.19713  <- `care` below
+#   Income Tier 2 (200-250% FPG / FERA, or AMI<=80%):  0.39688
+#   Income Tier 3 (all others, the non-CARE default):  0.79343  <- `standard` below
+# We model the two tiers the engine's customer classes map to: `standard` = Tier 3 (the
+# default non-CARE/non-FERA rate, ~$24.13/mo) and `care` = Tier 1 (matches Cameron's bill
+# to the cent). FERA (Tier 2) is a distinct class not yet modeled; add if a FERA customer
+# appears. `standard` was confirmed from the tariff sheet, not observed on this CARE bill.
 fixed_name: Base Services Charge
 fixed_per_day:
-  standard: null
-  care: 0.19713
+  standard: 0.79343   # Income Tier 3 (non-CARE default), Cal. P.U.C. Sheet 61364-E
+  care: 0.19713       # Income Tier 1 (CARE); exact from bill and sheet
 
 # Energy $/kWh. `standard` = full E-TOU-C rate (the bill's primary line); `care` =
 # the printed CARE rate. The billing function charges standard and emits a CARE
@@ -63,17 +74,23 @@ adders:
 
 # Franchise fee: small ($0.02-0.27); exact basis not cleanly derivable from the bill.
 # Modeled as a percent of energy charges (residual < $0.05). Cross-ref franchise fee tariff.
+# CLASS-INDEPENDENT: both surcharges below are percentages of a subtotal and their rate
+# does NOT vary by income tier / CARE / FERA (unlike the Base Services Charge). The IGFC is
+# the only income-graduated component; the Franchise Fee and UUT percentages apply
+# identically to standard and CARE customers, so non-CARE billing reuses them unchanged.
 surcharges:
   - name: Franchise Fee Surcharge
     rate: 0.00140
     of: energy
     citation: >-
       PG&E Franchise Fee Surcharge. APPROXIMATE (~0.14% of energy) — derived from bills
-      (0.27/171.97, 0.14/104.67, 0.02/15.11); exact basis to confirm from tariff.
+      (0.27/171.97, 0.14/104.67, 0.02/15.11); exact basis to confirm from tariff. Rate is
+      customer-class-independent (a % surcharge, not income-graduated).
   - name: City of Santa Cruz Utility Users' Tax
     rate: 0.085
     of: pretax
     citation: >-
       City of Santa Cruz UUT 8.5% on delivery subtotal (pre-FF); gross value matches
-      bill to the cent. NOTE: a separate observed 'UUT Adjustment' offsets most of this
+      bill to the cent. Municipal tax rate is customer-class-independent (not income-
+      graduated). NOTE: a separate observed 'UUT Adjustment' offsets most of this
       (see SESSION_NOTES) and is applied by the reconciliation harness, not this spec.

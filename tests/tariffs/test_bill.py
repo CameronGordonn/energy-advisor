@@ -151,6 +151,44 @@ def test_non_care_fixed_rate_missing_raises():
         compute_layer(make_series("2026-01-01", 1), spec, date(2026, 1, 1), date(2026, 1, 1))
 
 
+def test_pge_etou_c_non_care_delivery_runs_and_is_sane():
+    """The real 2026-03-01 E-TOU-C delivery spec must now bill a *non-CARE* customer.
+
+    Regression for Workstream B: `fixed_per_day.standard` (the Income Tier 3 Base Services
+    Charge, $0.79343/day) was filled from Cal. P.U.C. Sheet 61364-E, unblocking non-CARE
+    billing. Before the fix this raised "no standard value". This is a sanity/no-raise
+    check (not a golden reconciliation — no non-CARE bill exists yet): every headline line
+    is present with the tariff-sheet rate, and the non-CARE bill exceeds the CARE bill on
+    the same usage (no CARE discount, higher fixed charge).
+    """
+    from tariffs.loader import load_spec_versions
+    from tariffs.schema import Layer
+
+    deliv = load_spec_versions("E-TOU-C", Layer.DELIVERY)
+    # 20 winter days, 1 kWh/hour => 480 kWh. April 2026 has no DST transition, so the split
+    # is clean; the 2026-03-01 version (Base Services Charge era) is the one selected.
+    series = make_series("2026-04-01", 20)
+    ps, pe = date(2026, 4, 1), date(2026, 4, 20)
+
+    non_care = compute_layer(series, deliv, ps, pe, care=False)
+    b = non_care.bucket()
+
+    # Base Services Charge = Income Tier 3 * days.
+    assert b["Base Services Charge"] == round(0.79343 * 20 + 1e-9, 2)
+    # Energy at the tariff-sheet winter standard rates: peak 16-20 (5h) => 100 kWh @ 0.39757,
+    # off-peak 380 kWh @ 0.36757.
+    assert b["Energy Peak"] == round(100 * 0.39757 + 1e-9, 2)
+    assert b["Energy Off Peak"] == round(380 * 0.36757 + 1e-9, 2)
+    assert b["Baseline Credit"] < 0
+    assert any("Power Charge Indifference" in name for name in b)  # PCIA adder present
+    assert "CARE Discount" not in b  # non-CARE customer
+    assert non_care.total > 0
+
+    # Same usage under CARE should cost less (CARE discount + lower Tier-1 fixed charge).
+    care = compute_layer(series, deliv, ps, pe, care=True)
+    assert care.total < non_care.total
+
+
 # --- real golden bills (skipped if the git-ignored export is absent) -------
 
 

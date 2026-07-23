@@ -1,5 +1,10 @@
 """Green Button interval-data parsers -> canonical :class:`IntervalSeries`."""
 
+from ._common import (
+    AmbiguousDSTError,
+    BillingSummaryError,
+    GreenButtonParseError,
+)
 from .models import (
     COL_ESTIMATED,
     COL_KWH,
@@ -10,12 +15,8 @@ from .models import (
     ParseReport,
     Utility,
 )
-from .pge import (
-    AmbiguousDSTError,
-    BillingSummaryError,
-    GreenButtonParseError,
-    parse_pge_interval_csv,
-)
+from .pge import parse_pge_interval_csv
+from .sdge import parse_sdge_interval_csv
 
 __all__ = [
     "COL_ESTIMATED",
@@ -30,4 +31,5 @@ __all__ = [
     "ParseReport",
     "Utility",
     "parse_pge_interval_csv",
+    "parse_sdge_interval_csv",
 ]
