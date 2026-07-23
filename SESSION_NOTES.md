@@ -2,6 +2,187 @@
 
 Running log of decisions made and decisions pending. Newest first.
 
+## 2026-07-23 — Session 4 (N-period TOU engine; M2 opened on PG&E; SDG&E specs)
+
+**91 tests green, ruff clean, 11/11 PG&E golden bills still reconcile** (worst +$0.22).
+Constraint this session: dad's SDG&E data unavailable indefinitely — nothing below depends
+on it.
+
+### DONE — the tariff engine is now N-period and day-type aware (the blocker)
+Implemented exactly the design carried in HANDOFF, no redesign.
+- `TouDef` is an ordered **first-match-wins** rule list: `{period, hours [[start,end)],
+  days: all|weekday|weekend, months:[...]}` + `default_period`. `peak_hours` survives as
+  sugar normalising to `peak`/`offpeak`, so **every PG&E spec and its YAML keys were left
+  untouched**.
+- `energy` is now `dict[str, Rate]` keyed `f"{season}_{period}"` — the existing
+  `summer_peak:` / `winter_offpeak:` YAML maps over verbatim. A model validator rejects
+  unknown keys and missing season x period combinations (typos can no longer pass).
+- `_usage()` returns **kWh per period**; energy / CARE-discount / TOU-adder loops iterate
+  periods. Period resolution is a precomputed 12 x 2 x 24 table, so day-type awareness
+  costs nothing per interval.
+- `Baseline.allowance_multiplier` (PG&E 1.0, SDG&E 1.30).
+- New `tariffs/holidays.py`: named, **cited** holiday calendars. Unknown or UNVERIFIED
+  calendar => raises at spec load.
+- **REGRESSION GATE PASSED: `reconcile_report.py` output was byte-identical before and
+  after the refactor.**
+
+### DONE — M2 opened on the PG&E household (deliberate roadmap override)
+M1's DoD is blocked by an external data dependency, not by unfinished work, so M2 was
+opened on the PG&E side rather than idling. Recorded here as the override it is.
+
+**Authored from published tariff sheets, every rate cited to a Cal. P.U.C. sheet number:**
+E-TOU-D, EV2-A, E-1 (PG&E delivery) + matched 3CE generation specs for each.
+`scripts/rate_optimizer.py` is the one command.
+
+**Result — VERDICT: STAY on E-TOU-C + 3CE** (4345 kWh, 328 days, current rates):
+`E-TOU-C 1104.22 < EV2-A 1130.52 (conditional) < E-1 1160.91 < E-TOU-D 1208.80`.
+The interesting part is *why*: the gap is driven almost entirely by the **baseline
+credit**, which E-TOU-C and E-1 have and E-TOU-D and EV2-A do not — not by peak/off-peak
+spreads. Sensitivity: E-1 overtakes E-TOU-C only if evening (4-9 p.m.) usage grows ~358%
+(or +133% as a load-neutral shift); E-TOU-D never overtakes it on a load-neutral shift.
+
+### RESOLVED from primary sources (three flagged approximations retired)
+1. **Franchise Fee — was APPROXIMATE, now exact.** It is not a percentage of anything;
+   Schedule E-FFS (Sheet 60706-E) prices it **flat per kWh by PCIA vintage**: Residential
+   2018 vintage **$0.00059/kWh**. That is why no percentage basis ever fit. Checks:
+   458.359 kWh -> $0.270 (bill $0.27), 243.56 -> $0.144 ($0.14), 40.388 -> $0.024 ($0.02).
+2. **Generation Credit — was bill-fitted, now tariff-derived.** Schedule E-TOU-C Special
+   Conditions: CCA customers pay everything in the Unbundling table **except the
+   generation charge and the Bundled PCIA**, so the credit is `-(Generation + Bundled
+   PCIA)`. From Sheet 61126-E that is winter **-0.12699 / -0.10031** against the
+   least-squares fit from Cameron's bills of **-0.12705 / -0.10030** — agreement to 6e-05,
+   a genuine primary-source confirmation that M0 was not curve-fitting.
+3. **Summer generation credit** was a single-bill blend (-0.12013); now the exact TOU pair
+   **-0.19771 / -0.09471**. Consistency check: the blend implies a 24.7% peak share for
+   that June sub-period, which is right for a 5-of-24-hour peak window.
+Arithmetic check applied to all four schedules: the unbundled components sum to the
+printed Total rate **exactly** (e.g. E-TOU-D winter peak 0.16539 + 0.16492 + ... - 0.01011
+= 0.38747).
+
+### DECISION — CARE rates for counterfactual schedules (STATED ASSUMPTION)
+PG&E does not print residential CARE rates in the tariff book. Solved from the CARE rates
+on Cameron's own E-TOU-C bills: **care = 0.65 x standard - 0.01038** for energy, and
+**0.65 x standard** for the baseline credit. Two parameters, five independent constraints,
+fits to <=1e-5. Cross-check that it transfers across schedules: applying it to E-1's two
+printed tier rates yields a CARE tier differential of **-0.05291**, which is exactly the
+CARE Baseline Credit printed on the E-TOU-C bills. **Further corroboration found later in
+the session:** SDG&E's CARE rate tables print the discount explicitly as **"CARE Discount
+35%"**, confirming 0.65 is the statewide factor, not a coincidence of one schedule.
+Still an assumption for PG&E; `--no-care` gives the fully tariff-grounded ranking.
+
+### DECISION — Santa Cruz UUT Adjustment (was open decision 4, blocking M2)
+Fitted all 11 statements against five candidate mechanisms; coefficient of variation:
+`per day 0.0802` < `per bill 0.0839` << `fraction of gross UUT 0.194` < `per kWh 0.207`
+< `fraction of net bill 0.330`.
+**ADOPTED: a fixed credit of $0.21649 per billing day** — tightest fit and the only
+near-constant form that copes with the 24-32 day spread in period lengths. Mechanism
+remains UNVERIFIED.
+**Why it is safe despite being unverified:** a per-day credit is *schedule-independent*,
+so it adds the same constant to every candidate and cannot reorder the ranking. The
+optimizer proves this rather than asserting it — it re-ranks under all three mechanisms
+(per-day / none / proportional) and reports that **the order is identical under all
+three**. Sub-$0.05 line-item effects only.
+
+### DECISION — E-1 tiered rates are NOT a second schema gap
+Surfaced rather than silently flattened, per CLAUDE.md. Rejected flattening to an average
+outright (it destroys the marginal price signal M2 exists to compare). Rejected adding a
+`tiers` concept as unnecessary, because expressing E-1 in the existing baseline-credit
+machinery is an **algebraic identity, not an approximation**:
+`tier1 x min(u,B) + tier2 x max(0,u-B) == tier2 x u + (tier1-tier2) x min(u,B)`
+and `0.32561 - 0.40702 = -0.08141` is the credit. PG&E's own unbundling confirms this is
+the tariff's real structure: the tier difference IS one component, the Conservation
+Incentive Adjustment (-0.04052 / +0.04089). E-TOU-C's printed "Baseline Credit" (-0.08140)
+is the identical construction (CIA -0.02786 / +0.05354). Tested by
+`test_e1_baseline_credit_reproduces_explicit_tier_arithmetic`.
+**Limits recorded in the spec:** handles exactly two distinct tier prices (E-1 has three
+tier rows but only two prices); a genuine third price requires a real `tiers` field. Bill
+*presentation* differs, so a future E-1 golden bill must be compared at the layer total.
+
+### M2 DoD — the PG&E cross-check is the one part still open
+PG&E's Rate Plan Comparison is behind an account login (pge.com/rateanalysis-pge) and
+cannot be fetched here; it must be run by the account holder. The harness is built and
+waiting: `--pge-comparison FILE` takes a small YAML of PG&E's output and prints a
+side-by-side plus a ranking-agreement verdict. The script prints the exact instructions
+when the flag is absent. Note the expected level difference: PG&E's tool prices **bundled**
+service while this household buys generation from 3CE, so the **ranking and spreads** are
+what must agree, not the totals.
+
+### DONE — SDG&E delivery specs (TOU-DR1, TOU-DR2, EV-TOU-5, TOU-DR-P)
+Re-pulled **current** numbers as instructed; the 2018 values in these notes were never
+used. Note the trap: the 1-1-26 tables are NOT current — **6-1-26 tables exist** and are
+what shipped.
+- Layer split maps straight onto SDG&E's own table: **UDC Total + WF-NBC/DWR-BC =
+  delivery**, **EECC = generation**. EECC and PCIA values are recorded in each spec's
+  comments for the future CCA overlay (deliberately not authored — see out-of-scope).
+- **NBC set modeled explicitly** (invariant 4): PPP 0.01515 + ND 0.00000 + CTC (0.00007)
+  + WF-NBC/DWR-BC 0.00591 = **0.02099/kWh**, plus PCIA for a CCA customer.
+- **Baseline credit at 130% of baseline** now expressible (`allowance_multiplier: 1.30`).
+- **CARE is READ OFF THE TARIFF here, not assumed.** The CARE tables print "CARE Discount
+  35%" applied after a $(0.00864) CARE-surcharge exemption, and CARE customers are exempt
+  from WF-NBC/DWR-BC. The per-layer split was *verified additively*:
+  `0.65 x (0.32948 - 0.00864) + 0.65 x 0.34920 = 0.43553` = the printed summer on-peak
+  Total Adjusted CARE Rate.
+
+**RESOLVED — open decision 1, the holiday calendar.** From **SDG&E Electric Rule 1
+(Definitions), HOLIDAYS**: the same eight days PG&E names, but a **different observance
+rule** — "When a Holiday falls on Sunday, the following Monday shall be defined as a
+Holiday. No change will be made for Holidays falling on Saturday." PG&E uses "legally
+observed" (federal: Sat -> Fri, Sun -> Mon). Real money: 2026-07-04 is a Saturday, so PG&E
+takes Friday 7/3 off peak and SDG&E takes nothing. Both calendars are registered and
+tested against each other.
+
+**RESOLVED — open decision 2, minimum bill vs NBC floor. It was a false dichotomy.** They
+are not competing rules and never "both bind": the Minimum Bill (Sheet 29955-E) is a
+$/day floor on the **UDC/delivery layer** ($0.329, CARE $0.164), while the NBC floor is
+not a tariff rule at all but a consequence of NEM netting, in which the per-kWh NBCs are
+billed on gross imports. They compose. `MinimumBill` added to the schema and applied at
+layer level.
+
+**Also resolved from the tariff:** SDG&E seasons — Schedule EECC, "Seasonal Periods ...
+All Customer Classes: **Summer: June 1 - October 31, Winter: November 1 - May 31**".
+Materially different from PG&E's Jun-Sep summer.
+
+**Shipped incomplete, on purpose (loader raises):** TOU-DR1, TOU-DR2 and TOU-DR-P carry
+`UNVERIFIED` baseline allowances — SDG&E baseline quantities are per climate zone
+(Coastal/Inland/Mountain/Desert) and per Basic vs All-Electric, and are not on the rate
+tables. EV-TOU-5 loads today because it has **no** baseline credit. TOU-DR-P additionally
+has UNVERIFIED period windows (see below).
+
+### ⚠ NEW CONFLICT FOUND — SDG&E TOU-DR1 super-off-peak window
+Two SDG&E sources disagree. The **tariff-book sheet** (Advice 3167-E, last revised 2018)
+says weekday super-off-peak 10:00-14:00 in **March and April only**. SDG&E's **current
+pricing page**, showing pricing effective 6/1/2026 — the same vintage as the rate table
+used — shows weekday super-off-peak 10:00-14:00 with **no month restriction**. The specs
+follow the current published table (year-round) because it matches the rate vintage, and
+the conflict is flagged in-spec. **Confirm against a current tariff sheet before any
+dollar figure ships**; it is material for ten months of the year.
+
+### TOU-DR-P deliberately does not load — two gaps, both recorded in-spec
+1. Period windows not sourced (no discoverable tariff sheet; SDG&E's pricing page renders
+   its window table inconsistently against the sibling schedules). Not guessed.
+2. The **RYU Event Period Adder, $1.16/kWh, 4-9 p.m. on event days** — an event-contingent
+   rate the engine has no concept for. Modeling TOU-DR-P without it would systematically
+   understate its cost and make it look like a free lunch, which is exactly the
+   installer-tool failure mode invariant 2 exists to prevent. Preferred fixes, in order:
+   caller-supplied event days; report as a RANGE (0 .. historical max events); or exclude
+   it and say why. **Do not default it to zero events silently.**
+
+### BUG FIXED — one UNVERIFIED spec used to break every other schedule
+`load_specs` / `load_spec_versions` parsed *and validated* every YAML in the directory in
+order to filter by `schedule_id`, so the first half-finished SDG&E spec made all 11 golden
+bills fail. Filtering now happens on the raw `schedule_id`/`layer` keys **before** the
+UNVERIFIED gate; the gate still fires for the schedule actually requested. Regression test
+added. This defect only became visible because a genuinely incomplete spec was committed —
+worth remembering as an argument for shipping UNVERIFIED specs rather than withholding them.
+
+### Schema gaps still open
+- `PerKwhAdder` has no CARE variant (only floats), so a per-kWh line that CARE customers
+  are exempt from cannot be expressed as an adder. Worked around on SDG&E by folding
+  WF-NBC/DWR-BC into the energy `Rate` (which does have standard/care).
+- FERA / DRAH (0.39688 BSC on both IOUs) is still unmodelable — `Rate` has only
+  `standard`/`care`.
+- No `tiers` concept; fine for E-1 today (see above), required if a third tier price appears.
+
 ## 2026-07-23 — Session 3 (Workstream B complete; Workstream A step 1 complete)
 
 Committed `70677c2`. **56 tests green, ruff clean, all 11 PG&E golden bills still

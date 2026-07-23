@@ -1,0 +1,85 @@
+# SDG&E Schedule EV-TOU-5 — DELIVERY layer (UDC + non-bypassable charges).
+# Whole-home EV schedule. See the TOU-DR1 spec for the layer model, the NBC set, and the
+# minimum-bill / NBC-floor resolution.
+#
+# WHAT MAKES THIS SCHEDULE DIFFERENT, and why it matters for the M3 battery work:
+#  1. The DELIVERY rate itself is time-differentiated, drastically. Super-off-peak UDC is
+#     0.04114/kWh against 0.31711 in the other periods — SDG&E discounts distribution AND
+#     waives transmission entirely (Transm 0.00000) in the super-off-peak window. Almost
+#     every other residential schedule in this repo has a flat or near-flat delivery rate,
+#     so a schedule-switch analysis that only varied generation would miss the largest
+#     effect on this plan.
+#  2. There is NO baseline credit. EV-TOU-5's rate table has no "Up to 130% of Baseline"
+#     row at all. Deliberately absent, not UNVERIFIED.
+#  3. ELIGIBILITY: available only to residential customers with an electric vehicle. Any
+#     ranking must flag it conditional (honest-broker invariant), exactly as the PG&E
+#     EV2-A spec is flagged.
+#
+# ⚠ SDG&E also files a separate monthly EV-TOU-5 basic service fee in some vintages. The
+#   6/1/2026 Total Rates Table lists only the $/day Base Services Charge tiers used below;
+#   if a real bill shows an extra monthly EV fee, add it as its own effective-dated line.
+schedule_id: EV-TOU-5
+name: Residential Time-of-Use for Electric Vehicle Customers - Delivery
+provider: SDG&E
+layer: delivery
+effective_date: 2026-06-01
+citation: >-
+  SDG&E "Service for Residential Customers with Electric Vehicles / SCHEDULE EV-TOU-5"
+  Total Rates Table effective 6/1/2026, and the matching EV-TOU-5-CARE table
+  (sdge.com/sites/default/files/regulatory/), both retrieved 2026-07-23. Time periods
+  from SDG&E's published EV pricing-plan table (same windows as the current TOU-DR1
+  table). Seasons from Schedule EECC; holidays from Electric Rule 1.
+
+seasons:
+  summer_months: [6, 7, 8, 9, 10]      # Schedule EECC: Summer Jun 1 - Oct 31
+  winter_months: [11, 12, 1, 2, 3, 4, 5]
+
+# SDG&E's published EV-TOU-5 windows:
+#   Weekdays              super-off-peak 12 a.m.-6 a.m. and 10 a.m.-2 p.m.
+#                         off-peak       6-10 a.m., 2-4 p.m., 9 p.m.-12 a.m.
+#                         on-peak        4 p.m.-9 p.m.
+#   Weekends & holidays   super-off-peak 12 a.m.-2 p.m.
+#                         off-peak       2-4 p.m., 9 p.m.-12 a.m.
+#                         on-peak        4 p.m.-9 p.m.
+# No seasonal difference in the windows (only in the rates).
+tou:
+  rules:
+    - {period: on_peak, hours: [[16, 21]]}
+    - {period: super_off_peak, hours: [[0, 6], [10, 14]], days: weekday}
+    - {period: super_off_peak, hours: [[0, 14]], days: weekend}
+  default_period: off_peak
+  holiday_calendar: sdge_residential
+  labels: {on_peak: On-Peak, off_peak: Off-Peak, super_off_peak: Super Off-Peak}
+
+fixed_name: Base Services Charge
+fixed_per_day:
+  standard: 0.79343
+  care: 0.19713
+
+# standard = UDC Total + WF-NBC/DWR-BC 0.00591
+# care     = 0.65 x (UDC Total - CARE surcharge exemption 0.00864)
+#   on-peak / off-peak  UDC 0.31711 -> std 0.32302, care 0.65 x 0.30847 = 0.20051
+#   super-off-peak      UDC 0.04114 -> std 0.04705, care 0.65 x 0.03250 = 0.02113
+# (Derivation and its exact validation against the printed CARE totals: see TOU-DR1.)
+# Note the super-off-peak CARE delivery rate of 2.1c/kWh is BELOW the non-bypassable
+# charge set (2.099c) — i.e. on this schedule, in this window, essentially the entire
+# delivery charge is non-bypassable. Worth surfacing in any NEM/battery analysis.
+energy:
+  summer_on_peak:        {standard: 0.32302, care: 0.20051}
+  summer_off_peak:       {standard: 0.32302, care: 0.20051}
+  summer_super_off_peak: {standard: 0.04705, care: 0.02113}
+  winter_on_peak:        {standard: 0.32302, care: 0.20051}
+  winter_off_peak:       {standard: 0.32302, care: 0.20051}
+  winter_super_off_peak: {standard: 0.04705, care: 0.02113}
+
+# No `baseline:` block — EV-TOU-5 has no baseline adjustment credit (see header note 2).
+
+minimum_bill:
+  per_day: {standard: 0.329, care: 0.164}
+  citation: >-
+    SDG&E Minimum Bill $0.329/day, 50% discount for CARE/FERA -> $0.164/day, per Schedule
+    TOU-DR1 Cal. P.U.C. Sheet 29955-E (Advice 3167-E); the current Total Rates Table does
+    not restate it. Confirm currency before relying on the floor binding.
+
+# EECC (generation) for reference, 6/1/2026 bundled: summer 0.47019 / 0.17311 / 0.08147;
+# winter 0.19990 / 0.14337 / 0.07410 (on / off / super-off).

@@ -61,16 +61,29 @@ adders:
       PG&E PCIA 2018 vintage, derived from bill statements 2026-05-29 & 2026-06-28
       (16.86/458.359, 8.96/243.56, 1.49/40.388 all = 0.03679). Cross-ref PCIA schedule.
   - name: Generation Credit (PG&E generation not supplied)
-    # Winter is an exact TOU decomposition (peak/off) least-squares-fit across the
-    # 2026 winter bills (predicts each to <=$0.01). Summer stays a seasonal blend —
-    # only one summer bill (06/28) exists so peak/off can't yet be separated.
-    per_kwh_winter_peak:    -0.12705
-    per_kwh_winter_offpeak: -0.10030
-    per_kwh_summer:         -0.12013     # APPROX blend; refine to TOU with a 2nd summer bill
+    # NOW TARIFF-DERIVED, no longer bill-fitted. Schedule E-TOU-C Special Conditions:
+    # CCA customers "shall pay all charges shown in the Unbundling of Total Rates EXCEPT
+    # for the Bundled Power Charge Indifference Adjustment and the generation charge",
+    # and instead pay their Vintaged PCIA (the separate adder above). So the credit that
+    # backs those two out of the Total Usage rate is exactly
+    #     -(Generation + Bundled PCIA),  Bundled PCIA = -0.01011 (all usage)
+    # from UNBUNDLING OF E-TOU-C TOTAL RATES (Cal. P.U.C. Sheet 61126-E):
+    #     Generation  summer peak 0.20782 / off 0.10482;  winter peak 0.13710 / off 0.11042
+    #   summer peak: -(0.20782 - 0.01011) = -0.19771     winter peak: -(0.13710-0.01011) = -0.12699
+    #   summer off:  -(0.10482 - 0.01011) = -0.09471     winter off:  -(0.11042-0.01011) = -0.10031
+    # The winter pair reproduces the values previously least-squares-fitted from Cameron's
+    # bills (-0.12705 / -0.10030) to within 6e-05 — a primary-source confirmation of the
+    # M0 fit. Summer was a single-bill BLEND (-0.12013); it is now the exact TOU pair,
+    # which retires that flagged approximation.
+    per_kwh_summer_peak:    -0.19771
+    per_kwh_summer_offpeak: -0.09471
+    per_kwh_winter_peak:    -0.12699
+    per_kwh_winter_offpeak: -0.10031
     citation: >-
-      PG&E generation credit for CCA (departing-load) customers, derived from customer
-      bills 2026-01-29..06-28. Winter TOU peak/off fit exact to the cent; summer is a
-      single-bill blend. Cross-ref PG&E generation (PABA/generation-credit) tariff.
+      PG&E E-TOU-C, UNBUNDLING OF E-TOU-C TOTAL RATES, Cal. P.U.C. Sheet 61126-E (Advice
+      7846-E, effective 2026-03-01): Generation by season/period less the Bundled Power
+      Charge Indifference Adjustment (-0.01011), per Sheet 61131-E Special Conditions
+      (CCA/DA customers pay neither the generation charge nor the Bundled PCIA).
 
 # Franchise fee: small ($0.02-0.27); exact basis not cleanly derivable from the bill.
 # Modeled as a percent of energy charges (residual < $0.05). Cross-ref franchise fee tariff.
@@ -80,12 +93,17 @@ adders:
 # identically to standard and CARE customers, so non-CARE billing reuses them unchanged.
 surcharges:
   - name: Franchise Fee Surcharge
-    rate: 0.00140
-    of: energy
+    # RESOLVED from the tariff (was the last APPROXIMATE rate on this spec): the CCA/DA
+    # franchise fee surcharge is a FLAT $/kWh by PCIA vintage, not a percentage of any
+    # subtotal — which is why no percentage basis ever fit cleanly. Residential, 2018
+    # vintage = 0.00059. Checks against the bills: 458.359 kWh x 0.00059 = $0.270 (bill
+    # $0.27); 243.56 -> $0.144 (bill $0.14); 40.388 -> $0.024 (bill $0.02). Exact.
+    per_kwh: 0.00059
     citation: >-
-      PG&E Franchise Fee Surcharge. APPROXIMATE (~0.14% of energy) — derived from bills
-      (0.27/171.97, 0.14/104.67, 0.02/15.11); exact basis to confirm from tariff. Rate is
-      customer-class-independent (a % surcharge, not income-graduated).
+      PG&E Schedule E-FFS (Franchise Fee Surcharge), Cal. P.U.C. Sheet 60706-E, Advice
+      7797-E, effective 2026-01-01: Residential customer class, 2018 PCIA vintage,
+      $0.00059/kWh. Same figure published on 3CE's residential rate sheet (eff.
+      2026-02-15). Charged per kWh, class-independent (not income-graduated).
   - name: City of Santa Cruz Utility Users' Tax
     rate: 0.085
     of: pretax

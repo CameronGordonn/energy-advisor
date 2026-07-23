@@ -1,0 +1,54 @@
+# Central Coast Community Energy (3CE) "3Cchoice" — GENERATION layer matched to PG&E
+# Schedule E-TOU-D. Authored from 3CE's published residential rate sheet (no bill needed).
+#
+# Why this exists: switching PG&E schedule also switches the CCA generation schedule. A
+# rate comparison that held 3CE's E-TOU-C generation fixed while varying PG&E delivery
+# would be wrong — 3CE prices each PG&E schedule's own TOU windows separately.
+#
+# CONFIDENCE NOTE: the same rate sheet's E-TOU-C column reproduces this repo's
+# bill-derived MBRETCH1 spec exactly (S 0.19573/0.09376, W 0.12572/0.09930) and its
+# effective date (2026-02-15) matches the changeover date that was independently derived
+# from Cameron's interval data. That is a primary-source confirmation of the M0 fit and
+# of this sheet as a source.
+schedule_id: 3CE-E-TOU-D
+name: 3Cchoice matched to PG&E E-TOU-D - Generation
+provider: Central Coast Community Energy (3CE)
+layer: generation
+effective_date: 2026-02-15
+citation: >-
+  3CE "PGE-Residential-Website-Rate-Sheet-2026.02.15_with3Cflex.pdf" (3cenergy.org),
+  "3CE Rates in PG&E Territory", effective 2026-02-15, row E-TOU-D, product 3Cchoice
+  (the default product; 3Cprime and 3Cflex are opt-in alternatives at +0.008 / -0.05264).
+
+seasons:
+  summer_months: [6, 7, 8, 9]          # rate sheet: "Summer - June through September"
+  winter_months: [1, 2, 3, 4, 5, 10, 11, 12]
+
+# Rate sheet time-period definitions for E-TOU-D: peak "5pm to 8pm, Monday - Friday",
+# off-peak "All other times including holidays*", where the footnoted holiday list is the
+# same eight days PG&E's Schedule E-TOU-D names. Aligned to the PG&E delivery schedule.
+tou:
+  rules:
+    - {period: peak, hours: [[17, 20]], days: weekday}
+  default_period: offpeak
+  holiday_calendar: pge_residential
+  labels: {peak: Peak, offpeak: Off Peak}
+
+# 3CE generation has no CARE variant; the CARE discount is applied entirely on the PG&E
+# delivery layer (as observed on Cameron's statements).
+energy:
+  summer_peak:    {standard: 0.19419}
+  summer_offpeak: {standard: 0.09028}
+  winter_peak:    {standard: 0.15372}
+  winter_offpeak: {standard: 0.11900}
+
+# California Energy Commission surcharge, $/kWh (fixed statewide, schedule-independent).
+energy_commission_tax_per_kwh: 0.0003
+
+surcharges:
+  - name: City of Santa Cruz Utility Users' Tax
+    rate: 0.085
+    of: pretax
+    citation: >-
+      City of Santa Cruz UUT 8.5% on the generation subtotal; base verified exact against
+      Cameron's 3CE statements. Municipal and therefore schedule-independent.

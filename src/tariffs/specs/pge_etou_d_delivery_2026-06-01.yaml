@@ -1,0 +1,110 @@
+# PG&E E-TOU-D — DELIVERY layer for a CCA (departing-load) customer.
+#
+# Authored entirely from the published tariff book (ELEC_SCHEDS_E-TOU-D.pdf), no bill
+# needed. E-TOU-D is the M2 counterfactual to E-TOU-C: a NARROWER peak window (3 hours
+# vs 5) that also EXCLUDES weekends and holidays, in exchange for a higher off-peak rate
+# and NO baseline credit. Whether that trade wins depends entirely on how much of the
+# household's evening load lands on weekday 5-8 p.m., which is why it can only be
+# answered from real interval data.
+#
+# DELIVERY-LAYER MODEL (Sheet 61138-E, Special Condition 5, BILLING): CCA/DA customers
+# "shall pay all charges shown in the Unbundling of Total Rates except for the Bundled
+# Power Charge Indifference Adjustment and the generation charge", plus their Vintaged
+# PCIA and the Schedule E-FFS franchise fee surcharge. So this spec bills the full Total
+# Bundled Rate and then backs generation out via the Generation Credit adder below,
+# exactly as the E-TOU-C delivery spec does.
+schedule_id: E-TOU-D
+name: Residential Time-of-Use Peak Pricing 5-8 p.m. Non-Holiday Weekdays - Delivery
+provider: PG&E
+layer: delivery
+effective_date: 2026-06-01
+citation: >-
+  PG&E Schedule E-TOU-D, TOTAL BUNDLED RATES, Cal. P.U.C. Sheet 61365-E (Sheet 2,
+  ELEC_SCHEDS_E-TOU-D.pdf; Advice 7921-E, Decision D.26-04-036, cancels 61250-E),
+  effective 2026-06-01. Time periods and holiday list from Sheet 61137-E (Sheet 4,
+  Special Condition 1); unbundled components from Sheet 61136-E (Sheet 3).
+
+seasons:
+  summer_months: [6, 7, 8, 9]          # Sheet 61137-E SC2: summer Jun 1 - Sep 30
+  winter_months: [1, 2, 3, 4, 5, 10, 11, 12]
+
+# Sheet 61137-E, Special Condition 1 (TIME PERIODS), both seasons:
+#   Peak:     5:00 p.m. to 8:00 p.m. Monday through Friday
+#   Off-Peak: All other times including Holidays.
+# This is the first schedule in the repo that needs day-type-aware TOU: the peak window
+# is weekday-only AND holiday-excluded. `pge_residential` is the eight-holiday list
+# printed in that same Special Condition (see tariffs/holidays.py).
+tou:
+  rules:
+    - {period: peak, hours: [[17, 20]], days: weekday}
+  default_period: offpeak
+  holiday_calendar: pge_residential
+  labels: {peak: Peak, offpeak: Off Peak}
+
+# Income-Graduated Fixed Charge, identical across PG&E residential schedules (Sheet
+# 61365-E): Tier 1 (CARE) 0.19713 / Tier 2 (FERA) 0.39688 / Tier 3 (default) 0.79343.
+fixed_name: Base Services Charge
+fixed_per_day:
+  standard: 0.79343
+  care: 0.19713
+
+# `standard` = Total Energy Rates, Sheet 61365-E, quoted exactly.
+# `care` = DERIVED, not printed on the sheet. PG&E does not publish residential CARE
+# rates in the tariff book; they are produced by applying the CARE discount in billing.
+# The relation was solved from the CARE rates printed on Cameron's own E-TOU-C bills:
+#     care = 0.65 x standard - 0.01038
+# which reproduces all four E-TOU-C energy rates AND its baseline credit (as 0.65 x
+# standard, no constant) to <=1e-5. Independent cross-check that it transfers across
+# schedules: applying it to E-1's two printed tier rates gives a CARE tier differential
+# of -0.05291, which is *exactly* the CARE Baseline Credit printed on the E-TOU-C bills.
+# Treated as a STATED ASSUMPTION, not a tariff fact — see SESSION_NOTES 2026-07-23.
+energy:
+  summer_peak:    {standard: 0.47708, care: 0.29972}
+  summer_offpeak: {standard: 0.34212, care: 0.21200}
+  winter_peak:    {standard: 0.38747, care: 0.24148}
+  winter_offpeak: {standard: 0.34886, care: 0.21638}
+
+# NO baseline credit. Sheet 61365-E prices "Summer (all usage)" / "Winter (all usage)"
+# with no Baseline Credit row — unlike E-TOU-C and E-1. This is a real, material
+# difference for a low-usage household, not an omission. Deliberately absent, not
+# UNVERIFIED.
+
+adders:
+  - name: Power Charge Indifference Adjustment (2018 vintage)
+    per_kwh: 0.03679
+    citation: >-
+      PG&E Vintage Power Charge Indifference Adjustment table, 2018 Vintage, Cal. P.U.C.
+      Sheet 61131-E (E-TOU-C Sheet 8, Advice 7846-E). The PCIA is per-kWh and vintage-
+      based, not schedule-based, so the same 2018 value applies on every schedule; also
+      published as 0.03679 on 3CE's residential rate sheet (eff. 2026-02-15).
+  - name: Generation Credit (PG&E generation not supplied)
+    # -(Generation + Bundled PCIA), from UNBUNDLING OF TOTAL RATES, Sheet 61136-E:
+    #   Generation summer peak 0.20626 / off 0.10130; winter peak 0.16539 / off 0.13031
+    #   Bundled PCIA (all usage) -0.01011
+    per_kwh_summer_peak:    -0.19615
+    per_kwh_summer_offpeak: -0.09119
+    per_kwh_winter_peak:    -0.15528
+    per_kwh_winter_offpeak: -0.12020
+    citation: >-
+      PG&E Schedule E-TOU-D, UNBUNDLING OF TOTAL RATES, Cal. P.U.C. Sheet 61136-E (Advice
+      7846-E, effective 2026-03-01): Generation by season/period less the Bundled Power
+      Charge Indifference Adjustment (-0.01011), per Sheet 61138-E Special Condition 5
+      (CCA/DA customers pay neither the generation charge nor the Bundled PCIA). Verified:
+      the listed components sum to the printed Total rates exactly (e.g. winter peak
+      0.16539 + 0.16492 + ... - 0.01011 = 0.38747).
+
+surcharges:
+  - name: Franchise Fee Surcharge
+    per_kwh: 0.00059
+    citation: >-
+      PG&E Schedule E-FFS (Franchise Fee Surcharge), Cal. P.U.C. Sheet 60706-E, Advice
+      7797-E, effective 2026-01-01: Residential customer class, 2018 PCIA vintage,
+      $0.00059/kWh. Flat per kWh by vintage, not a percentage; schedule-independent.
+  - name: City of Santa Cruz Utility Users' Tax
+    rate: 0.085
+    of: pretax
+    citation: >-
+      City of Santa Cruz UUT 8.5% on the delivery subtotal (pre-franchise-fee), the base
+      verified exact against Cameron's E-TOU-C statements. Municipal tax, so it is
+      schedule-independent and carries over to this counterfactual unchanged. The
+      separate observed 'UUT Adjustment' is NOT modeled here (see SESSION_NOTES).

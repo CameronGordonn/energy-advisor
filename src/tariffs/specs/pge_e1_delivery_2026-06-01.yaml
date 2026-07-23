@@ -1,0 +1,121 @@
+# PG&E E-1 — DELIVERY layer for a CCA (departing-load) customer.
+#
+# E-1 is the legacy TIERED (non-TOU) residential schedule: one flat rate for usage inside
+# the baseline allowance and a higher one above it. No time-of-use at all.
+#
+# ---------------------------------------------------------------------------------------
+# MODELING DECISION — tiered rates in a TOU engine (surfaced, not silently chosen).
+# The engine prices energy per TOU period and applies a *baseline credit* on
+# min(usage, allowance). E-1 instead publishes two tier *rates*. Three options existed:
+#
+#   (a) add a `tiers` schema concept (new field, new billing branch);
+#   (b) express E-1 in the existing baseline-credit machinery;
+#   (c) flatten E-1 to a usage-weighted average rate.
+#
+# (c) is rejected outright — it destroys the marginal-price signal that makes E-1 win or
+# lose against a TOU plan, which is the whole question M2 answers.
+#
+# CHOSEN: (b). It is not an approximation, it is an algebraic identity:
+#     tier1 x min(u,B) + tier2 x max(0, u-B)  ==  tier2 x u + (tier1 - tier2) x min(u,B)
+# i.e. "charge everything at the over-baseline rate, then credit the baseline block by the
+# tier differential" — precisely the shape of `energy` + `baseline.credit_per_kwh`.
+# With the printed numbers:  0.32561 - 0.40702 = -0.08141  = the credit below.
+#
+# PG&E's own unbundling confirms this is the tariff's real structure rather than a trick:
+# the tier difference IS a single component, the Conservation Incentive Adjustment
+# (Sheet 61097-E: -0.04052 within baseline, +0.04089 above => -0.08141 differential). The
+# identical construction is what E-TOU-C's printed "Baseline Credit" (-0.08140) already is
+# (Sheet 61126-E CIA: -0.02786 / +0.05354 => -0.08140).
+#
+# LIMITS OF (b), recorded so they are not rediscovered the hard way:
+#   1. It handles exactly TWO distinct tier rates. E-1 today has three tier *rows* but
+#      only two distinct prices (101-400% and Over-400% are both 0.40702), so it fits. A
+#      genuine third price REQUIRES option (a) and the loader should reject the spec
+#      rather than approximate it.
+#   2. Bill presentation differs: PG&E prints "Tier 1 Usage" / "Tier 2 Usage" lines; this
+#      engine prints "Energy Total Usage" + "Baseline Credit". The totals are identical,
+#      but a future golden-bill reconciliation against a real E-1 statement must compare
+#      at the layer total, not line-by-line.
+# ---------------------------------------------------------------------------------------
+schedule_id: E-1
+name: Residential Services (tiered, non-TOU) - Delivery
+provider: PG&E
+layer: delivery
+effective_date: 2026-06-01
+citation: >-
+  PG&E Schedule E-1, TOTAL BUNDLED RATES, Cal. P.U.C. Sheet 61362-E (Sheet 1,
+  ELEC_SCHEDS_E-1.pdf; Advice 7921-E, Decision D.26-04-036, cancels 61247-E), effective
+  2026-06-01. Baseline quantities from Sheet 61099-E (Sheet 4, Special Condition 2);
+  unbundled components from Sheet 61097-E (Sheet 2).
+
+seasons:
+  summer_months: [6, 7, 8, 9]          # Sheet 61100-E SC6: summer Jun 1 - Sep 30
+  winter_months: [1, 2, 3, 4, 5, 10, 11, 12]
+
+# E-1 has no time-of-use periods: one price applies to all hours. Expressed as a single
+# period covering the whole day, which the N-period TOU model represents natively.
+tou:
+  rules:
+    - {period: all, hours: [[0, 24]]}
+  default_period: all
+  labels: {all: Total Usage}
+
+fixed_name: Base Services Charge
+fixed_per_day:
+  standard: 0.79343     # Income Tier 3, Sheet 61362-E
+  care: 0.19713         # Income Tier 1
+
+# Tier 2 Usage (101%-400% of Baseline) = $0.40702, and "Tier 2 Usage Continued (Over 400%
+# of Baseline)" is the SAME $0.40702 — so the whole over-baseline range is one price. The
+# rate is not seasonal on E-1 (only the baseline *allowance* is), hence identical summer
+# and winter entries. `care` DERIVED via care = 0.65 x standard - 0.01038 (see the
+# E-TOU-D spec) => 0.25418; combined with the credit below this gives an effective CARE
+# baseline-tier rate of 0.20126, and a CARE tier differential of -0.05292 which matches
+# the CARE Baseline Credit printed on Cameron's E-TOU-C bills (-0.05291). STATED
+# ASSUMPTION, not a printed tariff value.
+energy:
+  summer_all: {standard: 0.40702, care: 0.25418}
+  winter_all: {standard: 0.40702, care: 0.25418}
+
+# The tier differential, applied to the baseline block (see the decision note above).
+#   Tier 1 (0-100% of Baseline)   0.32561
+#   Tier 2 (101%+ of Baseline)    0.40702
+#   differential                 -0.08141
+baseline:
+  territory: T
+  allowance_kwh_per_day_summer: 7.1     # Territory T, Code H (all-electric), Sheet 61099-E
+  allowance_kwh_per_day_winter: 12.9
+  allowance_multiplier: 1.0             # PG&E credits to 100% of baseline (SDG&E uses 1.30)
+  credit_per_kwh: {standard: -0.08141, care: -0.05292}
+
+adders:
+  - name: Power Charge Indifference Adjustment (2018 vintage)
+    per_kwh: 0.03679
+    citation: >-
+      PG&E Vintage PCIA table, 2018 Vintage, Cal. P.U.C. Sheet 61131-E (Advice 7846-E).
+      Vintage-based and schedule-independent; also published on 3CE's residential rate
+      sheet (eff. 2026-02-15).
+  - name: Generation Credit (PG&E generation not supplied)
+    # -(Generation + Bundled PCIA) from UNBUNDLING OF TOTAL RATES, Sheet 61097-E:
+    #   Generation (all usage, non-TOU) 0.12855; Bundled PCIA -0.01011.
+    per_kwh: -0.11844
+    citation: >-
+      PG&E Schedule E-1, UNBUNDLING OF TOTAL RATES, Cal. P.U.C. Sheet 61097-E (Advice
+      7846-E, effective 2026-03-01): Generation 0.12855 less the Bundled Power Charge
+      Indifference Adjustment (-0.01011), per Sheet 61101-E Special Condition 9 (CCA/DA
+      customers pay neither). Verified: 0.12855 + 0.18042 + 0.04089 + 0.04638 + ... -
+      0.01011 = 0.40702, the printed Tier 2 total.
+
+surcharges:
+  - name: Franchise Fee Surcharge
+    per_kwh: 0.00059
+    citation: >-
+      PG&E Schedule E-FFS, Cal. P.U.C. Sheet 60706-E, Advice 7797-E, effective
+      2026-01-01: Residential, 2018 PCIA vintage, $0.00059/kWh. Flat per kWh by vintage.
+  - name: City of Santa Cruz Utility Users' Tax
+    rate: 0.085
+    of: pretax
+    citation: >-
+      City of Santa Cruz UUT 8.5% on the delivery subtotal (pre-franchise-fee); base
+      verified exact against Cameron's E-TOU-C statements. Municipal and therefore
+      schedule-independent.

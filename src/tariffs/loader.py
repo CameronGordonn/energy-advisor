@@ -36,12 +36,14 @@ def _find_unverified(node: object, path: str = "") -> list[str]:
     return hits
 
 
-def load_spec_file(path: str | Path) -> TariffSpec:
-    path = Path(path)
+def _read_raw(path: Path) -> dict:
     raw = yaml.safe_load(path.read_text())
     if not isinstance(raw, dict):
         raise ValueError(f"{path.name}: spec must be a YAML mapping")
+    return raw
 
+
+def _validate(path: Path, raw: dict) -> TariffSpec:
     unverified = _find_unverified(raw)
     if unverified:
         raise UnverifiedSpecError(
@@ -49,6 +51,27 @@ def load_spec_file(path: str | Path) -> TariffSpec:
             f"tariff sheet before this spec can bill: {', '.join(sorted(unverified))}"
         )
     return TariffSpec.model_validate(raw)
+
+
+def load_spec_file(path: str | Path) -> TariffSpec:
+    path = Path(path)
+    return _validate(path, _read_raw(path))
+
+
+def _matching_specs(schedule_id: str, layer: Layer, specs_dir: Path) -> list[TariffSpec]:
+    """Every version of one schedule/layer in ``specs_dir``.
+
+    Files are filtered on the *raw* ``schedule_id``/``layer`` keys BEFORE the UNVERIFIED
+    gate runs, so a half-finished spec for some other schedule cannot block the schedules
+    that are complete. The gate still fires — but only for the schedule actually asked
+    for, which is the schedule whose numbers are about to reach a dollar figure.
+    """
+    out: list[TariffSpec] = []
+    for p in sorted(specs_dir.glob("*.yaml")):
+        raw = _read_raw(p)
+        if raw.get("schedule_id") == schedule_id and raw.get("layer") == layer.value:
+            out.append(_validate(p, raw))
+    return out
 
 
 def load_specs(
@@ -62,12 +85,7 @@ def load_specs(
 
     Picks the newest spec whose ``effective_date`` is on or before ``on``.
     """
-    specs_dir = Path(specs_dir)
-    candidates: list[TariffSpec] = []
-    for p in sorted(specs_dir.glob("*.yaml")):
-        spec = load_spec_file(p)
-        if spec.schedule_id == schedule_id and spec.layer is layer:
-            candidates.append(spec)
+    candidates = _matching_specs(schedule_id, layer, Path(specs_dir))
     effective = [s for s in candidates if s.effective_date <= on]
     if not effective:
         raise ValueError(
@@ -89,12 +107,7 @@ def load_spec_versions(
     versions (not just the one effective on the period start) to split the period at
     each effective date. Raises if none are found.
     """
-    specs_dir = Path(specs_dir)
-    versions = [
-        spec
-        for p in sorted(specs_dir.glob("*.yaml"))
-        if (spec := load_spec_file(p)).schedule_id == schedule_id and spec.layer is layer
-    ]
+    versions = _matching_specs(schedule_id, layer, Path(specs_dir))
     if not versions:
         raise ValueError(f"no {layer} spec found for schedule {schedule_id!r}")
     return sorted(versions, key=lambda s: s.effective_date)

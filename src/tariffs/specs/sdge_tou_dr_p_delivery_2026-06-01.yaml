@@ -1,0 +1,87 @@
+# SDG&E Schedule TOU-DR-P — DELIVERY layer (UDC + non-bypassable charges).
+# "Time of Use Plus": a TOU-DR1-shaped schedule with lower everyday on-peak rates bought
+# by exposure to Reduce Your Use (RYU) event days.
+#
+# THIS SPEC DOES NOT LOAD YET, ON PURPOSE. Two values below are UNVERIFIED, so
+# `load_spec_file` raises rather than letting a guess reach a dollar figure. Everything
+# that IS sourced has been filled in, so closing the gaps is a small, well-defined job.
+#
+# ---------------------------------------------------------------------------------------
+# GAP 1 — TOU period windows. SDG&E's tariff sheet for TOU-DR-P is not published at a
+# discoverable URL under sites/default/files/elec_elec-scheds_*, and the only other source
+# found (SDG&E's pricing-plan page) renders its window table inconsistently: it lists
+# weekday super-off-peak as 12 a.m.-6 a.m. while listing off-peak as 10 a.m.-2 p.m., which
+# contradicts the sibling schedules where 10 a.m.-2 p.m. is super-off-peak. Two sources
+# disagreeing is not a basis for a rate. The windows are almost certainly TOU-DR1's — the
+# rate table prices exactly the same three periods, and TOU-DR-P is marketed as TOU-DR1
+# plus event pricing — but "almost certainly" is what this project refuses to ship.
+#
+# GAP 2 — the RYU Event Period Adder, $1.16/kWh billed 4-9 p.m. on RYU Event Days. This is
+# an EVENT-CONTINGENT rate and the engine has no concept for it: the charge depends on
+# which days SDG&E calls, which is not in any tariff and not knowable in advance. Modeling
+# TOU-DR-P without it would systematically UNDERSTATE its cost and make it look like a free
+# lunch against TOU-DR1 — precisely the installer-tool failure mode invariant 2 exists to
+# prevent. Options when this is picked up, in preference order:
+#   (a) require a caller-supplied event-day count/dates and bill the adder explicitly;
+#   (b) report TOU-DR-P as a RANGE (0 events .. historical max events) rather than a point
+#       estimate, which is the uncertainty-first treatment invariant 3 asks for;
+#   (c) exclude TOU-DR-P from rankings and say why.
+# Do NOT default it to zero events silently.
+# ---------------------------------------------------------------------------------------
+schedule_id: TOU-DR-P
+name: Residential Time-of-Use Plus (Reduce Your Use events) - Delivery
+provider: SDG&E
+layer: delivery
+effective_date: 2026-06-01
+citation: >-
+  SDG&E "Schedule TOU-DR-P - Residential Time of Use Plus Service Effective 6/1/2026"
+  Total Rates Table (sdge.com/sites/default/files/regulatory/), retrieved 2026-07-23.
+  Seasons from Schedule EECC; Minimum Bill structure per Schedule TOU-DR1 Sheet 29955-E.
+  TOU period windows NOT sourced — see GAP 1 above.
+
+seasons:
+  summer_months: [6, 7, 8, 9, 10]      # Schedule EECC: Summer Jun 1 - Oct 31
+  winter_months: [11, 12, 1, 2, 3, 4, 5]
+
+tou:
+  rules:
+    - {period: on_peak, hours: UNVERIFIED}
+    - {period: super_off_peak, hours: UNVERIFIED, days: weekday}
+    - {period: super_off_peak, hours: UNVERIFIED, days: weekend}
+  default_period: off_peak
+  holiday_calendar: sdge_residential
+  labels: {on_peak: On-Peak, off_peak: Off-Peak, super_off_peak: Super Off-Peak}
+
+fixed_name: Base Services Charge
+fixed_per_day:
+  standard: 0.79343
+  care: 0.19713
+
+# SOURCED. UDC Total is 0.32948 for every period and both seasons (as on TOU-DR1); only
+# the EECC-TOU-DR-P half is time-differentiated.
+#   standard = 0.32948 + WF-NBC/DWR-BC 0.00591            = 0.33539
+#   care     = 0.65 x (0.32948 - CARE surcharge 0.00864)  = 0.20855
+energy:
+  summer_on_peak:        {standard: 0.33539, care: 0.20855}
+  summer_off_peak:       {standard: 0.33539, care: 0.20855}
+  summer_super_off_peak: {standard: 0.33539, care: 0.20855}
+  winter_on_peak:        {standard: 0.33539, care: 0.20855}
+  winter_off_peak:       {standard: 0.33539, care: 0.20855}
+  winter_super_off_peak: {standard: 0.33539, care: 0.20855}
+
+baseline:
+  territory: UNVERIFIED
+  allowance_kwh_per_day_summer: UNVERIFIED
+  allowance_kwh_per_day_winter: UNVERIFIED
+  allowance_multiplier: 1.30
+  credit_per_kwh: {standard: -0.10663, care: -0.06931}
+
+minimum_bill:
+  per_day: {standard: 0.329, care: 0.164}
+  citation: >-
+    SDG&E Minimum Bill $0.329/day, 50% discount for CARE/FERA -> $0.164/day, per Schedule
+    TOU-DR1 Cal. P.U.C. Sheet 29955-E (Advice 3167-E).
+
+# EECC-TOU-DR-P (generation) for reference, 6/1/2026 bundled: summer 0.19848 / 0.15523 /
+# 0.08247; winter 0.25057 / 0.17606 / 0.09329 (on / off / super-off). RYU Event Period
+# Adder $1.16/kWh, 4-9 p.m. on event days — NOT modeled, see GAP 2.

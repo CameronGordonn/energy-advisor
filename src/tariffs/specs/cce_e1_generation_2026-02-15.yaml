@@ -1,0 +1,42 @@
+# Central Coast Community Energy (3CE) "3Cchoice" — GENERATION layer matched to PG&E
+# Schedule E-1 (flat, non-TOU, non-seasonal). Authored from 3CE's published rate sheet.
+#
+# Note the asymmetry with the delivery layer: PG&E's E-1 delivery is *tiered* on baseline
+# usage, but 3CE's matched generation is a single flat rate with no tiers and no seasons.
+# Keeping the two as separate layers is what makes that expressible without special cases.
+schedule_id: 3CE-E-1
+name: 3Cchoice matched to PG&E E-1 - Generation
+provider: Central Coast Community Energy (3CE)
+layer: generation
+effective_date: 2026-02-15
+citation: >-
+  3CE "PGE-Residential-Website-Rate-Sheet-2026.02.15_with3Cflex.pdf" (3cenergy.org),
+  "3CE Rates in PG&E Territory", effective 2026-02-15, row E-1, product 3Cchoice:
+  "ENERGY CHARGE ($/KWH) YEAR-ROUND 0.11725 ... All electric usage".
+
+seasons:
+  # Seasons are required by the schema but carry no rate difference here — the sheet
+  # prices E-1 generation YEAR-ROUND. Kept aligned to PG&E's E-1 season boundaries so a
+  # billing period that straddles Jun 1 splits identically on both layers.
+  summer_months: [6, 7, 8, 9]
+  winter_months: [1, 2, 3, 4, 5, 10, 11, 12]
+
+tou:
+  rules:
+    - {period: all, hours: [[0, 24]]}
+  default_period: all
+  labels: {all: Total Usage}
+
+energy:
+  summer_all: {standard: 0.11725}
+  winter_all: {standard: 0.11725}
+
+energy_commission_tax_per_kwh: 0.0003
+
+surcharges:
+  - name: City of Santa Cruz Utility Users' Tax
+    rate: 0.085
+    of: pretax
+    citation: >-
+      City of Santa Cruz UUT 8.5% on the generation subtotal; base verified exact against
+      Cameron's 3CE statements. Municipal and therefore schedule-independent.

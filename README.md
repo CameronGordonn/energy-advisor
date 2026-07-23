@@ -23,10 +23,10 @@ and is regenerated from the golden-bill regression suite.
 | PG&E | E-TOU-C + 3CE (CARE) | 2025-11-25 → 2025-12-26 | 73.77 | 73.87 | +0.10 | ✅ |
 | PG&E | E-TOU-C + 3CE (CARE) | 2025-12-27 → 2026-01-27 | 156.88 | 157.09 | +0.21 | ✅ |
 | PG&E | E-TOU-C + 3CE (CARE) | 2026-01-28 → 2026-02-26 | 168.75 | 168.93 | +0.18 | ✅ |
-| PG&E | E-TOU-C + 3CE (CARE) | 2026-02-27 → 2026-03-29 | 93.86 | 93.93 | +0.07 | ✅ |
-| PG&E | E-TOU-C + 3CE (CARE) | 2026-03-30 → 2026-04-27 | 90.05 | 90.10 | +0.05 | ✅ |
-| PG&E | E-TOU-C + 3CE (CARE) | 2026-04-28 → 2026-05-27 | 112.20 | 112.27 | +0.07 | ✅ |
-| PG&E | E-TOU-C + 3CE (CARE) | 2026-05-28 → 2026-06-25 | 79.47 | 79.63 | +0.16 | ✅ |
+| PG&E | E-TOU-C + 3CE (CARE) | 2026-02-27 → 2026-03-29 | 93.86 | 93.97 | +0.11 | ✅ |
+| PG&E | E-TOU-C + 3CE (CARE) | 2026-03-30 → 2026-04-27 | 90.05 | 90.12 | +0.07 | ✅ |
+| PG&E | E-TOU-C + 3CE (CARE) | 2026-04-28 → 2026-05-27 | 112.20 | 112.32 | +0.12 | ✅ |
+| PG&E | E-TOU-C + 3CE (CARE) | 2026-05-28 → 2026-06-25 | 79.47 | 79.62 | +0.15 | ✅ |
 <!-- RECONCILIATION-TABLE:END -->
 
 > No feature that produces a dollar figure ships until the row(s) above are green.

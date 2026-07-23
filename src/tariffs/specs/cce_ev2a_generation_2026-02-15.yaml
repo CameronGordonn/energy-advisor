@@ -1,0 +1,42 @@
+# Central Coast Community Energy (3CE) "3Cchoice" — GENERATION layer matched to PG&E
+# Schedule EV2-A (three TOU periods). Authored from 3CE's published residential rate sheet.
+schedule_id: 3CE-EV2-A
+name: 3Cchoice matched to PG&E EV2-A - Generation
+provider: Central Coast Community Energy (3CE)
+layer: generation
+effective_date: 2026-02-15
+citation: >-
+  3CE "PGE-Residential-Website-Rate-Sheet-2026.02.15_with3Cflex.pdf" (3cenergy.org),
+  "3CE Rates in PG&E Territory", effective 2026-02-15, row EV-2A, product 3Cchoice.
+
+seasons:
+  summer_months: [6, 7, 8, 9]          # rate sheet: "Summer - June through September"
+  winter_months: [1, 2, 3, 4, 5, 10, 11, 12]
+
+# Rate sheet time-period definitions for EV-2A: peak "4pm to 9pm, every day", part-peak
+# "3pm to 4pm & 9pm to 12am, every day", off-peak "All other hours" — identical to the
+# PG&E EV2 Special Condition 1 windows, and with no day-type dependence.
+tou:
+  rules:
+    - {period: peak, hours: [[16, 21]]}
+    - {period: part_peak, hours: [[15, 16], [21, 24]]}
+  default_period: off_peak
+  labels: {peak: Peak, part_peak: Part-Peak, off_peak: Off Peak}
+
+energy:
+  summer_peak:      {standard: 0.17641}
+  summer_part_peak: {standard: 0.13214}
+  summer_off_peak:  {standard: 0.09141}
+  winter_peak:      {standard: 0.12010}
+  winter_part_peak: {standard: 0.10774}
+  winter_off_peak:  {standard: 0.08449}
+
+energy_commission_tax_per_kwh: 0.0003
+
+surcharges:
+  - name: City of Santa Cruz Utility Users' Tax
+    rate: 0.085
+    of: pretax
+    citation: >-
+      City of Santa Cruz UUT 8.5% on the generation subtotal; base verified exact against
+      Cameron's 3CE statements. Municipal and therefore schedule-independent.

@@ -1,0 +1,138 @@
+# SDG&E Schedule TOU-DR1 — DELIVERY layer (UDC + non-bypassable charges).
+# SDG&E's DEFAULT residential schedule: "If you're a typical household, you're most
+# likely on this rate" (Total Rates Table).
+#
+# ---------------------------------------------------------------------------------------
+# LAYER MODEL. SDG&E's own rate table already splits the bill the way this repo does:
+#     UDC Total  (Transm + Distr + PPP + ND + CTC + LGC + RS + TRAC)   <- delivery
+#   + WF-NBC + DWR-BC                                                  <- delivery (NBC)
+#   + EECC                                        <- generation, the layer a CCA replaces
+#   = Total Electric Rate
+# This spec is the delivery half. The generation half is either SDG&E's EECC (bundled) or
+# a CCA's rate (San Diego Community Power / Clean Energy Alliance) plus PCIA — deliberately
+# NOT authored yet, because which CCA applies is unresolved (see HANDOFF).
+#   EECC for reference (6/1/2026, bundled): summer on 0.34920 / off 0.12853 / super-off
+#   0.04121; winter on 0.27475 / off 0.19304 / super-off 0.10228.
+#   Residential PCIA (CCA), 2018 vintage 0.03662, 2026 vintage 0.04977.
+#
+# NON-BYPASSABLE CHARGES (differentiation invariant 4). Folded into the energy rates below,
+# but itemised here because the NBC set is what floors an import bill under NEM:
+#     PPP 0.01515 + ND 0.00000 + CTC (0.00007) + WF-NBC/DWR-BC 0.00591 = 0.02099 /kWh
+# plus the applicable PCIA for a CCA customer. That ~2.1c (~5.8c with a 2026-vintage PCIA)
+# is charged on every imported kWh and cannot be offset by export credits — the floor that
+# generic NEM calculators skip. Applying it to NEM netting is M3; this spec supplies the
+# number.
+#
+# MINIMUM BILL vs THE NBC FLOOR (was HANDOFF open decision 2) — RESOLVED, and the question
+# turned out to be a false dichotomy: they are not competing rules and never "both bind".
+#   * The Minimum Bill (Sheet 29955-E) is a $/day floor on the UDC total, i.e. on THIS
+#     layer, and is modeled as `minimum_bill` below.
+#   * The NBC floor is not a tariff rule at all; it is a consequence of NEM netting, in
+#     which the per-kWh NBCs above are billed on gross imports.
+#   They compose: a NEM customer pays NBCs on imports AND cannot fall below the daily
+#   minimum bill. Nothing to arbitrate.
+#
+# ⚠ OPEN CONFLICT — the super-off-peak window. SDG&E's tariff-book sheet for TOU-DR1 was
+#   last revised in 2018 (Advice 3167-E) and shows weekday super-off-peak 10:00-14:00 in
+#   MARCH AND APRIL ONLY. SDG&E's current customer-facing pricing page (showing pricing
+#   effective 6/1/2026, the same date as the rate table this spec uses) shows weekday
+#   super-off-peak 10:00-14:00 with NO month restriction. This spec follows the CURRENT
+#   published table (year-round) because it matches the rate vintage; the stale sheet is
+#   the only source for the Mar/Apr restriction. Confirm against a current tariff sheet
+#   before any dollar figure ships. This is material for ten months of the year.
+# ---------------------------------------------------------------------------------------
+schedule_id: TOU-DR1
+name: Residential Time-of-Use (SDG&E default) - Delivery
+provider: SDG&E
+layer: delivery
+effective_date: 2026-06-01
+citation: >-
+  SDG&E "Schedule TOU-DR1 - Residential Time of Use Service Effective 6/1/2026" Total
+  Rates Table (sdge.com/sites/default/files/regulatory/6-1-26 Schedule TOU-DR1 Total Rates
+  Table.pdf) and the matching TOU-DR1-CARE table, both retrieved 2026-07-23. Structure,
+  Minimum Bill and Franchise Fee Differential from Schedule TOU-DR1, Cal. P.U.C. Sheets
+  29952-29955-E (Advice 3167-E). Seasons from Schedule EECC; holidays from Electric Rule 1.
+
+seasons:
+  # Schedule EECC, "Seasonal Periods ... All Customer Classes: Summer: June 1 - October 31,
+  # Winter: November 1 - May 31." Note this is NOT the same as PG&E's Jun-Sep summer.
+  summer_months: [6, 7, 8, 9, 10]
+  winter_months: [11, 12, 1, 2, 3, 4, 5]
+
+# Three periods, and a weekday table that differs from the weekend/holiday table — the
+# structure the N-period engine was built for. Holidays follow the weekend table via
+# SDG&E Electric Rule 1 (see tariffs/holidays.py; note SDG&E's observance rule differs
+# from PG&E's).
+tou:
+  rules:
+    - {period: on_peak, hours: [[16, 21]]}
+    - {period: super_off_peak, hours: [[0, 6], [10, 14]], days: weekday}
+    - {period: super_off_peak, hours: [[0, 14]], days: weekend}
+  default_period: off_peak
+  holiday_calendar: sdge_residential
+  labels: {on_peak: On-Peak, off_peak: Off-Peak, super_off_peak: Super Off-Peak}
+
+# Income-Graduated Fixed Charge. `standard` = Base Services Charge; `care` = the CARE
+# table's Base Services Charge. (SDG&E also files a DRAH/FERA tier at 0.39688, which the
+# engine's two customer classes cannot yet express — same gap noted on PG&E.)
+fixed_name: Base Services Charge
+fixed_per_day:
+  standard: 0.79343
+  care: 0.19713
+
+# Delivery $/kWh. UDC Total is 0.32948 for EVERY period and BOTH seasons on TOU-DR1 —
+# only the EECC (generation) half is time-differentiated. The periods still matter here
+# because the generation layer and the baseline credit are billed against the same split.
+#
+#   standard = UDC Total 0.32948 + WF-NBC/DWR-BC 0.00591            = 0.33539
+#   care     = 0.65 x (UDC Total - CARE surcharge exemption 0.00864) = 0.20855
+#
+# The CARE form is READ OFF THE TARIFF, not assumed: the CARE table prints a flat
+# "CARE Discount 35%" applied after a $(0.00864) CARE-surcharge exemption, and CARE
+# customers are exempt from WF-NBC/DWR-BC (Sheet 29953-E note 3; the CARE table's total is
+# exactly 0.00591 below the standard total). Verified additively — 0.65 x (0.32948 -
+# 0.00864) + 0.65 x 0.34920 = 0.43553 = the printed summer on-peak Total Adjusted CARE
+# Rate — so splitting the discount across layers reproduces SDG&E's own number exactly.
+energy:
+  summer_on_peak:        {standard: 0.33539, care: 0.20855}
+  summer_off_peak:       {standard: 0.33539, care: 0.20855}
+  summer_super_off_peak: {standard: 0.33539, care: 0.20855}
+  winter_on_peak:        {standard: 0.33539, care: 0.20855}
+  winter_off_peak:       {standard: 0.33539, care: 0.20855}
+  winter_super_off_peak: {standard: 0.33539, care: 0.20855}
+
+# "Up to 130% of Baseline Adjustment Credit" — the AB1X / SB695 rate cap. This is why the
+# schema grew `allowance_multiplier`: SDG&E credits usage up to 130% of baseline, where
+# PG&E credits to 100%. CARE value 0.06931 is printed (= 0.65 x 0.10663, consistent).
+#
+# ⚠ allowance_kwh_per_day is UNVERIFIED: SDG&E baseline quantities are per climate zone
+# (Coastal / Inland / Mountain / Desert) and per Basic vs All-Electric, and live in
+# Schedule DR / the baseline territory tables, not in this rate table. The loader will
+# raise until they are filled from that sheet for the customer's actual zone.
+baseline:
+  territory: UNVERIFIED
+  allowance_kwh_per_day_summer: UNVERIFIED
+  allowance_kwh_per_day_winter: UNVERIFIED
+  allowance_multiplier: 1.30
+  credit_per_kwh: {standard: -0.10663, care: -0.06931}
+
+# Sheet 29955-E: "the minimum bill charge of $0.329 per day times the number of days in
+# the billing cycle with a 50% discount applied for CARE or FERA customers resulting in a
+# minimum bill charge of $0.164 per day." Printed in the UDC Total column, hence a floor
+# on this layer.
+minimum_bill:
+  per_day: {standard: 0.329, care: 0.164}
+  citation: >-
+    SDG&E Schedule TOU-DR1, Minimum Bill, Cal. P.U.C. Sheet 29955-E (Advice 3167-E).
+    NOTE the sheet's rate values are from the 2018 filing and the current Total Rates
+    Table does not restate the minimum bill; confirm the $0.329/$0.164 figures are still
+    current before shipping a dollar figure that depends on the floor binding.
+
+# NOT MODELED HERE, deliberately:
+#  - Franchise Fee Differential 5.78% (Sheet 29955-E) applies only within the corporate
+#    limits of the City of San Diego. It is a per-customer fact, not a schedule fact, so
+#    it belongs on the customer profile; adding it unconditionally would overcharge every
+#    non-City-of-San-Diego account.
+#  - California Climate Credit $(33.50) semi-annual per Schedule GHG-ARR.
+#  - CARE surcharge 0.00437/kWh (2018 sheet) / 0.00864 (current table) is already netted
+#    into the `care` rates above; CARE customers are exempt from it.

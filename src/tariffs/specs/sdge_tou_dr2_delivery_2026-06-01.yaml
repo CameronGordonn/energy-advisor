@@ -1,0 +1,69 @@
+# SDG&E Schedule TOU-DR2 — DELIVERY layer (UDC + non-bypassable charges).
+# The TWO-period residential TOU option: On-Peak 4-9 p.m., Off-Peak everything else,
+# year-round, with no weekend/holiday distinction and no super-off-peak. See the TOU-DR1
+# spec for the layer model, the NBC set, and the minimum-bill / NBC-floor resolution —
+# all identical here.
+#
+# Unlike TOU-DR1, TOU-DR2's UDC total IS time-differentiated, but only in summer
+# (0.33396 on-peak vs 0.32750 off-peak); winter is flat at 0.32948.
+schedule_id: TOU-DR2
+name: Residential Time-of-Use (two-period) - Delivery
+provider: SDG&E
+layer: delivery
+effective_date: 2026-06-01
+citation: >-
+  SDG&E "Schedule TOU-DR2 - Residential Time of Use Service Effective 6/1/2026" Total
+  Rates Table and the matching TOU-DR2-CARE table (sdge.com/sites/default/files/
+  regulatory/), retrieved 2026-07-23. Time periods from Schedule TOU-DR2 tariff sheet
+  (elec_elec-scheds_tou-dr2.pdf), "Time Periods - Year Round". Seasons from Schedule
+  EECC; Minimum Bill structure per Schedule TOU-DR1 Sheet 29955-E.
+
+seasons:
+  summer_months: [6, 7, 8, 9, 10]      # Schedule EECC: Summer Jun 1 - Oct 31
+  winter_months: [11, 12, 1, 2, 3, 4, 5]
+
+# Schedule TOU-DR2, "Time Periods / Year Round":
+#   On-Peak  4:00 p.m. - 9:00 p.m.   (summer and winter alike)
+#   Off-Peak 9:00 p.m. - 4:00 p.m.   (i.e. all other hours)
+# The sheet gives ONE table with no weekday/weekend split, so no holiday calendar is
+# named — on this schedule a holiday is priced exactly like any other day.
+tou:
+  rules:
+    - {period: on_peak, hours: [[16, 21]]}
+  default_period: off_peak
+  labels: {on_peak: On-Peak, off_peak: Off-Peak}
+
+fixed_name: Base Services Charge
+fixed_per_day:
+  standard: 0.79343
+  care: 0.19713
+
+# standard = UDC Total + WF-NBC/DWR-BC 0.00591
+# care     = 0.65 x (UDC Total - CARE surcharge exemption 0.00864), no WF-NBC/DWR-BC
+#   summer on-peak  UDC 0.33396 -> std 0.33987, care 0.65 x 0.32532 = 0.21146
+#   summer off-peak UDC 0.32750 -> std 0.33341, care 0.65 x 0.31886 = 0.20726
+#   winter both     UDC 0.32948 -> std 0.33539, care 0.65 x 0.32084 = 0.20855
+# (Derivation and its exact validation against the printed CARE totals: see the TOU-DR1
+# spec. Same statewide 35% CARE discount, printed on the CARE rate table itself.)
+energy:
+  summer_on_peak:  {standard: 0.33987, care: 0.21146}
+  summer_off_peak: {standard: 0.33341, care: 0.20726}
+  winter_on_peak:  {standard: 0.33539, care: 0.20855}
+  winter_off_peak: {standard: 0.33539, care: 0.20855}
+
+# "Up to 130% of Baseline Adjustment Credit", identical to TOU-DR1.
+# ⚠ Baseline quantities are per climate zone and are not on this rate table — UNVERIFIED
+# until read from the baseline territory table, so the loader raises rather than guess.
+baseline:
+  territory: UNVERIFIED
+  allowance_kwh_per_day_summer: UNVERIFIED
+  allowance_kwh_per_day_winter: UNVERIFIED
+  allowance_multiplier: 1.30
+  credit_per_kwh: {standard: -0.10663, care: -0.06931}
+
+minimum_bill:
+  per_day: {standard: 0.329, care: 0.164}
+  citation: >-
+    SDG&E Minimum Bill $0.329/day, 50% discount for CARE/FERA -> $0.164/day, per Schedule
+    TOU-DR1 Cal. P.U.C. Sheet 29955-E (Advice 3167-E); the current Total Rates Table does
+    not restate it. Confirm currency before relying on the floor binding.
