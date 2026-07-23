@@ -70,9 +70,30 @@ energy:
   winter_super_off_peak: {standard: 0.33539, care: 0.20855}
 
 baseline:
-  territory: UNVERIFIED
-  allowance_kwh_per_day_summer: UNVERIFIED
-  allowance_kwh_per_day_winter: UNVERIFIED
+  # SDG&E publishes baseline allowances per CLIMATE ZONE and per Basic vs All-Electric —
+  # a CUSTOMER fact, not a schedule fact, so the whole tariff table ships here and the
+  # zone is supplied at bill time (`compute_bill(..., territory="coastal_all_electric")`).
+  # Omitting it raises; there is deliberately no default, because a wrong zone silently
+  # mis-sizes the largest credit on the bill. Zones are shown on Territory Served Map No.1.
+  #
+  # Cal. P.U.C. Sheet 29294-E (Schedule DR, Sheet 5, Special Condition 3), kWh per day:
+  #                       Coastal  Inland  Mountain  Desert
+  #   Basic       Summer      9.0    10.4      13.6    15.9
+  #               Winter      9.2     9.6      12.9    10.9
+  #   All-Electric Summer     8.3    10.1      16.5    18.5
+  #               Winter     13.5    15.8      26.0    20.0
+  # "All Electric allowances are available upon application to those customers who have
+  # permanently installed space heating or who have electric water heating and receive no
+  # energy from another source."
+  allowances:
+    coastal_basic:         {summer:  9.0, winter:  9.2}
+    inland_basic:          {summer: 10.4, winter:  9.6}
+    mountain_basic:        {summer: 13.6, winter: 12.9}
+    desert_basic:          {summer: 15.9, winter: 10.9}
+    coastal_all_electric:  {summer:  8.3, winter: 13.5}
+    inland_all_electric:   {summer: 10.1, winter: 15.8}
+    mountain_all_electric: {summer: 16.5, winter: 26.0}
+    desert_all_electric:   {summer: 18.5, winter: 20.0}
   allowance_multiplier: 1.30
   credit_per_kwh: {standard: -0.10663, care: -0.06931}
 

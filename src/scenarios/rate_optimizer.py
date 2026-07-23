@@ -27,7 +27,7 @@ from pydantic import BaseModel, ConfigDict
 from greenbutton.models import COL_KWH, IntervalSeries
 from tariffs.bill import compute_bill
 from tariffs.loader import load_specs
-from tariffs.schema import Layer
+from tariffs.schema import Layer, Service
 
 UUT_LINE = "City of Santa Cruz Utility Users' Tax"
 
@@ -83,23 +83,54 @@ class Candidate:
     delivery: str
     generation: str
     eligibility: str | None = None  # non-None => conditional, must be flagged in the report
+    service: Service = Service.CCA
+    requires_ev: bool = False
 
 
 # Cameron's household: PG&E delivery + 3CE (CCA) generation, Santa Cruz, CARE, Territory T.
 # Each PG&E schedule is paired with 3CE's *matched* generation schedule — switching the
 # delivery schedule switches the CCA schedule too, and 3CE prices each one's own TOU
 # windows separately, so holding generation fixed would be wrong.
+_EV = "requires a plug-in electric vehicle (PG&E Schedule EV2 applicability)"
+
 PGE_3CE_CANDIDATES: tuple[Candidate, ...] = (
     Candidate("E-TOU-C + 3CE", "E-TOU-C", "MBRETCH1"),
     Candidate("E-TOU-D + 3CE", "E-TOU-D", "3CE-E-TOU-D"),
     Candidate("E-1 (tiered) + 3CE", "E-1", "3CE-E-1"),
+    Candidate("EV2-A + 3CE", "EV2-A", "3CE-EV2-A", eligibility=_EV, requires_ev=True),
+)
+
+# The "leave 3CE" half of the comparison: same PG&E delivery schedule, generation bought
+# from PG&E instead. Billing with service=BUNDLED drops the vintaged PCIA and the E-FFS
+# franchise fee surcharge, which is what the schedules say a bundled customer does not pay.
+PGE_BUNDLED_CANDIDATES: tuple[Candidate, ...] = (
+    Candidate("E-TOU-C + PG&E", "E-TOU-C", "PGE-BUNDLED-E-TOU-C", service=Service.BUNDLED),
+    Candidate("E-TOU-D + PG&E", "E-TOU-D", "PGE-BUNDLED-E-TOU-D", service=Service.BUNDLED),
+    Candidate("E-1 (tiered) + PG&E", "E-1", "PGE-BUNDLED-E-1", service=Service.BUNDLED),
     Candidate(
-        "EV2-A + 3CE",
+        "EV2-A + PG&E",
         "EV2-A",
-        "3CE-EV2-A",
-        eligibility="requires a plug-in electric vehicle (PG&E Schedule EV2 applicability)",
+        "PGE-BUNDLED-EV2-A",
+        eligibility=_EV,
+        service=Service.BUNDLED,
+        requires_ev=True,
     ),
 )
+
+ALL_PGE_CANDIDATES: tuple[Candidate, ...] = PGE_3CE_CANDIDATES + PGE_BUNDLED_CANDIDATES
+
+
+def eligible_candidates(
+    candidates: tuple[Candidate, ...] = ALL_PGE_CANDIDATES, *, has_ev: bool = False
+) -> tuple[Candidate, ...]:
+    """Drop plans the household cannot actually take.
+
+    A plan the customer is not eligible for is not a cheaper option, it is noise — and
+    ranking one at the top is exactly the failure mode the honest-broker invariant exists
+    to prevent. Eligibility is filtered here rather than flagged in the report so an
+    ineligible plan can never become the headline.
+    """
+    return tuple(c for c in candidates if has_ev or not c.requires_ev)
 
 
 class PeriodCost(BaseModel):
@@ -169,7 +200,15 @@ def simulate(
     for ps, pe in periods:
         days = (pe - ps).days + 1
         # Bill once with no adjustment so the gross UUT is readable, then apply the policy.
-        bill = compute_bill(series, [deliv, gen], ps, pe, care=care, allow_before_effective=True)
+        bill = compute_bill(
+            series,
+            [deliv, gen],
+            ps,
+            pe,
+            care=care,
+            service=candidate.service,
+            allow_before_effective=True,
+        )
         gross_uut = sum(layer.bucket().get(UUT_LINE, 0.0) for layer in bill.layers)
         adj = _uut_adjustment(policy, days=days, gross_uut=gross_uut)
         for layer in bill.layers:
@@ -231,7 +270,7 @@ def rank(
     *,
     care: bool,
     as_of: date,
-    candidates: tuple[Candidate, ...] = PGE_3CE_CANDIDATES,
+    candidates: tuple[Candidate, ...] = ALL_PGE_CANDIDATES,
     policy: UutPolicy = UutPolicy.PER_DAY,
     specs_dir: str = "src/tariffs/specs",
 ) -> list[PlanCost]:

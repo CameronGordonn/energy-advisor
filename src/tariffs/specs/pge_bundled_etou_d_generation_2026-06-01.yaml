@@ -1,0 +1,63 @@
+# PG&E BUNDLED generation — the "leave the CCA" counterfactual for E-TOU-D.
+#
+# WHY THIS EXISTS. Every other candidate in the M2 ranking assumes the household stays with
+# its CCA (3CE). Roadmap M2 asks for "CCA on/off where applicable", and without this layer
+# the optimizer could only answer "which PG&E schedule", never "should I still be with 3CE
+# at all". Pairing this generation layer with the same delivery spec answers both at once.
+#
+# HOW IT COMPOSES. The delivery spec bills the full Total Bundled Rate and then backs PG&E
+# generation out via its "Generation Credit" adder, so the delivery layer is genuinely
+# delivery-only for either service type. A bundled customer then adds this layer back:
+#     Total - (Generation + Bundled PCIA) + (Generation + Bundled PCIA) = Total   [exact]
+# and, per the schedules' BILLING special conditions, pays NEITHER the vintaged PCIA NOR
+# the Schedule E-FFS franchise fee surcharge — both of which are tagged `applies_to: cca`
+# on the delivery spec and are skipped when billing with `service=bundled`.
+#
+# So this layer is exactly  Generation + Bundled PCIA  from the schedule's unbundling
+# table, i.e. the arithmetic negative of the delivery spec's Generation Credit.
+# Bundled PCIA = -0.01011 (all usage, all residential schedules).
+#
+# PRESENTATION CAVEAT: a real bundled PG&E bill shows one combined "Electric charges"
+# figure, not a delivery/generation split with a Generation Credit line. The TOTAL is
+# exact; the line-item layout is this engine's, not PG&E's. A future golden-bill
+# reconciliation against a bundled statement must compare at the bill total.
+schedule_id: PGE-BUNDLED-E-TOU-D
+name: PG&E bundled generation matched to E-TOU-D
+provider: PG&E
+layer: generation
+effective_date: 2026-06-01
+citation: >-
+  PG&E Schedule E-TOU-D, UNBUNDLING OF TOTAL RATES, Cal. P.U.C. Sheet 61136-E (Advice
+  7846-E, effective 2026-03-01): the Generation component plus the Bundled Power Charge
+  Indifference Adjustment (-0.01011), which together are exactly what a bundled customer
+  pays and a CCA customer does not. Components verified to sum to the printed Total rate.
+
+seasons:
+  summer_months: [6, 7, 8, 9]
+  winter_months: [1, 2, 3, 4, 5, 10, 11, 12]
+
+tou:
+  rules:
+    - {period: peak, hours: [[17, 20]], days: weekday}
+  default_period: offpeak
+  holiday_calendar: pge_residential
+  labels: {peak: Peak, offpeak: Off Peak}
+
+
+energy:
+  summer_peak:          {standard: 0.19615}   # 0.20626 - 0.01011
+  summer_offpeak:       {standard: 0.09119}   # 0.10130 - 0.01011
+  winter_peak:          {standard: 0.15528}   # 0.16539 - 0.01011
+  winter_offpeak:       {standard: 0.12020}   # 0.13031 - 0.01011
+
+# California Energy Commission surcharge, $/kWh — statewide, applies to bundled supply
+# exactly as it does to CCA supply (it is not part of the unbundled Total rate).
+energy_commission_tax_per_kwh: 0.0003
+
+surcharges:
+  - name: City of Santa Cruz Utility Users' Tax
+    rate: 0.085
+    of: pretax
+    citation: >-
+      City of Santa Cruz UUT 8.5% on the generation subtotal; base verified exact against
+      Cameron's statements. Municipal and therefore supplier-independent.

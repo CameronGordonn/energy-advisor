@@ -8,6 +8,7 @@ from datetime import date
 import pytest
 
 from scenarios.rate_optimizer import (
+    ALL_PGE_CANDIDATES,
     EVENING_HOURS,
     PGE_3CE_CANDIDATES,
     UutPolicy,
@@ -150,11 +151,22 @@ def _periods() -> list[tuple[date, date]]:
 def test_every_candidate_bills_end_to_end_and_ranks():
     series = make_series("2026-04-01", 91)  # April through June
     plans = rank(series, _periods(), care=True, as_of=AS_OF)
-    assert len(plans) == len(PGE_3CE_CANDIDATES)
+    assert len(plans) == len(ALL_PGE_CANDIDATES)  # 3CE and PG&E-bundled halves
     assert all(p.total > 0 for p in plans)
     assert plans == sorted(plans, key=lambda p: p.total)
     # EV2-A must stay flagged so a report can never recommend it unconditionally.
-    assert any(p.eligibility for p in plans if p.delivery == "EV2-A")
+    assert all(p.eligibility for p in plans if p.delivery == "EV2-A")
+
+
+def test_ev_only_plans_are_excluded_unless_the_household_has_an_ev():
+    """Eligibility is filtered, not merely flagged — an ineligible plan must never rank."""
+    from scenarios.rate_optimizer import eligible_candidates
+
+    without = eligible_candidates(ALL_PGE_CANDIDATES, has_ev=False)
+    with_ev = eligible_candidates(ALL_PGE_CANDIDATES, has_ev=True)
+    assert all(c.delivery != "EV2-A" for c in without)
+    assert any(c.delivery == "EV2-A" for c in with_ev)
+    assert len(with_ev) == len(ALL_PGE_CANDIDATES)
 
 
 def test_explain_diff_sums_to_the_total_gap():

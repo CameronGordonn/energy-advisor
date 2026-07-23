@@ -299,6 +299,61 @@ TOU-DR-P / EV-TOU-5 dad is actually on before treating any as the default.
    of N. County). Unresolvable until dad's bill; drives which generation overlay to author.
 4. **Which schedule** dad is actually on (TOU-DR1 vs TOU-DR2 vs TOU-DR-P vs EV-TOU-5).
 
+### ADDENDUM — session 4b: CCA on/off, EV eligibility, SDG&E zones
+
+**Context change from Cameron: the Santa Cruz lease ends 2026-07-31, and he has no plug-in
+EV.** Told him to export the full Green Button interval data and every remaining bill PDF
+before the account closes — that data is the entire trust artifact and portal access
+usually dies with the account. Also: PG&E's Rate Plan Comparison returns *"This account has
+no service agreement eligible for rate enrollment"* for his account, so **the M2 DoD
+cross-check is UNAVAILABLE, not merely pending** — most likely because generation is with a
+CCA, possibly because the account is closing.
+
+**CCA on/off is now modeled (roadmap M2's "CCA on/off where applicable").** Added
+`Service` (bundled | cca) and an `applies_to` tag on adders/surcharges, straight from the
+schedules' BILLING special conditions: a bundled customer pays neither the vintaged PCIA nor
+the E-FFS franchise fee. That keeps ONE delivery spec per schedule serving both service
+types instead of two copies that would drift at the next rate change. Four new
+`PGE-BUNDLED-*` generation specs = Generation + Bundled PCIA (the arithmetic negative of the
+delivery spec's Generation Credit), so
+`Total - (Gen + BundledPCIA) + (Gen + BundledPCIA) = Total` exactly — tested.
+
+**THE VERDICT FLIPPED, and this is the most useful result the project has produced so far:**
+```
+E-TOU-C + PG&E   933.50   <- SWITCH, -170.72/yr
+E-1      + PG&E   990.57
+E-TOU-D  + PG&E  1038.50
+E-TOU-C  + 3CE   1104.22   <- current
+```
+Decomposition: **PCIA +159.88/yr**, UUT on it +13.59, franchise fee +2.54, and 3CE's
+generation is only ~$5/yr cheaper than PG&E's. The mechanism is real and checkable on the
+sheets: a **2018-vintage** CCA customer pays PCIA **0.03679/kWh** while the **2026 bundled**
+PCIA is **-0.01011** (a credit) — a ~4.7c/kWh gap that 3CE's generation discount no longer
+covers. That is exactly the non-obvious, account-specific finding the tool exists to find,
+and no generic calculator surfaces it.
+Caveats now printed in the report: PG&E Rules 22.1/23.1 require **six months' advance
+notice** to elect bundled service, with **Transitional Bundled Service** (Schedule TBCC,
+short-term market prices) in the interim — a saving realised months later after an unpriced
+TBS window is not the annual figure above. 3Cprime/3Cflex products are also unmodeled.
+**Moot for Cameron personally** (lease ends in 8 days), but it validates the method.
+
+**EV eligibility is now FILTERED, not flagged.** Cameron has no EV, so EV2-A plans are
+excluded from the ranking entirely (`--ev` re-includes them). Flagging an ineligible plan
+still lets it become the headline; filtering cannot. Honest-broker invariant.
+
+**SDG&E baseline allowances — RESOLVED from the tariff.** Cal. P.U.C. Sheet 29294-E
+(Schedule DR, Sheet 5, SC 3) publishes the full climate-zone table, so all eight rows now
+ship in-spec. Design decision: the zone is a **customer** fact, so `Baseline` grew an
+`allowances` table and `territory` is supplied **at bill time**; omitting it RAISES rather
+than defaulting, because a wrong zone silently mis-sizes the largest credit on a CA bill.
+**TOU-DR1 and TOU-DR2 now load.** TOU-DR-P still raises (unsourced period windows + the
+unmodelable RYU event adder) — unchanged and correct.
+
+Also confirmed here: PG&E baseline Territory **T** / Heat Source **H** was read off
+Cameron's bill in session 1, so 7.1 / 12.9 kWh-per-day is sourced, not assumed.
+
+**96 tests green, ruff clean, 11/11 golden bills still reconcile.**
+
 ## 2026-07-20 — Session 2 addendum (direction for next session)
 
 Session-2 work **merged to main** (`2b19e28`, fast-forward). Cameron: dad's SDG&E bills

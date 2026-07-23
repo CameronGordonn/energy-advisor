@@ -20,9 +20,10 @@ import yaml
 
 from greenbutton import parse_pge_interval_csv
 from scenarios.rate_optimizer import (
+    ALL_PGE_CANDIDATES,
     EVENING_HOURS,
-    PGE_3CE_CANDIDATES,
     UutPolicy,
+    eligible_candidates,
     explain,
     flip_factor,
     rank,
@@ -61,6 +62,11 @@ def main() -> int:
     ap.add_argument("--as-of", default=date.today().isoformat(), help="rate vintage to compare at")
     ap.add_argument("--no-care", action="store_true", help="bill as a standard (non-CARE) customer")
     ap.add_argument(
+        "--ev",
+        action="store_true",
+        help="household has a plug-in EV; without this, EV2-A plans are excluded as ineligible",
+    )
+    ap.add_argument(
         "--pge-comparison",
         help="YAML of PG&E Rate Plan Comparison output to cross-check against (M2 DoD)",
     )
@@ -76,7 +82,8 @@ def main() -> int:
     periods = _billing_periods()
     span = f"{periods[0][0]} .. {periods[-1][1]}"
 
-    plans = rank(series, periods, care=care, as_of=as_of)
+    cands = eligible_candidates(ALL_PGE_CANDIDATES, has_ev=args.ev)
+    plans = rank(series, periods, care=care, as_of=as_of, candidates=cands)
     by_name = {p.name: p for p in plans}
     current = by_name[CURRENT_PLAN]
     days = current.days
@@ -85,6 +92,12 @@ def main() -> int:
     print("RATE PLAN RANKING — PG&E / Santa Cruz, CARE" if care else "RATE PLAN RANKING — PG&E")
     print(f"  {len(periods)} real billing periods, {span}  ({days} days, {current.kwh:.0f} kWh)")
     print(f"  all plans priced at rates in effect {as_of} (not the historical rate vintages)")
+    dropped = len(ALL_PGE_CANDIDATES) - len(cands)
+    if dropped:
+        print(
+            f"  {dropped} EV-only plan(s) EXCLUDED as ineligible (no plug-in EV). Pass --ev "
+            "to include them."
+        )
     print(_rule("="))
     print(f"{'#':<3}{'plan':<24}{'annual $':>11}{'$/mo':>9}{'vs current':>12}   note")
     print(_rule())
@@ -143,7 +156,7 @@ def main() -> int:
     print(_rule("="))
     print("SENSITIVITY — what would have to change to flip the ranking")
     print(_rule("="))
-    cand = {c.name: c for c in PGE_3CE_CANDIDATES}
+    cand = {c.name: c for c in cands}
     top = eligible[0]
     challengers = [p for p in eligible[1:]]
     hours_label = f"{EVENING_HOURS.start}:00-{EVENING_HOURS.stop}:00"
@@ -177,7 +190,7 @@ def main() -> int:
     print("Santa Cruz UUT Adjustment (mechanism UNVERIFIED — see SESSION_NOTES):")
     orders = {}
     for policy in UutPolicy:
-        ps = rank(series, periods, care=care, as_of=as_of, policy=policy)
+        ps = rank(series, periods, care=care, as_of=as_of, candidates=cands, policy=policy)
         orders[policy] = [p.name for p in ps]
         totals = "  ".join(f"{p.name.split(' +')[0]}={p.total:,.0f}" for p in ps)
         print(f"  {policy.value:<13} {policy.description}")
@@ -201,8 +214,13 @@ def main() -> int:
     print("    ranking.")
     print("  - Rates are a snapshot: no escalation, no future rate cases. M3 adds distributions.")
     print("  - Load is the customer's actual metered year; no weather normalisation.")
-    print("  - PG&E-bundled generation (leaving 3CE) is NOT among the candidates — 3CE opt-out")
-    print("    economics need the bundled generation layer, which is a separate spec.")
+    print("  - 3CE generation rates are 3Cchoice (the default product). 3Cprime is +0.008/kWh")
+    print("    and 3Cflex -0.05264/kWh; neither is modeled, so a 3Cflex switch is unpriced.")
+    print("  - Bundled PG&E plans assume no CCA exit charge beyond the PCIA already billed,")
+    print("    and ignore switching FRICTION: PG&E Rules 22.1/23.1 require six months' advance")
+    print("    notice to elect bundled service, with Transitional Bundled Service (Schedule")
+    print("    TBCC, short-term market prices) in the interim. A saving realised months later,")
+    print("    after an unpriced TBS window, is not the same as the annual figure above.")
 
     _cross_check(args.pge_comparison, plans, current)
     return 0

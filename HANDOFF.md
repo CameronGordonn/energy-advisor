@@ -3,12 +3,18 @@
 _Rewrite this whole file whenever you finish a milestone or pause. Keep it short and
 current: state, how to run, open decisions, exact next action._
 
-## Status: **M0 complete. M2 substantially complete on PG&E. M1 blocked on data only.**
+## Status: **M0 complete. M2 complete on PG&E except an unavailable cross-check. M1 blocked on data.**
 _(2026-07-23, session 4)_
+
+> **⚠ CONTEXT CHANGE: the Santa Cruz lease ends 2026-07-31.** Before the account closes,
+> export the full Green Button interval data and every remaining bill PDF (including the
+> final statement, which arrives after move-out). Portal access usually dies with the
+> account and this household's 12 months of data is the project's entire trust artifact.
+> Cameron has **no plug-in EV**, so EV2-A plans are filtered out of rankings by default.
 
 The bill engine reproduces **all 11 PG&E statements within ±$2**, worst residual
 **+$0.22**, from the customer's own hourly interval data (CCA/3CE + CARE account).
-**91 tests green, ruff clean.** See the README reconciliation table.
+**96 tests green, ruff clean.** See the README reconciliation table.
 
 Session 4 landed the **N-period, day-type-aware TOU engine** (the blocker for everything),
 opened **M2 on the PG&E household**, and authored the **SDG&E delivery specs**. Full detail
@@ -19,7 +25,7 @@ in SESSION_NOTES §2026-07-23 Session 4 — do not re-derive any of it.
   month-conditional windows, cited holiday calendars, `Baseline.allowance_multiplier`,
   `MinimumBill`, per-kWh surcharges. Backward compatible: every PG&E spec was untouched
   and the reconciliation output was **byte-identical** across the refactor.
-- **Specs (12 → 19)**: PG&E E-TOU-C / **E-TOU-D / EV2-A / E-1** delivery + matched
+- **Specs (12 → 23)**: PG&E E-TOU-C / **E-TOU-D / EV2-A / E-1** delivery + matched
   **3CE generation** for each; **SDG&E TOU-DR1 / TOU-DR2 / EV-TOU-5 / TOU-DR-P** delivery.
 - **M2 optimizer**: `scripts/rate_optimizer.py`, one command → ranking, verdict, a
   component-level *why*, sensitivity, and an assumption audit.
@@ -27,51 +33,60 @@ in SESSION_NOTES §2026-07-23 Session 4 — do not re-derive any of it.
 ## How to run
 ```bash
 conda activate energy-advisor    # env prefix: /home/cameron/miniforge3/envs/energy-advisor
-PYTHONPATH=src python -m pytest -q                          # 91 tests; golden tests skip if data/ absent
+PYTHONPATH=src python -m pytest -q                          # 96 tests; golden tests skip if data/ absent
 ruff check . && ruff format --check .
 PYTHONPATH=src python scripts/reconcile_report.py           # 11 line-item comparisons (the trust artifact)
 PYTHONPATH=src python scripts/reconcile_report.py --write-readme
 PYTHONPATH=src python scripts/rate_optimizer.py             # M2 ranking + sensitivity + assumption audit
-PYTHONPATH=src python scripts/rate_optimizer.py --no-care    # fully tariff-grounded (no derived CARE rates)
+PYTHONPATH=src python scripts/rate_optimizer.py --no-care  # tariff-only (no derived CARE rates)
+PYTHONPATH=src python scripts/rate_optimizer.py --ev       # include EV-only schedules
 ```
 
 ## M2 headline (PG&E household, 4345 kWh / 328 days, current rates)
-**STAY on E-TOU-C + 3CE.** `E-TOU-C 1104.22 < EV2-A 1130.52 (conditional, needs an EV)
-< E-1 1160.91 < E-TOU-D 1208.80`. The gap is driven by the **baseline credit** (E-TOU-C and
-E-1 have one; E-TOU-D and EV2-A do not), *not* by peak/off-peak spreads. E-1 overtakes only
-if 4-9 p.m. usage grows ~358%; E-TOU-D never overtakes on a load-neutral shift.
+**SWITCH to E-TOU-C + PG&E bundled generation — $170.72/yr cheaper than today.**
+```
+E-TOU-C + PG&E   933.50   <- best eligible
+E-1     + PG&E   990.57
+E-TOU-D + PG&E  1038.50
+E-TOU-C + 3CE   1104.22   <- current
+E-1     + 3CE   1160.91
+E-TOU-D + 3CE   1208.80
+```
+The saving is **leaving the CCA, not changing schedule**: PCIA +$159.88/yr, UUT on it
++$13.59, franchise fee +$2.54, while 3CE's generation is only ~$5/yr cheaper than PG&E's. A
+2018-vintage CCA customer pays PCIA 0.03679/kWh where the 2026 *bundled* PCIA is −0.01011 —
+a ~4.7c/kWh gap 3CE's discount no longer covers. **Moot for Cameron (lease ends 07-31), but
+it is the strongest validation of the method so far, and a good M4 case study.**
+Among schedules alone the driver is the **baseline credit** (E-TOU-C and E-1 have one;
+E-TOU-D and EV2-A do not), not peak/off-peak spreads.
+**Caveat printed in the report:** PG&E Rules 22.1/23.1 require six months' advance notice to
+elect bundled service, with Transitional Bundled Service (Schedule TBCC, short-term market
+prices) in between — the saving is not immediate and the TBS window is unpriced.
 
-## EXACT NEXT ACTION — close the M2 definition of done
+## EXACT NEXT ACTION
 
-The only remaining piece of M2 is the cross-check against **PG&E's own rate comparison**,
-and it needs Cameron, not code:
+**The M2 cross-check is UNAVAILABLE, not pending.** PG&E's Rate Plan Comparison returns
+*"This account has no service agreement eligible for rate enrollment"* for this account —
+most likely because generation is with a CCA, possibly because the account is closing. The
+`--pge-comparison FILE` harness is built and will work against any future account, and the
+script prints the cross-checks that ARE complete (every rate traced to a Cal. P.U.C. sheet;
+unbundled components summing exactly to printed totals on all four schedules; the tariff-
+derived generation credit matching M0's independent fit to 6e-05; 3CE's published sheet
+reproducing the bill-derived MBRETCH1 spec). **Treat M2 as done on PG&E and move on.**
 
-1. Sign in at pge.com → **Rate Plan Comparison** (pge.com/rateanalysis-pge). It is login-
-   gated, so it cannot be fetched; the account holder must run it.
-2. Save its output as YAML:
-   ```yaml
-   source: PG&E Rate Plan Comparison, run 2026-07-XX
-   plans: {E-TOU-C: 1104.22, E-1: 1160.91, E-TOU-D: 1208.80, EV2-A: 1130.52}
-   ```
-3. `PYTHONPATH=src python scripts/rate_optimizer.py --pge-comparison FILE`
+So the next action is **M3 groundwork (NEM 3.0)**, which is fully unblocked:
+- ACC export tables by vintage year with the 9-year lock-in.
+- Netting rules against the NBC import floor — already modeled and documented at
+  **0.02099/kWh** (+PCIA) on the SDG&E specs.
+- PVWatts hourly production; then greedy TOU battery dispatch, then the cvxpy LP.
 
-Expect a **level** difference and do not treat it as an error: PG&E's tool prices *bundled*
-service while this household buys generation from 3CE. **The ranking and the spreads are
-what must agree.** The script already prints all of this plus the cross-checks that are
-complete.
-
-### If that is blocked, the next most valuable work, in order
-1. **Fill the SDG&E baseline allowances.** TOU-DR1 / TOU-DR2 / TOU-DR-P currently raise at
-   load because `baseline.territory` and the allowances are UNVERIFIED. SDG&E publishes
-   them per **climate zone** (Coastal / Inland / Mountain / Desert) x Basic vs All-Electric.
-   Authoring one spec per zone, or adding a zone-keyed allowance table to `Baseline`, makes
-   three schedules billable. This is the single highest-leverage unblocked task.
-2. **Resolve the TOU-DR1 super-off-peak conflict** (see open decisions).
-3. **PG&E bundled-generation specs.** Cheap — the EECC/generation numbers are already in
-   each delivery spec's unbundling comments — and it adds the "leave 3CE?" counterfactual,
-   which is currently absent from the ranking and stated as such in the report.
-4. **M3 groundwork** (NEM 3.0): the SDG&E NBC set is modeled and the import floor is
-   documented at **0.02099/kWh** plus PCIA; the netting logic is what's missing.
+Cheaper items if a short session is wanted instead:
+1. **Resolve the TOU-DR1 super-off-peak conflict** (open decision 1). Blocks every SDG&E
+   dollar figure.
+2. **SDG&E generation layers** — EECC values are already recorded in each delivery spec's
+   comments; authoring them makes SDG&E bundled bills computable end to end.
+3. **Generalise the California Climate Credit** to a versioned semiannual line
+   ($36.18, Aug/Sep cycles) instead of the observed −$58.23.
 
 ## Open decisions
 1. **⚠ SDG&E TOU-DR1 super-off-peak window — two SDG&E sources disagree.** The tariff-book
@@ -84,15 +99,18 @@ complete.
    Adder ($1.16/kWh, 4-9 p.m. on event days)** is event-contingent with no engine concept.
    Do **not** default it to zero events — that would make the plan look like a free lunch.
    Preferred: caller-supplied event days, or report as a range, or exclude and say why.
-3. **CARE rates on PG&E counterfactual schedules are DERIVED, not printed**
+3. **SDG&E baseline allowances — RESOLVED.** The full climate-zone table (Cal. P.U.C. Sheet
+   29294-E) now ships in-spec, and `territory` is supplied **at bill time** because the zone
+   is a customer fact; omitting it raises rather than defaulting. TOU-DR1 and TOU-DR2 load.
+4. **CARE rates on PG&E counterfactual schedules are DERIVED, not printed**
    (`care = 0.65 x standard - 0.01038`). Validated to ≤1e-5 on E-TOU-C, cross-checked
    against E-1's printed tier pair, and corroborated by SDG&E's tables printing "CARE
    Discount 35%". Still an assumption; `--no-care` is the tariff-only ranking.
-4. **Santa Cruz UUT Adjustment — RESOLVED as a modeling assumption**, mechanism still
+5. **Santa Cruz UUT Adjustment — RESOLVED as a modeling assumption**, mechanism still
    UNVERIFIED. Adopted **$0.21649/day** (best fit of five candidates). It is
    schedule-independent, so it cannot reorder the ranking, and the optimizer proves that by
    re-ranking under all three mechanisms. No longer blocks anything.
-5. **Which CCA and which SDG&E schedule dad is on** — still unresolvable without a bill.
+6. **Which CCA and which SDG&E schedule dad is on** — still unresolvable without a bill.
    The San Diego CCA generation overlay remains deliberately un-authored.
 
 ## Blocked on data (not on work)

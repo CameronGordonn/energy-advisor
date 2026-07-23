@@ -47,6 +47,34 @@ class Season(StrEnum):
     WINTER = "winter"
 
 
+class Service(StrEnum):
+    """How the customer buys generation — which changes which lines they pay.
+
+    Straight from the schedules' own BILLING special conditions: "CCA/DA customers shall
+    pay all charges shown in the Unbundling of Total Rates except for the Bundled Power
+    Charge Indifference Adjustment and the generation charge. These customers shall also
+    pay for their applicable Vintaged Power Charge Indifference Adjustment ... [and] the
+    franchise fee surcharge provided in Schedule E-FFS."
+
+    So the delivery layer is shared between bundled and CCA customers; only a couple of
+    lines differ. Modeling that with an ``applies_to`` tag keeps one delivery spec per
+    schedule instead of two near-identical copies that would drift apart at the next rate
+    change.
+    """
+
+    BUNDLED = "bundled"  # generation supplied by the utility
+    CCA = "cca"  # generation supplied by a CCA / Direct Access provider
+
+
+class AppliesTo(StrEnum):
+    ALL = "all"
+    BUNDLED = "bundled"
+    CCA = "cca"
+
+    def covers(self, service: Service) -> bool:
+        return self is AppliesTo.ALL or self.value == service.value
+
+
 class DayType(StrEnum):
     """Which days a TOU rule applies to.
 
@@ -248,30 +276,98 @@ class Rate(_Base):
         return val
 
 
+class Allowance(_Base):
+    """Summer/winter kWh-per-day baseline allowance for one territory or climate zone."""
+
+    summer: float = Field(gt=0)
+    winter: float = Field(gt=0)
+
+
 class Baseline(_Base):
     """Baseline-allowance credit: min(usage, multiplier x allowance) x credit (negative).
 
     ``allowance_multiplier`` is 1.0 for PG&E (credit up to 100% of baseline) and 1.30 for
     SDG&E residential, whose schedules credit up to 130% of the baseline allowance.
+
+    Allowances are per *territory* (PG&E) or *climate zone* (SDG&E), and further split by
+    Basic vs All-Electric service. That is a **customer** fact, not a schedule fact, so a
+    spec may either pin one territory (``territory`` + the two flat allowances, which is
+    how the PG&E specs read, since the customer's territory is known from their bill) or
+    publish the whole table via ``allowances`` and let the caller pass a ``territory`` at
+    bill time. Publishing the table is what lets one SDG&E spec serve every climate zone
+    instead of four near-identical files.
     """
 
-    territory: str
-    allowance_kwh_per_day_summer: float
-    allowance_kwh_per_day_winter: float
+    territory: str | None = None
+    allowance_kwh_per_day_summer: float | None = None
+    allowance_kwh_per_day_winter: float | None = None
+    allowances: dict[str, Allowance] = Field(
+        default_factory=dict, description="territory/zone key -> allowance; overrides the flat pair"
+    )
     credit_per_kwh: Rate
     allowance_multiplier: float = Field(
         default=1.0, gt=0, description="Fraction of baseline the credit applies to (SDG&E: 1.30)"
     )
 
-    def allowance_per_day(self, season: Season) -> float:
+    @model_validator(mode="after")
+    def _has_an_allowance(self) -> Baseline:
+        flat = (
+            self.allowance_kwh_per_day_summer is not None
+            and self.allowance_kwh_per_day_winter is not None
+        )
+        if not flat and not self.allowances:
+            raise ValueError(
+                "baseline needs either allowance_kwh_per_day_summer/_winter or an "
+                "`allowances` table keyed by territory/climate zone"
+            )
+        if self.allowances and self.territory is not None and self.territory not in self.allowances:
+            raise ValueError(
+                f"baseline.territory {self.territory!r} is not a key of `allowances` "
+                f"({sorted(self.allowances)}) — pick the customer's actual zone"
+            )
+        if not self.allowances and self.territory is None:
+            raise ValueError("baseline pinned to flat allowances must name its territory")
+        return self
+
+    def allowance_per_day(self, season: Season, territory: str | None = None) -> float:
+        """kWh/day for ``season``; ``territory`` selects a row of ``allowances``.
+
+        Raises on an unknown territory rather than falling back to a default — a wrong
+        baseline zone silently mis-sizes the largest credit on a CA residential bill.
+        """
+        key = territory or self.territory
+        if self.allowances:
+            if key is None:
+                raise ValueError(
+                    "this spec publishes a baseline allowance table "
+                    f"({sorted(self.allowances)}) but no territory was supplied; the "
+                    "customer's climate zone is a customer fact and must be passed in "
+                    "(compute_bill(..., territory=...)), never defaulted"
+                )
+            try:
+                a = self.allowances[key]
+            except KeyError:
+                raise ValueError(
+                    f"unknown baseline territory {key!r}; this spec publishes "
+                    f"{sorted(self.allowances)}"
+                ) from None
+            return a.summer if season is Season.SUMMER else a.winter
+        if territory is not None and territory != self.territory:
+            raise ValueError(
+                f"spec is pinned to territory {self.territory!r} but {territory!r} was "
+                "requested; use a spec with an `allowances` table"
+            )
         return (
             self.allowance_kwh_per_day_summer
             if season is Season.SUMMER
             else self.allowance_kwh_per_day_winter
         )
 
-    def credited_kwh(self, season: Season, days: int, total_kwh: float) -> float:
-        return min(total_kwh, days * self.allowance_per_day(season) * self.allowance_multiplier)
+    def credited_kwh(
+        self, season: Season, days: int, total_kwh: float, territory: str | None = None
+    ) -> float:
+        allowance = days * self.allowance_per_day(season, territory) * self.allowance_multiplier
+        return min(total_kwh, allowance)
 
 
 class PerKwhAdder(_Base):
@@ -303,6 +399,7 @@ class PerKwhAdder(_Base):
     per_kwh_tou: dict[str, float] = Field(
         default_factory=dict, description='N-period TOU rates keyed "<season>_<period>"'
     )
+    applies_to: AppliesTo = AppliesTo.ALL
     citation: str
 
     @model_validator(mode="after")
@@ -368,6 +465,7 @@ class Surcharge(_Base):
         default=None, description="Which running subtotal to apply to: 'pretax' | 'energy'"
     )
     per_kwh: float | None = None
+    applies_to: AppliesTo = AppliesTo.ALL
     citation: str
 
     @model_validator(mode="after")

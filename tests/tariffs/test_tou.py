@@ -251,3 +251,90 @@ def test_baseline_multiplier_defaults_to_pge_100_percent():
     )
     assert b.allowance_multiplier == 1.0
     assert b.credited_kwh(Season.WINTER, 30, 1000.0) == pytest.approx(387.0)
+
+
+# --- service type: which lines a bundled vs CCA customer actually pays -----
+
+
+def test_bundled_customer_skips_cca_only_lines():
+    """A bundled customer pays neither the vintaged PCIA nor the E-FFS franchise fee.
+
+    Straight from the schedules' BILLING special conditions. Tagging those lines
+    `applies_to: cca` is what lets one delivery spec serve both service types instead of
+    two near-identical copies that would drift apart at the next rate change.
+    """
+    from tariffs.loader import load_specs
+    from tariffs.schema import Layer, Service
+
+    spec = load_specs("E-TOU-C", Layer.DELIVERY, on=date(2026, 7, 1))
+    series, ps, pe = make_series("2026-06-01", 20), date(2026, 6, 1), date(2026, 6, 20)
+    cca = compute_layer(series, spec, ps, pe, service=Service.CCA).bucket()
+    bundled = compute_layer(series, spec, ps, pe, service=Service.BUNDLED).bucket()
+
+    assert any("Power Charge Indifference" in k for k in cca)
+    assert not any("Power Charge Indifference" in k for k in bundled)
+    assert "Franchise Fee Surcharge" in cca
+    assert "Franchise Fee Surcharge" not in bundled
+    # Everything else is shared, including the generation credit that makes the delivery
+    # layer genuinely delivery-only for either service type.
+    assert cca["Energy Peak"] == bundled["Energy Peak"]
+    assert "Generation Credit (PG&E generation not supplied)" in bundled
+
+
+def test_bundled_delivery_plus_generation_reconstructs_the_total_bundled_rate():
+    """delivery + bundled generation must equal PG&E's printed Total rate, exactly.
+
+    This is the arithmetic the "leave 3CE" counterfactual rests on:
+        Total - (Generation + Bundled PCIA) + (Generation + Bundled PCIA) = Total
+    """
+    from tariffs.loader import load_specs
+    from tariffs.schema import Layer, Service
+
+    deliv = load_specs("E-TOU-C", Layer.DELIVERY, on=date(2026, 7, 1))
+    gen = load_specs("PGE-BUNDLED-E-TOU-C", Layer.GENERATION, on=date(2026, 7, 1))
+    # November 2026: winter, and after both specs' effective dates. Starts the 2nd so the
+    # DST fall-back day (Nov 1) is outside the window.
+    series, ps, pe = make_series("2026-11-02", 7), date(2026, 11, 2), date(2026, 11, 8)
+
+    d = compute_layer(series, deliv, ps, pe, service=Service.BUNDLED).bucket()
+    g = compute_layer(series, gen, ps, pe, service=Service.BUNDLED).bucket()
+    # 7 winter days x 1 kWh/h: peak 35 kWh, off-peak 133 kWh.
+    energy = (
+        d["Energy Peak"]
+        + d["Energy Off Peak"]
+        + d["Generation Credit (PG&E generation not supplied)"]
+        + g["Energy Peak"]
+        + g["Energy Off Peak"]
+    )
+    assert energy == pytest.approx(35 * 0.39757 + 133 * 0.36757, abs=0.02)
+
+
+# --- SDG&E climate-zone baseline allowances -------------------------------
+
+
+def test_sdge_zone_allowance_must_be_supplied_never_defaulted():
+    from tariffs.loader import load_specs
+    from tariffs.schema import Layer
+
+    spec = load_specs("TOU-DR1", Layer.DELIVERY, on=date(2026, 7, 1))
+    series, ps, pe = make_series("2026-07-01", 10), date(2026, 7, 1), date(2026, 7, 10)
+    with pytest.raises(ValueError, match="no territory was supplied"):
+        compute_layer(series, spec, ps, pe)
+    with pytest.raises(ValueError, match="unknown baseline territory"):
+        compute_layer(series, spec, ps, pe, territory="tundra")
+
+
+def test_sdge_zone_allowance_applies_the_130_percent_multiplier():
+    from tariffs.loader import load_specs
+    from tariffs.schema import Layer, Season
+
+    spec = load_specs("TOU-DR1", Layer.DELIVERY, on=date(2026, 7, 1))
+    b = spec.baseline
+    # Sheet 29294-E, All-Electric summer: coastal 8.3, mountain 16.5.
+    assert b.allowance_per_day(Season.SUMMER, "coastal_all_electric") == 8.3
+    assert b.allowance_per_day(Season.SUMMER, "mountain_all_electric") == 16.5
+    assert b.allowance_per_day(Season.WINTER, "coastal_basic") == 9.2
+    # 30 days x 8.3 x 1.30 = 323.7 kWh creditable, vs 249.0 under PG&E's 100% rule.
+    assert b.credited_kwh(Season.SUMMER, 30, 10_000.0, "coastal_all_electric") == pytest.approx(
+        323.7
+    )

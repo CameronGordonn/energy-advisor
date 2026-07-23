@@ -18,7 +18,7 @@ from pydantic import BaseModel, ConfigDict
 from greenbutton.models import LOCAL_TZ, IntervalSeries
 
 from .holidays import holiday_dates
-from .schema import Layer, Season, TariffSpec, TouDef
+from .schema import Layer, Season, Service, TariffSpec, TouDef
 
 CENTS = 2
 
@@ -201,6 +201,8 @@ def compute_layer(
     period_end: date,
     *,
     care: bool = False,
+    service: Service = Service.CCA,
+    territory: str | None = None,
     allow_before_effective: bool = False,
 ) -> LayerBill:
     """Itemize one layer (delivery or generation) over an inclusive date period.
@@ -214,6 +216,12 @@ def compute_layer(
     bill a real statement on rates that did not exist yet. The M2 optimizer turns it on
     deliberately: it re-prices a past year of load at today's rates, which is a
     counterfactual, not a reproduction of a bill.
+
+    ``service`` selects which lines a customer actually pays: the vintaged PCIA and the
+    franchise fee surcharge are CCA/Direct-Access-only, per the schedules' own BILLING
+    special conditions. It defaults to CCA because every golden bill in this repo is a CCA
+    account. ``territory`` picks a row of a spec's ``baseline.allowances`` table where one
+    is published (SDG&E climate zones).
     """
     if isinstance(spec, TariffSpec):
         versions = [spec]
@@ -272,7 +280,7 @@ def compute_layer(
         # Baseline credit: min(usage, allowance) x credit (standard rate).
         credited_kwh = 0.0
         if spec.baseline is not None:
-            credited_kwh = spec.baseline.credited_kwh(season, days, total_kwh)
+            credited_kwh = spec.baseline.credited_kwh(season, days, total_kwh, territory)
             cr = spec.baseline.credit_per_kwh.for_customer(care=False, what="baseline credit")
             sub.append(
                 LineItem(
@@ -306,6 +314,8 @@ def compute_layer(
         # Per-kWh adders (PCIA, generation credit, ...). May be flat, seasonal, or TOU;
         # a TOU adder (e.g. the TOU-weighted Generation Credit) reports no single rate.
         for adder in spec.adders:
+            if not adder.applies_to.covers(service):
+                continue
             amt, rate = adder.amount(season, usage)
             sub.append(
                 LineItem(
@@ -337,6 +347,8 @@ def compute_layer(
         pretax = sum(li.amount for li in sub)
         energy_sub = sum(li.amount for li in sub if li.name.startswith("Energy "))
         for sur in spec.surcharges:
+            if not sur.applies_to.covers(service):
+                continue
             amt, rate = sur.amount(pretax=pretax, energy=energy_sub, kwh=total_kwh)
             sub.append(LineItem(name=sur.name, season=tag, rate=rate, amount=_r(amt)))
 
@@ -378,6 +390,8 @@ def compute_bill(
     period_end: date,
     *,
     care: bool = False,
+    service: Service = Service.CCA,
+    territory: str | None = None,
     observed_adjustments: list[LineItem] | None = None,
     allow_before_effective: bool = False,
 ) -> Bill:
@@ -393,6 +407,8 @@ def compute_bill(
             period_start,
             period_end,
             care=care,
+            service=service,
+            territory=territory,
             allow_before_effective=allow_before_effective,
         )
         for s in specs

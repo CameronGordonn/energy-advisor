@@ -56,6 +56,7 @@ baseline:
 # Per-kWh adders unique to CCA (departing-load) customers.
 adders:
   - name: Power Charge Indifference Adjustment (2018 vintage)
+    applies_to: cca
     per_kwh: 0.03679                     # flat; exact & consistent across all observed periods
     citation: >-
       PG&E PCIA 2018 vintage, derived from bill statements 2026-05-29 & 2026-06-28
@@ -93,6 +94,7 @@ adders:
 # identically to standard and CARE customers, so non-CARE billing reuses them unchanged.
 surcharges:
   - name: Franchise Fee Surcharge
+    applies_to: cca
     # RESOLVED from the tariff (was the last APPROXIMATE rate on this spec): the CCA/DA
     # franchise fee surcharge is a FLAT $/kWh by PCIA vintage, not a percentage of any
     # subtotal — which is why no percentage basis ever fit cleanly. Residential, 2018

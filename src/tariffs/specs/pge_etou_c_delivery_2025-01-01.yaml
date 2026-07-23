@@ -41,6 +41,7 @@ baseline:
 
 adders:
   - name: Power Charge Indifference Adjustment (2018 vintage)
+    applies_to: cca
     per_kwh: 0.00670
     citation: >-
       PG&E PCIA 2018 vintage (pre-2026), derived flat from bill 2025-08-27
@@ -55,6 +56,7 @@ adders:
 
 surcharges:
   - name: Franchise Fee Surcharge
+    applies_to: cca
     rate: 0.00230
     of: energy
     citation: >-

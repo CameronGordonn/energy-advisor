@@ -90,6 +90,7 @@ baseline:
 
 adders:
   - name: Power Charge Indifference Adjustment (2018 vintage)
+    applies_to: cca
     per_kwh: 0.03679
     citation: >-
       PG&E Vintage PCIA table, 2018 Vintage, Cal. P.U.C. Sheet 61131-E (Advice 7846-E).
@@ -108,6 +109,7 @@ adders:
 
 surcharges:
   - name: Franchise Fee Surcharge
+    applies_to: cca
     per_kwh: 0.00059
     citation: >-
       PG&E Schedule E-FFS, Cal. P.U.C. Sheet 60706-E, Advice 7797-E, effective
