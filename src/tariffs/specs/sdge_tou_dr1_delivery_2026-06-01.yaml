@@ -147,6 +147,32 @@ minimum_bill:
     Table does not restate the minimum bill; confirm the $0.329/$0.164 figures are still
     current before shipping a dollar figure that depends on the floor binding.
 
+# The non-bypassable charge set, billed on GROSS imports under the Net Billing Tariff and
+# NOT reducible by any export credit except ACC Plus (Schedule NBT SC 2.f). These per-kWh
+# components are ALREADY inside the `energy` rates above (SDG&E's rate table folds them into
+# the UDC/delivery total), so `included_in_energy_rate: true` tells the NBT netting model to
+# CARVE THIS OUT of the amount export credits may offset — never to add it as a new line
+# (that would double-count). This is the ~2.1c/kWh import floor of differentiation invariant
+# 4; with a 2026-vintage PCIA on a CCA customer it is ~5.8c. CARE customers are exempt from
+# WF-NBC/DWR-BC (Sheet 29953-E note 3), so that component is CARE 0 here.
+#   PPP 0.01515 + ND 0.00000 + CTC (0.00007) + WF-NBC/DWR-BC 0.00591 = 0.02099 (standard)
+# CARE: PPP/ND/CTC still apply at 0.65x per the "CARE Discount 35%" table; WF-NBC exempt.
+#   0.65 x (0.01515 + 0.00000 - 0.00007) = 0.00980
+# PCIA is a CCA-only vintaged charge carried on the generation-overlay spec, not here.
+non_bypassable:
+  included_in_energy_rate: true
+  components:
+    Public Purpose Programs:       {standard:  0.01515, care: 0.00985}
+    Nuclear Decommissioning:       {standard:  0.00000, care: 0.00000}
+    Competition Transition Charge: {standard: -0.00007, care: -0.00005}
+    Wildfire Fund / DWR Bond:      {standard:  0.00591, care: 0.00000}
+  citation: >-
+    SDG&E Schedule TOU-DR1 Total Rates Table components (PPP, ND, CTC, WF-NBC/DWR-BC),
+    6/1/2026, retrieved 2026-07-23; classed non-bypassable per PG&E Schedule NBT Cal.
+    P.U.C. Sheet 57359-E SC 2.f (Public Purpose Program, Nuclear Decommissioning,
+    Competition Transition, Wildfire Fund). CARE WF-NBC exemption: Sheet 29953-E note 3.
+    CARE values = 0.65 x standard per the "CARE Discount 35%" table.
+
 # NOT MODELED HERE, deliberately:
 #  - Franchise Fee Differential 5.78% (Sheet 29955-E) applies only within the corporate
 #    limits of the City of San Diego. It is a per-customer fact, not a schedule fact, so

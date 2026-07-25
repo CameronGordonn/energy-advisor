@@ -1,0 +1,20 @@
+utility: SDG&E
+vintage: '2026'
+citation: 'SDG&E Solar Billing Plan Export Pricing, ''Legacy 2026 Export Pricing''
+  (LY2026 NBT Pricing Upload MIDAS.zip), sdge.com/solar/solar-billing-plan/export-pricing,
+  retrieved 2026-07-23. NBT26 = applications filed in 2026 qualifying for the 9-year
+  lock-in. Methodology: PG&E Schedule NBT Cal. P.U.C. Sheet 57352-E; CPUC Resolution
+  E-5301 requires 20 years posted, of which only the 9 years from PTO are effective.'
+retrieved: '2026-07-23'
+source_file: LY2026 NBT Pricing Upload MIDAS.csv
+source_sha256: b92d7058734e3bc8ade6e703c9aa3d46a5b45553dc8e02482c9d53b1502d6958
+years:
+- 2026
+- 2045
+components:
+- delivery
+- generation
+day_types:
+- weekday
+- weekend
+rows: 11520

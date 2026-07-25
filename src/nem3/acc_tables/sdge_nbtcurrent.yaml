@@ -1,0 +1,19 @@
+utility: SDG&E
+vintage: current
+citation: SDG&E Solar Billing Plan Export Pricing, 'Current 2026 Export Pricing' (CurrentYearNBTPricingUploadMIDAS.zip),
+  sdge.com/solar/solar-billing-plan/export-pricing, retrieved 2026-07-23. NBT00 =
+  customers who do not qualify for any 9-year lock-in; per the file's readme only
+  the current calendar year's rates are effective, later years are illustrative.
+retrieved: '2026-07-23'
+source_file: Current Year NBT Pricing Upload MIDAS.csv
+source_sha256: af86b282cca507e26c58332c24efe8d359bd18b9a7e402066260a8a069316435
+years:
+- 2026
+- 2045
+components:
+- delivery
+- generation
+day_types:
+- weekday
+- weekend
+rows: 11520

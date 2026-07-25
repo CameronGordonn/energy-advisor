@@ -2,6 +2,103 @@
 
 Running log of decisions made and decisions pending. Newest first.
 
+## 2026-07-25 — Session 5 (M3 groundwork: NEM 3.0 solar + battery, all four items)
+
+**133 tests green (was 96, +37), ruff clean, 11/11 PG&E golden bills still reconcile**
+(worst +$0.22 — the M3 work is purely additive to the engine, so the gate output was
+unchanged). All four HANDOFF next-actions landed with tests. No item depended on dad's data.
+
+### DONE — real ACC export tables, by vintage, from primary sources (`src/nem3/acc.py`)
+Pulled SDG&E's actual **Net Billing Tariff (Solar Billing Plan) MIDAS export-pricing files**
+(sdge.com/solar/solar-billing-plan/export-pricing): Current(NBT00), Legacy-2025(NBT25),
+Legacy-2026(NBT26). Each is ~40 MB / 350,640 rows covering a 20-year horizon. `scripts/
+build_acc_tables.py` collapses each to the **576 distinct values/year** the tariff actually
+defines (12 months × weekday/weekend × 24 h, split delivery vs generation) and **verifies
+the collapse** — it raises if any (year, month, day-type, hour, component) cell holds >1
+value rather than averaging. Output: one gzipped CSV + a **mandatory citation manifest**
+per vintage, committed under `src/nem3/acc_tables/` (304 KB total, real public data, not
+gitignored). RIN prefix map from SDG&E's readme: `USCA-SDXX`=delivery, `USCA-XXSD`=generation.
+
+**⭐ STRIKING REAL FINDING — SDG&E's NBT25, NBT26 and NBT00 tables are BYTE-IDENTICAL for
+every overlapping year (verified: 0.0 max abs diff across 23,040 cells).** So the nine-year
+lock-in currently confers **zero** dollar advantage on SDG&E — "lock in before rates drop"
+is an empty pitch here, opposite to the PG&E vintage story installers cite. The tool states
+this outright (honest-broker). Export rates DO rise with calendar year within a vintage
+(2026 mean full rate 0.0883 → 2035 0.1432), which is why the table is modeled as
+576-per-year, not one constant — code treating a locked vintage as a flat number would
+misprice every year after the first.
+
+### DONE — the 9-year lock-in, modeled from Schedule NBT (PG&E Sheets 55440-57375-E)
+Read the full NBT tariff (PG&E ELEC_SCHEDS_NBT.pdf, 48 sheets). Key rules encoded:
+- **Vintage = APPLICATION year; the 9-year clock runs from PTO** (Sheet 57352-E). Two
+  different dates — `Vintage(application_year, pto_date)` keeps them separate so "apply in
+  Dec, energise in March" (different vintages) is answerable. `table_vintage(year)` returns
+  the application vintage inside the lock-in, `CURRENT` after.
+- Lock-in only for applications **2023-04-15 … 2027-12-31**; later applicants take the
+  current-year table every year (`has_lock_in`).
+- **ACC Plus** adder (Sheet 57353-E): PG&E's table encoded (2023 .022 → 2027 .0044
+  residential; low-income .09 → .018). **SDG&E ACC Plus deliberately NOT reused** — a blog
+  claims SDG&E residential may not get it at all; `acc_plus_table` RAISES for SDG&E, and the
+  conservative path is `acc_plus_eligible=False`. Confirm from an SDG&E NBT sheet if it ever
+  matters.
+
+### DONE — NBT settlement + the NBC import floor (`src/nem3/netting.py`, invariant 4)
+Schedule NBT SC 2 is **"no netting"**: four separate ledgers, all encoded:
+1. Imports billed at full retail via the **same `compute_layer` that reconciles the golden
+   bills** — the solar analysis is anchored to a bill the engine reproduces.
+2. Exports credited at ACC, **accrued separately for delivery and generation** (SC 2.d) —
+   the two buckets do NOT fungibly combine; stranded credit carries forward (SC 2.e).
+3. **NBCs billed on GROSS imports, never offsettable by exports** (SC 2.f: PPP, Nuclear
+   Decommissioning, CTC, Wildfire Fund) — the import floor. Added a `non_bypassable` block
+   to the schema + authored it on **TOU-DR1** (0.02099/kWh std, reproduces the documented
+   figure). It is `included_in_energy_rate: true`, so netting CARVES it out of the
+   offsettable subtotal rather than adding a line (the NBCs are already inside the energy
+   rate) — no double-count. Added a `volumetric` flag to `LineItem` (metadata only, changes
+   no amount) so "what a credit may offset" is decided at construction.
+4. **ACC Plus** is the one credit that offsets ANY charge (SC 2.c).
+- **CCA generation credit EXCLUDED by default** (SC 2.a + SDG&E's file note: posted
+  generation rates are non-CCA only). A CCA customer's result is a lower bound until their
+  CCA's own export terms are supplied. Credits **can't drive a period negative**; fixed
+  charges/minimum bill/taxes are `protected`. Net-surplus and lock-in caveats emitted as
+  `notes` (invariant 2).
+
+### DONE — PVWatts, meter split, battery dispatch
+- `pvwatts.py`: real NREL v8 client + **disk cache + never-fabricate guard**. No key/network
+  in this env, so it RAISES with the signup URL rather than inventing a profile. Cache keyed
+  on the full system spec; deterministic offline once fetched. (Modeling *production* is
+  fine — invariant 6 forbids modeling *load*, which stays the customer's real intervals.)
+- `solar.py`: behind-the-meter physics — `import=max(0,load−prod)`, `export=max(0,prod−load)`
+  per interval; self-consumption falls out of the max, load shape untouched. Conserves
+  energy exactly (tested).
+- `battery.py`: **greedy TOU controller AND cvxpy LP**, both always returned (CLAUDE.md).
+  Greedy is causal (charge from surplus solar, discharge into above-median-price hours, no
+  grid charge). LP is perfect-foresight over four energy flows.
+  **⭐ FINDING: under the full NBT settlement the LP can settle WORSE than greedy** (demo:
+  greedy $2,807/yr vs LP $3,088/yr — LP wins there, but the test fixture shows the reverse).
+  The LP optimizes a *marginal-price proxy*; real dollars come from the settlement whose
+  credit caps and NBC floor the LP ignores, so which wins in settled dollars is a finding,
+  not a fixed ordering. Labels reframed honestly (no "unreachable ceiling" claim).
+
+### DONE — payback + Monte Carlo (`nem3/payback.py`, `uncertainty/montecarlo.py`, invariant 3)
+`evaluate()` ranks solar-only / +battery(greedy) / +battery(LP) vs the no-solar baseline
+(the baseline uses the reconciled `compute_bill`). `compare_vintage_timing()` answers
+install-this-year-vs-next by changing ONLY the `Vintage` — for SDG&E it correctly reports
+"immaterial" (identical tables) and refuses 2026-vs-2027 (**NBT2027 not published — will not
+extrapolate an avoided-cost forecast**). `simulate_payback()` is a 10k-sample Monte Carlo
+over rate escalation / degradation / load drift → payback P10/P50/P90 + P(never pays back) +
+median cumulative savings. `scripts/nem3_report.py` prints the whole honest-broker report.
+
+**Scope note (honest):** no real household has export data (Cameron: PG&E, no solar; dad:
+no data), so the driver runs on a **clearly-labeled synthetic load**; the tariff rates, NBC
+set and ACC tables it uses are all real and cited. The M3 DoD's "one real household payback
+distribution" is **data-gated exactly like M1** — the engine is complete and tested, the
+real-household run needs interval+export data that does not exist for either household.
+
+**PG&E ACC tables NOT imported:** PG&E publishes EEC values as per-vintage **PDFs**
+(pge.com/energyexportcredit), not the clean MIDAS CSVs SDG&E uses — a fragile parser, and
+Cameron's PG&E account is closing, so it was not chased. `build_acc_tables.py` works for any
+utility that publishes the MIDAS format.
+
 ## 2026-07-23 — Session 4 (N-period TOU engine; M2 opened on PG&E; SDG&E specs)
 
 **91 tests green, ruff clean, 11/11 PG&E golden bills still reconcile** (worst +$0.22).

@@ -487,6 +487,48 @@ class Surcharge(_Base):
         return base * self.rate, self.rate
 
 
+class NonBypassable(_Base):
+    """The per-kWh charges billed on GROSS metered imports under the Net Billing Tariff.
+
+    Schedule NBT, Special Condition 2.f: "Customers on this tariff must pay non-bypassable
+    charges (NBCs) for each kilowatt-hour of electricity they consume from the grid (based
+    on the metered import channel). The following NBCs may not be reduced by any credits
+    for exports to the grid, except for the ACC Plus credit: Public Purpose Program,
+    Nuclear Decommissioning Charge, Competition Transition Charge, and Wildfire Fund
+    Charge."
+
+    This block is **declarative only** — it changes no bill. The NBC components are
+    already inside the schedule's energy rates (that is how the utilities' rate tables
+    publish them), so billing them again would double-count. What the NBT netting model
+    needs is to know how much of an energy charge is non-bypassable, in order to carve it
+    out of the amount export credits are allowed to offset. Hence
+    ``included_in_energy_rate``: when true (the normal case) the netting code *subtracts*
+    this from the offsettable subtotal rather than adding it to the bill.
+
+    The resulting floor — no matter how much a customer exports, imports still cost at
+    least this much per kWh — is differentiation invariant 4, and it is the line generic
+    NEM calculators skip entirely.
+    """
+
+    components: dict[str, Rate] = Field(
+        min_length=1, description="Charge name -> $/kWh, one entry per named NBC"
+    )
+    included_in_energy_rate: bool = True
+    citation: str = Field(min_length=1)
+
+    def per_kwh(self, *, care: bool) -> float:
+        """Total non-bypassable $/kWh for this customer class.
+
+        Raises (via :meth:`Rate.for_customer`) if a component has no value for the class,
+        rather than treating a missing NBC as zero — a silently-zero NBC would understate
+        the import floor, which is precisely the error this model exists to avoid.
+        """
+        return sum(
+            r.for_customer(care=care, what=f"non-bypassable charge {name!r}")
+            for name, r in self.components.items()
+        )
+
+
 class MinimumBill(_Base):
     """A per-day floor on the layer total (SDG&E Minimum Bill; PG&E has none)."""
 
@@ -519,6 +561,7 @@ class TariffSpec(_Base):
     energy_commission_tax_per_kwh: float | None = None
     surcharges: list[Surcharge] = Field(default_factory=list)
     minimum_bill: MinimumBill | None = None
+    non_bypassable: NonBypassable | None = None
 
     @field_validator("citation")
     @classmethod

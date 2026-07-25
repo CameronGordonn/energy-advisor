@@ -1,0 +1,20 @@
+utility: SDG&E
+vintage: '2025'
+citation: 'SDG&E Solar Billing Plan Export Pricing, ''Legacy 2025 Export Pricing''
+  (LY2025 NBT Pricing Upload MIDAS.zip), sdge.com/solar/solar-billing-plan/export-pricing,
+  retrieved 2026-07-23. NBT25 = applications filed in 2025 qualifying for the 9-year
+  lock-in. Methodology: PG&E Schedule NBT Cal. P.U.C. Sheet 57352-E; CPUC Resolution
+  E-5301 requires 20 years posted, of which only the 9 years from PTO are effective.'
+retrieved: '2026-07-23'
+source_file: LY2025 NBT Pricing Upload MIDAS.csv
+source_sha256: b97e32157987b7670c9960bb5085ce954500bc71a9bece9c457fc39db82540d1
+years:
+- 2025
+- 2044
+components:
+- delivery
+- generation
+day_types:
+- weekday
+- weekend
+rows: 11520

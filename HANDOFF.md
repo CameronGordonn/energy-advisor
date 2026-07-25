@@ -3,8 +3,22 @@
 _Rewrite this whole file whenever you finish a milestone or pause. Keep it short and
 current: state, how to run, open decisions, exact next action._
 
-## Status: **M0 complete. M2 complete on PG&E except an unavailable cross-check. M1 blocked on data.**
-_(2026-07-23, session 4)_
+## Status: **M0 done. M2 done on PG&E (cross-check unavailable). M3 ENGINE complete + tested; M3 DoD data-gated. M1 blocked on data.**
+_(2026-07-25, session 5)_
+
+> **Session 5 built the entire NEM 3.0 engine (M3 groundwork, all four HANDOFF items).**
+> 133 tests green (was 96), ruff clean, **11/11 PG&E golden bills still reconcile** (the M3
+> work is additive to the engine). New package `src/nem3/`: `acc.py` (real SDG&E vintage
+> export tables + 9-yr PTO lock-in), `netting.py` (NBT settlement + NBC import floor),
+> `solar.py`, `pvwatts.py`, `battery.py` (greedy + cvxpy LP), `payback.py`;
+> `uncertainty/montecarlo.py`. Driver: `scripts/nem3_report.py`. Full detail in
+> SESSION_NOTES §2026-07-25 Session 5 — do not re-derive.
+>
+> **Two real findings worth keeping:** (1) SDG&E's published NBT2025/NBT2026/current export
+> tables are **byte-identical**, so the nine-year lock-in confers **no** dollar advantage on
+> SDG&E today (opposite the PG&E pitch). (2) Under the full NBT settlement the LP battery
+> dispatch can settle **worse** than the greedy controller, because the LP optimizes a
+> marginal-price proxy while dollars come from the settlement's credit caps + NBC floor.
 
 > **⚠ CONTEXT CHANGE: the Santa Cruz lease ends 2026-07-31.** Before the account closes,
 > export the full Green Button interval data and every remaining bill PDF (including the
@@ -29,17 +43,25 @@ in SESSION_NOTES §2026-07-23 Session 4 — do not re-derive any of it.
   **3CE generation** for each; **SDG&E TOU-DR1 / TOU-DR2 / EV-TOU-5 / TOU-DR-P** delivery.
 - **M2 optimizer**: `scripts/rate_optimizer.py`, one command → ranking, verdict, a
   component-level *why*, sensitivity, and an assumption audit.
+- **M3 NEM 3.0 engine** (`src/nem3/`): `acc.py` (real committed SDG&E vintage export tables
+  NBT25/26/current, 576/yr, 9-yr PTO lock-in), `netting.py` (NBT "no-netting" settlement,
+  per-component export credits, NBC import floor, ACC Plus, honest caveat notes), `solar.py`
+  (behind-the-meter import/export split), `pvwatts.py` (real NREL client + cache +
+  never-fabricate guard), `battery.py` (greedy TOU + cvxpy LP, both always returned),
+  `payback.py` (scenario ranking + vintage-timing). `uncertainty/montecarlo.py` (payback
+  distribution). Driver: `scripts/nem3_report.py`. Table importer: `scripts/build_acc_tables.py`.
 
 ## How to run
 ```bash
 conda activate energy-advisor    # env prefix: /home/cameron/miniforge3/envs/energy-advisor
-PYTHONPATH=src python -m pytest -q                          # 96 tests; golden tests skip if data/ absent
+PYTHONPATH=src python -m pytest -q                          # 133 tests; golden tests skip if data/ absent
 ruff check . && ruff format --check .
 PYTHONPATH=src python scripts/reconcile_report.py           # 11 line-item comparisons (the trust artifact)
 PYTHONPATH=src python scripts/reconcile_report.py --write-readme
 PYTHONPATH=src python scripts/rate_optimizer.py             # M2 ranking + sensitivity + assumption audit
-PYTHONPATH=src python scripts/rate_optimizer.py --no-care  # tariff-only (no derived CARE rates)
-PYTHONPATH=src python scripts/rate_optimizer.py --ev       # include EV-only schedules
+PYTHONPATH=src python scripts/nem3_report.py                # M3 solar+battery report (synthetic load, real ACC/tariff)
+# Re-import an ACC export table from a utility's MIDAS file (SDG&E already committed):
+PYTHONPATH=src python scripts/build_acc_tables.py --utility 'SDG&E' --vintage 2026 --source FILE.csv --citation '...'
 ```
 
 ## M2 headline (PG&E household, 4345 kWh / 328 days, current rates)
@@ -65,28 +87,36 @@ prices) in between — the saving is not immediate and the TBS window is unprice
 
 ## EXACT NEXT ACTION
 
-**The M2 cross-check is UNAVAILABLE, not pending.** PG&E's Rate Plan Comparison returns
-*"This account has no service agreement eligible for rate enrollment"* for this account —
-most likely because generation is with a CCA, possibly because the account is closing. The
-`--pge-comparison FILE` harness is built and will work against any future account, and the
-script prints the cross-checks that ARE complete (every rate traced to a Cal. P.U.C. sheet;
-unbundled components summing exactly to printed totals on all four schedules; the tariff-
-derived generation credit matching M0's independent fit to 6e-05; 3CE's published sheet
-reproducing the bill-derived MBRETCH1 spec). **Treat M2 as done on PG&E and move on.**
+**M3 groundwork is DONE** (all four items: ACC vintage tables + 9-yr lock-in; NBT netting vs
+the NBC floor; PVWatts client; greedy + LP battery dispatch — plus payback + Monte Carlo).
+133 tests, gate green. What remains for M3 to hit its **DoD** ("one real household payback
+distribution + vintage-timing") is **data, not code** — and no household has solar/export
+data, so it is gated exactly like M1. Do NOT fabricate a load to "finish" it.
 
-So the next action is **M3 groundwork (NEM 3.0)**, which is fully unblocked:
-- ACC export tables by vintage year with the 9-year lock-in.
-- Netting rules against the NBC import floor — already modeled and documented at
-  **0.02099/kWh** (+PCIA) on the SDG&E specs.
-- PVWatts hourly production; then greedy TOU battery dispatch, then the cvxpy LP.
+Pick from these, all unblocked and code-only (no new bills needed):
 
-Cheaper items if a short session is wanted instead:
-1. **Resolve the TOU-DR1 super-off-peak conflict** (open decision 1). Blocks every SDG&E
-   dollar figure.
-2. **SDG&E generation layers** — EECC values are already recorded in each delivery spec's
-   comments; authoring them makes SDG&E bundled bills computable end to end.
-3. **Generalise the California Climate Credit** to a versioned semiannual line
-   ($36.18, Aug/Sep cycles) instead of the observed −$58.23.
+1. **SDG&E generation layer (EECC) — highest value.** The `nem3_report.py` demo currently
+   reuses the delivery spec as a stand-in for generation, so its DOLLAR totals are
+   illustrative even though the structure (netting, NBC floor, lock-in) is exact. EECC
+   values are already recorded in each SDG&E delivery spec's comments (summer on 0.34920 /
+   off 0.12853 / super-off 0.04121; winter on 0.27475 / off 0.19304 / super-off 0.10228).
+   Authoring `sdge_tou_dr1_generation` (bundled EECC) makes SDG&E bundled bills — and the M3
+   dollar figures — real end to end. Then the CCA overlay (San Diego Community Power /
+   Clean Energy Alliance generation + vintaged PCIA) once which CCA is known.
+2. **Resolve the TOU-DR1 super-off-peak conflict** (open decision 1). Blocks every SDG&E
+   dollar figure regardless of the above.
+3. **NBC blocks on the other SDG&E specs** (TOU-DR2, EV-TOU-5) — TOU-DR1 has one; copy the
+   pattern so any SDG&E schedule can be settled under NBT.
+4. **Confirm SDG&E ACC Plus** from an SDG&E NBT sheet (a blog claims SDG&E residential get
+   none). Until then `acc.acc_plus_table` raises for SDG&E and the conservative path is
+   `acc_plus_eligible=False`; the engine is correct either way.
+5. **PG&E ACC tables** if a PG&E solar case ever matters: PG&E publishes per-vintage PDFs
+   (pge.com/energyexportcredit), not the MIDAS CSVs SDG&E uses — needs a different parser.
+   Low priority (Cameron's PG&E account is closing).
+
+Or shift to **M4** (public methodology writeup + case study) — the M2 CCA-vs-bundled finding
+and now the M3 NBT/lock-in findings are strong material and M4 is explicitly the
+portfolio-justifying milestone.
 
 ## Open decisions
 1. **⚠ SDG&E TOU-DR1 super-off-peak window — two SDG&E sources disagree.** The tariff-book
@@ -128,6 +158,17 @@ Cheaper items if a short session is wanted instead:
 - **California Climate Credit** modeled as an observed per-bill line (−$58.23 on 10/28).
   PG&E files **$(36.18), Aug/Sep bill cycles** on every 2026 residential sheet — generalise
   to a versioned semiannual credit and reconcile against the observed figure.
+
+## M3 open items (recorded, none blocking; see EXACT NEXT ACTION)
+- **SDG&E ACC Plus unconfirmed** — a secondary source claims SDG&E residential customers get
+  no ACC Plus adder. `acc.acc_plus_table` raises for SDG&E; settle with `acc_plus_eligible=
+  False` (conservative). Confirm from an SDG&E NBT sheet.
+- **SDG&E generation (EECC) layer un-authored** — the M3 demo reuses delivery as a
+  generation stand-in, so its dollar TOTALS are illustrative (structure is exact). Values
+  are in each SDG&E delivery spec's comments; see next-action #1.
+- **PG&E ACC tables not imported** — PG&E ships per-vintage PDFs, not MIDAS CSVs.
+- **LP dispatch is a marginal-price optimum, not a settled-dollar optimum** — under NBT caps
+  it can settle below greedy. This is documented and reported honestly, not a bug.
 
 ## Schema gaps (recorded, none blocking today)
 - `PerKwhAdder` has no CARE variant, so a per-kWh line CARE customers are exempt from can't

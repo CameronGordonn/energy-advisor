@@ -37,6 +37,16 @@ class LineItem(BaseModel):
     quantity: float | None = None
     unit: str | None = None
     rate: float | None = None
+    volumetric: bool = False
+    """Whether this is a per-kWh energy charge, as opposed to a fixed charge or surcharge.
+
+    Metadata only — it changes no amount and no total. It exists because Schedule NBT
+    Special Condition 2.d limits what export credits may offset to "volumetric (kwh)
+    import charges", excluding "monthly minimum charges, customer charges, meter charges,
+    facilities charges, base service charges, demand charges and surcharges,
+    non-bypassable and any fixed charges". Deciding that per line at construction, where
+    the tariff structure is known, beats re-deriving it downstream from line names.
+    """
 
 
 class LayerBill(BaseModel):
@@ -274,6 +284,7 @@ def compute_layer(
                         unit="kWh",
                         rate=std,
                         amount=_r(kwh * std),
+                        volumetric=True,
                     )
                 )
 
@@ -290,6 +301,7 @@ def compute_layer(
                     unit="kWh",
                     rate=cr,
                     amount=_r(credited_kwh * cr),
+                    volumetric=True,
                 )
             )
 
@@ -309,7 +321,9 @@ def compute_layer(
                     disc += credited_kwh * (bc.care - bc.standard)
                     has_care = True
             if has_care:
-                sub.append(LineItem(name="CARE Discount", season=tag, amount=_r(disc)))
+                sub.append(
+                    LineItem(name="CARE Discount", season=tag, amount=_r(disc), volumetric=True)
+                )
 
         # Per-kWh adders (PCIA, generation credit, ...). May be flat, seasonal, or TOU;
         # a TOU adder (e.g. the TOU-weighted Generation Credit) reports no single rate.
@@ -325,6 +339,7 @@ def compute_layer(
                     unit="kWh",
                     rate=rate,
                     amount=_r(amt),
+                    volumetric=True,
                 )
             )
 
