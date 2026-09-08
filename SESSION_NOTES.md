@@ -2,6 +2,69 @@
 
 Running log of decisions made and decisions pending. Newest first.
 
+## 2026-09-07 — Session 8b (portfolio/publishing scaffolding; AGPL chosen)
+
+Cameron reframed the goal: this becomes a **portfolio piece with a served website on
+GitHub, regardless of whether it ever becomes a paying product.** That is a different
+target from the roadmap's M5-gated "web UI", and it is much closer to M4's own DoD
+("writeup live") than to product delivery infrastructure — so it is not a roadmap
+override. What stays gated behind M5 is the interactive upload-and-report app.
+
+### DONE — pre-publication PII audit of the whole git history (the blocking step)
+Scrubbing a file does not scrub the commits that still contain it, so the history was
+audited before anything goes public. **Result: clean, safe to publish.**
+- `.gitignore` was correct in the **very first commit** (`data/`, `tests/golden_bills/raw/`,
+  `*.pdf`, `.env`, `secrets.yaml`).
+- **No bill PDF, Green Button export, or `data/` file has ever been committed** — the
+  history contains zero `.pdf`/`.csv`/`.zip`/`.xml` paths.
+- Two commits (`29b522d`, `b0df750`) match the unit-number string session 7 scrubbed. Both
+  are benign: the M0 one is inside a **synthetic** parser fixture
+  (`tests/greenbutton/conftest.py`: "1 TEST ST APT A, SANTA CRUZ CA", "TEST CUSTOMER",
+  a fake account number), and the current-tree one is session 7's own scrub note quoting
+  the string it removed. Session 7 had treated that synthetic fixture as PII; it never was.
+- No occurrence of the email address, or of lease/tenancy/renewal terms, anywhere in history.
+The only personal content in the repo is what session 7 **deliberately** decided to publish
+(city, schedule, CARE status, exact bill dates and amounts). Settled; not reopened.
+
+### DECISION — AGPL-3.0, asked and answered
+Cameron chose AGPL-3.0 over MIT / source-available / no-license. Rationale recorded because
+it is hard to walk back once public: the tariff engine is the substance of the project, and
+the network clause stops a competitor or installer-tool vendor from running a modified copy
+as a hosted service without publishing source, while leaving reading, running, learning and
+contributing unrestricted — and Cameron can relicense his own code later. `LICENSE` is the
+canonical FSF text **downloaded from gnu.org**, not hand-typed (661 lines). README gained a
+License section stating that the tariff sheets and ACC tables it cites are public regulatory
+filings not covered by the license, plus a not-financial-advice line.
+⚠ The copyright line reads "Cameron Gordon" — inferred, correct it if wrong.
+
+### DONE — CI, Pages, and a standalone `docs/index.html`
+- `.github/workflows/ci.yml` — ruff + pytest on every push/PR, in the documented conda env
+  via `setup-micromamba` with caching. **Its header states the honest scope limit**: the
+  golden-bill reconciliation tests SKIP in CI because they need the gitignored real interval
+  export, so a green badge proves the engine/schema/loader/tariff identities, **not** the
+  ±$2 reconciliation. Said out loud so the badge cannot overclaim.
+- `.github/workflows/pages.yml` — deploys `docs/` to GitHub Pages on pushes to `main`
+  (free on public repos). Needs Settings -> Pages -> Source -> "GitHub Actions" once.
+- **`docs/index.html` is now a valid standalone document.** It was authored body-only for
+  the Artifact publisher (which supplies the wrapper), which meant a browser served it in
+  quirks mode. It now carries `<!doctype html>`, `<html lang>`, charset/viewport/color-scheme
+  meta, an OG card, and a `body{margin:0}` reset matching what the Artifact wrapper provided.
+  ⚠ CONSEQUENCE: republishing this file **as an Artifact** now needs the wrapper stripped
+  first — the Artifact tool wants page content without doctype/html/head/body. Pages is the
+  canonical home from here; the artifact URL is a preview.
+- README gained CI/license/python badges and a "Read the writeup" link, all carrying
+  literal `OWNER`/`REPO` placeholders — **one sed away from correct** once the repo exists.
+
+331 tests green, ruff clean throughout.
+
+### Still open
+- **Nothing is pushed.** The repo has no remote; creating and pushing it is Cameron's call
+  and needs his GitHub account. Commands are in HANDOFF.
+- The published Artifact is still private (share menu) — moot once Pages is live.
+- Dad's SDG&E Green Button export + bills expected **2026-09-08**; that is the M1 unblock
+  and outranks all of the above.
+
+
 ## 2026-09-07 — Session 8 (M4 published; SDG&E's earlier 2026 rate vintages)
 
 Committed `8f45746` on `session-4-nperiod-tou-m2` (not pushed, not merged to main).

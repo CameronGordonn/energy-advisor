@@ -83,11 +83,56 @@ load-neutral.
 +battery greedy $514; LP $436; NBC import floor $86/yr. **Dollar totals are real, the LOAD is
 not — these figures are deliberately absent from the public writeup.**
 
+## Publishing (portfolio site) — scaffolded, nothing pushed
+
+Goal set by Cameron in session 8b: **a portfolio piece with a served website on GitHub,
+whether or not it becomes a paying product.** This is not an M5 override — a static site
+serving `docs/` is M4's own "writeup live". What stays gated behind M5 is the interactive
+upload-and-report app.
+
+**The PII audit is done and the history is CLEAN** (session 8b notes): `.gitignore` correct
+from commit #1, no bill/export/`data/` file ever committed, and the only matches for the
+scrubbed unit number are a *synthetic* test fixture and session 7's own scrub note. Safe to
+make public. Do not redo this audit; do re-run it if raw data is ever added to a commit.
+
+Ready in-tree: `LICENSE` (AGPL-3.0, canonical FSF text), `.github/workflows/ci.yml`
+(ruff + pytest via micromamba; its header records that golden-bill tests SKIP in CI, so the
+badge does not overclaim), `.github/workflows/pages.yml`, README badges, and a `docs/index.html`
+that is now a valid standalone document.
+
+```bash
+# 1. create the public repo and push (needs Cameron's GitHub account)
+gh auth login
+gh repo create energy-advisor --public --source=. --remote=origin --push
+git push -u origin session-4-nperiod-tou-m2      # or merge to main first
+
+# 2. fix the README placeholders (badges + site link)
+sed -i 's|OWNER/REPO|<owner>/energy-advisor|g; s|OWNER.github.io/REPO|<owner>.github.io/energy-advisor|g' README.md
+
+# 3. enable the site: repo Settings -> Pages -> Source -> "GitHub Actions"
+#    then pushes to main that touch docs/ deploy automatically.
+```
+
+⚠ `docs/index.html` now carries a full `<!doctype html>` wrapper for Pages. Republishing it
+**as an Artifact** requires stripping doctype/html/head/body first. Pages is the canonical
+home from here.
+
+⚠ The `LICENSE`/README copyright line reads "Cameron Gordon" — inferred; correct if wrong.
+
 ## EXACT NEXT ACTION
 
-1. **Ask Cameron to share the published artifact** (share menu on the page) if he wants it
-   publicly readable — it is live but private. One click, not a code task. If he'd rather
-   self-host, GitHub Pages on `docs/` needs a remote created and pushed first.
+0. **Dad's SDG&E Green Button export + bills, expected 2026-09-08.** This outranks
+   everything below. It is the ONLY input that closes M1's DoD, and M1 is the gate on every
+   SDG&E dollar figure reaching another human (see the M5 warning). Expect the first real
+   SDG&E file to surprise the parser — `src/greenbutton/sdge.py` has never been run on one,
+   and PG&E's real export turned out to be hourly not 15-minute, with an inclusive end
+   timestamp and two DST edge cases. Budget a session for parser reality-checking BEFORE
+   trusting any reconciliation number. What is needed: the full 13-month export, at least
+   three bill PDFs **with the itemized line-item pages**, and from those the schedule,
+   climate zone, CARE status, and whether generation is SDG&E bundled or a CCA (which also
+   unblocks next-action #2).
+1. **Push the repo and turn on Pages** — see the Publishing section above. Everything is
+   scaffolded; the remaining steps need Cameron's GitHub account.
 2. **CCA generation overlay** — a CCA's own generation rate + the vintaged PCIA, replacing
    EECC. The PCIA vintage tables for **all four** 2026 SDG&E vintages are now recorded in the
    generation spec headers, so only *which CCA* is missing (San Diego Community Power vs Clean

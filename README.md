@@ -6,6 +6,14 @@ your actual bills, which rate schedule is cheapest and whether solar/battery pay
 under NEM 3.0. See [CLAUDE.md](CLAUDE.md) for the design invariants and
 [ROADMAP.md](ROADMAP.md) for milestones.
 
+<!-- Replace OWNER/REPO once the GitHub repo exists (see HANDOFF.md "publishing"). -->
+[![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/ci.yml)
+[![License: AGPL v3](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
+[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](environment.yml)
+
+**[Read the writeup →](https://OWNER.github.io/REPO/)** — methodology, the household worked
+end to end, and everything still assumed.
+
 ## Bill-reconciliation accuracy
 
 The product's trust artifact: every dollar figure downstream is only as good as the
@@ -80,3 +88,18 @@ Package layout lives under `src/` (`greenbutton`, `tariffs`, `nem3`, `scenarios`
 `tests/golden_bills/raw/`, both git-ignored — nothing personally identifiable is ever
 committed. Golden-bill tests skip cleanly when `data/` is absent, so the suite is green on
 a fresh clone.
+
+## License
+
+Copyright © 2026 Cameron Gordon. Licensed under the
+**[GNU Affero General Public License v3.0](LICENSE)**.
+
+AGPL rather than MIT deliberately: the tariff engine is the substance of this project, and
+the AGPL's network clause means anyone who runs a modified version as a hosted service has
+to publish their source. Reading, learning from, running and contributing to it are all
+unrestricted.
+
+Tariff rates, Avoided Cost Calculator tables and utility tariff sheets referenced here are
+public regulatory filings and are not covered by this license. Each is cited in the spec
+file that uses it. **Nothing here is financial advice**; it is analysis of published tariffs
+against a household's own metered data.
