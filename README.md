@@ -6,12 +6,12 @@ your actual bills, which rate schedule is cheapest and whether solar/battery pay
 under NEM 3.0. See [CLAUDE.md](CLAUDE.md) for the design invariants and
 [ROADMAP.md](ROADMAP.md) for milestones.
 
-<!-- Replace OWNER/REPO once the GitHub repo exists (see HANDOFF.md "publishing"). -->
-[![CI](https://github.com/OWNER/REPO/actions/workflows/ci.yml/badge.svg)](https://github.com/OWNER/REPO/actions/workflows/ci.yml)
+<!-- Replace CameronGordonn/energy-advisor once the GitHub repo exists (see HANDOFF.md "publishing"). -->
+[![CI](https://github.com/CameronGordonn/energy-advisor/actions/workflows/ci.yml/badge.svg)](https://github.com/CameronGordonn/energy-advisor/actions/workflows/ci.yml)
 [![License: AGPL v3](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](environment.yml)
 
-**[Read the writeup →](https://OWNER.github.io/REPO/)** — methodology, the household worked
+**[Read the writeup →](https://camerongordonn.github.io/energy-advisor/)** — methodology, the household worked
 end to end, and everything still assumed.
 
 ## Bill-reconciliation accuracy

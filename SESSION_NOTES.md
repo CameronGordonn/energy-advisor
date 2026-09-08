@@ -2,6 +2,33 @@
 
 Running log of decisions made and decisions pending. Newest first.
 
+## 2026-09-08 — Session 8c (the site is live)
+
+Cameron pushed to **https://github.com/CameronGordonn/energy-advisor** (public, AGPL-3.0).
+Site: **https://camerongordonn.github.io/energy-advisor/** — HTTP 200, CI green on `main`.
+
+### Went live, with two GitHub quirks worth not re-debugging
+The push landed on `session-4-nperiod-tou-m2`, which GitHub then made the default branch —
+so `pages.yml` (triggered on `main`) never fired and the site 404'd. Fixes applied:
+- Stale local `main` (session 3, 621c1c1) was a clean **ancestor**, so it fast-forwarded 10
+  commits with no conflict. Pushed, and set as the default branch — which also gets the repo
+  off a default branch named after a working session, a bad look on a portfolio repo.
+- **Path filters do not reliably match on branch *creation*.** The first push to `main` did
+  not trigger the deploy despite touching `docs/`. `workflow_dispatch` covered it.
+- **Enabling Pages auto-creates a `github-pages` environment whose deployment branch policy
+  is pinned to the then-default branch.** Ours was pinned to the session branch, so `main`
+  deploys were rejected with "Branch main is not allowed to deploy to github-pages due to
+  environment protection rules" — not a workflow bug, an environment policy. Fixed by POSTing
+  `main` to `.../environments/github-pages/deployment-branch-policies`.
+
+### Also done
+README `OWNER/REPO` placeholders resolved to the real path (badges and the site link now
+work). Repo description, homepage and eleven topics set for discoverability.
+
+### Next
+Dad's SDG&E export + bills, expected today (2026-09-08). Unchanged as next-action #0.
+
+
 ## 2026-09-07 — Session 8b (portfolio/publishing scaffolding; AGPL chosen)
 
 Cameron reframed the goal: this becomes a **portfolio piece with a served website on

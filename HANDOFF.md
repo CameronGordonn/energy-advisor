@@ -83,39 +83,30 @@ load-neutral.
 +battery greedy $514; LP $436; NBC import floor $86/yr. **Dollar totals are real, the LOAD is
 not — these figures are deliberately absent from the public writeup.**
 
-## Publishing (portfolio site) — scaffolded, nothing pushed
+## Publishing — LIVE
 
-Goal set by Cameron in session 8b: **a portfolio piece with a served website on GitHub,
-whether or not it becomes a paying product.** This is not an M5 override — a static site
-serving `docs/` is M4's own "writeup live". What stays gated behind M5 is the interactive
-upload-and-report app.
+- **Repo:** https://github.com/CameronGordonn/energy-advisor (public, AGPL-3.0)
+- **Site:** https://camerongordonn.github.io/energy-advisor/
+- **CI:** green on `main`. Badge in README. Golden-bill tests SKIP in CI by design — they
+  need the gitignored real interval export, so the badge proves engine/schema/loader/tariff
+  identities, NOT the ±$2 reconciliation. Stated in the workflow header so it cannot overclaim.
 
-**The PII audit is done and the history is CLEAN** (session 8b notes): `.gitignore` correct
-from commit #1, no bill/export/`data/` file ever committed, and the only matches for the
-scrubbed unit number are a *synthetic* test fixture and session 7's own scrub note. Safe to
-make public. Do not redo this audit; do re-run it if raw data is ever added to a commit.
+`main` is the default branch and holds everything (the old `session-4-nperiod-tou-m2` was
+fast-forwarded into it and still exists on the remote as a redundant copy — safe to delete).
 
-Ready in-tree: `LICENSE` (AGPL-3.0, canonical FSF text), `.github/workflows/ci.yml`
-(ruff + pytest via micromamba; its header records that golden-bill tests SKIP in CI, so the
-badge does not overclaim), `.github/workflows/pages.yml`, README badges, and a `docs/index.html`
-that is now a valid standalone document.
+**Two GitHub gotchas hit while going live, recorded so the next person does not re-debug them:**
+1. `pages.yml` has a `paths: ["docs/**"]` filter, and path filters do **not** reliably match
+   when a branch is *created* rather than updated — the first push to `main` did not trigger
+   it. `workflow_dispatch` is on the workflow for exactly this; use it after any such push.
+2. Enabling Pages auto-creates a **`github-pages` environment with a deployment branch
+   policy** pinned to whatever the default branch was at the time. Ours was pinned to
+   `session-4-nperiod-tou-m2`, so deploys from `main` failed with "Branch main is not allowed
+   to deploy to github-pages due to environment protection rules." Fixed by adding `main`:
+   `gh api --method POST repos/<owner>/<repo>/environments/github-pages/deployment-branch-policies -f name=main`
 
-```bash
-# 1. create the public repo and push (needs Cameron's GitHub account)
-gh auth login
-gh repo create energy-advisor --public --source=. --remote=origin --push
-git push -u origin session-4-nperiod-tou-m2      # or merge to main first
-
-# 2. fix the README placeholders (badges + site link)
-sed -i 's|OWNER/REPO|<owner>/energy-advisor|g; s|OWNER.github.io/REPO|<owner>.github.io/energy-advisor|g' README.md
-
-# 3. enable the site: repo Settings -> Pages -> Source -> "GitHub Actions"
-#    then pushes to main that touch docs/ deploy automatically.
-```
-
-⚠ `docs/index.html` now carries a full `<!doctype html>` wrapper for Pages. Republishing it
-**as an Artifact** requires stripping doctype/html/head/body first. Pages is the canonical
-home from here.
+⚠ `docs/index.html` carries a full `<!doctype html>` wrapper for Pages. Republishing it **as
+an Artifact** requires stripping doctype/html/head/body first. Pages is the canonical home;
+the artifact URL is a preview.
 
 ⚠ The `LICENSE`/README copyright line reads "Cameron Gordon" — inferred; correct if wrong.
 
@@ -131,8 +122,7 @@ home from here.
    three bill PDFs **with the itemized line-item pages**, and from those the schedule,
    climate zone, CARE status, and whether generation is SDG&E bundled or a CCA (which also
    unblocks next-action #2).
-1. **Push the repo and turn on Pages** — see the Publishing section above. Everything is
-   scaffolded; the remaining steps need Cameron's GitHub account.
+1. **DONE — repo and site are live.** See the Publishing section above.
 2. **CCA generation overlay** — a CCA's own generation rate + the vintaged PCIA, replacing
    EECC. The PCIA vintage tables for **all four** 2026 SDG&E vintages are now recorded in the
    generation spec headers, so only *which CCA* is missing (San Diego Community Power vs Clean
