@@ -1,0 +1,129 @@
+# SDG&E Schedule TOU-DR1 — DELIVERY layer (UDC + non-bypassable charges), 1/1/2026 vintage.
+#
+# The EARLIEST of the three 2026 TOU-DR1 vintages now committed:
+#     2026-01-01  this file        UDC Total 0.34101   super-off-peak 10-14 = Mar/Apr only
+#     2026-04-01  ..._2026-04-01   UDC Total 0.34061   super-off-peak 10-14 = Mar/Apr only
+#     2026-05-01  ..._2026-05-01   UDC Total 0.34061   super-off-peak 10-14 = YEAR-ROUND
+#     2026-06-01  ..._2026-06-01   UDC Total 0.32948   super-off-peak 10-14 = year-round
+# See the 2026-05-01 spec's header for why a fourth vintage exists with rates identical to
+# the 2026-04-01 one: the RATE changed on 4/1 and the TOU WINDOW changed on 5/1, and those
+# are two independent effective dates that happen to fall inside one rate vintage.
+#
+# ⚠ SUPER-OFF-PEAK WINDOW IS MARCH/APRIL ONLY ON THIS VINTAGE. SDG&E extended the weekday
+# 10:00-14:00 super-off-peak window to year-round effective 2026-05-01 (see the 2026-06-01
+# specs' headers for the full sourcing). This vintage is effective 2026-01-01 and therefore
+# PRE-DATES that change, so the `months: [3, 4]` restriction from the tariff-book sheet
+# (Schedule TOU-DR1, Cal. P.U.C. Sheets 29952-29955-E, Advice 3167-E) is the correct rule
+# here. In this vintage's own span (Jan 1 - Mar 31) that means only March is affected;
+# January and February price 10:00-14:00 as OFF-PEAK. Getting this backwards would misprice
+# four hours a day for two months, so `tests/tariffs/test_sdge_vintages.py` pins it.
+#
+# LAYER MODEL, CARE DERIVATION, NBC SET, MINIMUM BILL: identical in structure to the
+# 2026-06-01 spec — see that file's header for the full reasoning, which is not repeated
+# here. Only the numbers and the TOU window differ. As there, the two layers re-sum to
+# SDG&E's printed Total Electric Rate and Total Adjusted CARE Rate on all twelve cells,
+# asserted in tests/tariffs/test_sdge_vintages.py.
+#
+#     delivery standard = UDC Total 0.34101 + WF-NBC/DWR-BC 0.00591            = 0.34692
+#     delivery care     = 0.65 x (UDC Total 0.34101 - CARE exemption 0.00864)  = 0.21604
+schedule_id: TOU-DR1
+name: Residential Time-of-Use (SDG&E default) - Delivery
+provider: SDG&E
+layer: delivery
+effective_date: 2026-01-01
+citation: >-
+  SDG&E "Schedule TOU-DR1 - Residential Time of Use Service Effective 1/1/2026" Total
+  Rates Table (sdge.com/sites/default/files/regulatory/1-1-26 Schedule TOU-DR1 Total Rates
+  Table.pdf) and the matching "1-1-26 Schedule TOU-DR1-CARE Total Rates Table.pdf", both
+  retrieved 2026-09-07. Structure, Minimum Bill and Franchise Fee Differential from
+  Schedule TOU-DR1, Cal. P.U.C. Sheets 29952-29955-E (Advice 3167-E) — which is also the
+  source of the March/April-only super-off-peak window applied below. Seasons from
+  Schedule EECC; holidays from SDG&E Electric Rule 1. Baseline allowances from Schedule
+  DR, Cal. P.U.C. Sheet 29294-E.
+
+seasons:
+  # Schedule EECC: Summer June 1 - October 31, Winter November 1 - May 31.
+  summer_months: [6, 7, 8, 9, 10]
+  winter_months: [11, 12, 1, 2, 3, 4, 5]
+
+# Three periods, weekday table distinct from the weekend/holiday table. The weekday
+# 10:00-14:00 super-off-peak carve-out is restricted to March and April on this vintage
+# (see the header) — the one structural difference from the 2026-05-01 and later specs.
+tou:
+  rules:
+    - {period: on_peak, hours: [[16, 21]]}
+    - {period: super_off_peak, hours: [[0, 6]], days: weekday}
+    - {period: super_off_peak, hours: [[10, 14]], days: weekday, months: [3, 4]}
+    - {period: super_off_peak, hours: [[0, 14]], days: weekend}
+  default_period: off_peak
+  holiday_calendar: sdge_residential
+  labels: {on_peak: On-Peak, off_peak: Off-Peak, super_off_peak: Super Off-Peak}
+
+# Income-Graduated Fixed Charge; unchanged across all three 2026 vintages. (SDG&E also
+# files DRAH and FERA tiers at 0.39688/day, which the engine's two customer classes still
+# cannot express — the schema gap recorded in HANDOFF.)
+fixed_name: Base Services Charge
+fixed_per_day:
+  standard: 0.79343
+  care: 0.19713
+
+# Delivery $/kWh. As on every TOU-DR1 vintage, the UDC total is period- and season-flat:
+# 100% of the schedule's time-of-use price signal lives in the generation (EECC) layer.
+energy:
+  summer_on_peak:        {standard: 0.34692, care: 0.21604}
+  summer_off_peak:       {standard: 0.34692, care: 0.21604}
+  summer_super_off_peak: {standard: 0.34692, care: 0.21604}
+  winter_on_peak:        {standard: 0.34692, care: 0.21604}
+  winter_off_peak:       {standard: 0.34692, care: 0.21604}
+  winter_super_off_peak: {standard: 0.34692, care: 0.21604}
+
+baseline:
+  # Cal. P.U.C. Sheet 29294-E (Schedule DR, Sheet 5, SC 3), kWh/day. Climate zone is a
+  # CUSTOMER fact, so `territory` is supplied at bill time and omitting it raises.
+  allowances:
+    coastal_basic:         {summer:  9.0, winter:  9.2}
+    inland_basic:          {summer: 10.4, winter:  9.6}
+    mountain_basic:        {summer: 13.6, winter: 12.9}
+    desert_basic:          {summer: 15.9, winter: 10.9}
+    coastal_all_electric:  {summer:  8.3, winter: 13.5}
+    inland_all_electric:   {summer: 10.1, winter: 15.8}
+    mountain_all_electric: {summer: 16.5, winter: 26.0}
+    desert_all_electric:   {summer: 18.5, winter: 20.0}
+  allowance_multiplier: 1.30
+  # 1/1/2026 table: standard (0.10905). CARE (0.07088) is printed, and equals
+  # 0.65 x 0.10905 = 0.0708825 -> confirms the same 35% split used on the energy rates.
+  credit_per_kwh: {standard: -0.10905, care: -0.07088}
+
+minimum_bill:
+  per_day: {standard: 0.329, care: 0.164}
+  citation: >-
+    SDG&E Schedule TOU-DR1, Minimum Bill, Cal. P.U.C. Sheet 29955-E (Advice 3167-E).
+    NOTE the sheet's rate values are from the 2018 filing and the 1/1/2026 Total Rates
+    Table does not restate the minimum bill; confirm the $0.329/$0.164 figures are still
+    current before shipping a dollar figure that depends on the floor binding.
+
+# Non-bypassable set, billed on GROSS imports under the NBT and not offsettable by export
+# credits (Schedule NBT SC 2.f). Already inside the `energy` rates above, hence
+# `included_in_energy_rate: true` — netting CARVES this out rather than adding a line.
+# Component values are IDENTICAL on all three 2026 vintages (PPP/ND/CTC/WF-NBC did not
+# move when the UDC total did); only the delivery total changed.
+#   PPP 0.01515 + ND 0.00000 + CTC (0.00007) + WF-NBC/DWR-BC 0.00591 = 0.02099 (standard)
+# CARE: PPP/ND/CTC at 0.65x per the "CARE Discount 35%" table; WF-NBC/DWR-BC exempt.
+#   0.65 x (0.01515 + 0.00000 - 0.00007) = 0.00980
+non_bypassable:
+  included_in_energy_rate: true
+  components:
+    Public Purpose Programs:       {standard:  0.01515, care: 0.00985}
+    Nuclear Decommissioning:       {standard:  0.00000, care: 0.00000}
+    Competition Transition Charge: {standard: -0.00007, care: -0.00005}
+    Wildfire Fund / DWR Bond:      {standard:  0.00591, care: 0.00000}
+  citation: >-
+    SDG&E Schedule TOU-DR1 Total Rates Table components (PPP, ND, CTC, WF-NBC/DWR-BC),
+    1/1/2026, retrieved 2026-09-07; classed non-bypassable per PG&E Schedule NBT Cal.
+    P.U.C. Sheet 57359-E SC 2.f. CARE WF-NBC exemption: Sheet 29953-E note 3 and the
+    CARE table's note 1 ("exemptions from the CARE surcharge, DWR Bond Charge, and
+    Wildfire Nonbypassable Charge as identified in Schedule E-CARE").
+
+# NOT MODELED HERE, deliberately — see the 2026-06-01 delivery spec's closing note:
+# the City of San Diego Franchise Fee Differential (a customer fact), the California
+# Climate Credit, and the CARE surcharge (already netted into the `care` rates above).

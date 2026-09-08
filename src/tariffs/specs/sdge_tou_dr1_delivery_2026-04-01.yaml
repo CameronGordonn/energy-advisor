@@ -1,0 +1,104 @@
+# SDG&E Schedule TOU-DR1 — DELIVERY layer (UDC + non-bypassable charges), 4/1/2026 vintage.
+#
+#     2026-01-01  ..._2026-01-01   UDC Total 0.34101   super-off-peak 10-14 = Mar/Apr only
+#     2026-04-01  this file        UDC Total 0.34061   super-off-peak 10-14 = Mar/Apr only
+#     2026-05-01  ..._2026-05-01   UDC Total 0.34061   super-off-peak 10-14 = YEAR-ROUND
+#     2026-06-01  ..._2026-06-01   UDC Total 0.32948   super-off-peak 10-14 = year-round
+#
+# ⚠ THIS VINTAGE IS SUPERSEDED AFTER ONE MONTH, ON PURPOSE. SDG&E published no 5/1/2026
+# Total Rates Table (verified: the 5-1-26 URL in this series returns HTTP 404), so the
+# rates below remained in force until the 6/1/2026 sheet. But the weekday 10:00-14:00
+# super-off-peak window went year-round effective 2026-05-01 — a change to the PERIOD
+# DEFINITIONS with its own effective date, landing in the middle of this RATE vintage.
+# The two events are modeled as what they are: this spec carries the 4/1 rates with the
+# pre-change March/April window and governs April, and `..._2026-05-01` carries the same
+# rates with the year-round window and governs May. See that file's header.
+#
+# LAYER MODEL, CARE DERIVATION, NBC SET, MINIMUM BILL: see the 2026-06-01 spec's header
+# for the full reasoning; only the numbers and the TOU window differ.
+#
+#     delivery standard = UDC Total 0.34061 + WF-NBC/DWR-BC 0.00591            = 0.34652
+#     delivery care     = 0.65 x (UDC Total 0.34061 - CARE exemption 0.00864)  = 0.21578
+schedule_id: TOU-DR1
+name: Residential Time-of-Use (SDG&E default) - Delivery
+provider: SDG&E
+layer: delivery
+effective_date: 2026-04-01
+citation: >-
+  SDG&E "Schedule TOU-DR1 - Residential Time of Use Service Effective 4/1/2026" Total
+  Rates Table (sdge.com/sites/default/files/regulatory/4-1-26 Schedule TOU-DR1 Total Rates
+  Table.pdf) and the matching "4-1-26 Schedule TOU-DR1-CARE Total Rates Table.pdf", both
+  retrieved 2026-09-07. Structure, Minimum Bill and Franchise Fee Differential from
+  Schedule TOU-DR1, Cal. P.U.C. Sheets 29952-29955-E (Advice 3167-E) — also the source of
+  the March/April-only super-off-peak window applied below. Seasons from Schedule EECC;
+  holidays from SDG&E Electric Rule 1. Baseline allowances from Schedule DR, Cal. P.U.C.
+  Sheet 29294-E.
+
+seasons:
+  summer_months: [6, 7, 8, 9, 10]
+  winter_months: [11, 12, 1, 2, 3, 4, 5]
+
+# March/April-only weekday 10:00-14:00 super-off-peak. Within this spec's own span
+# (April 1 - April 30) that rule and the year-round rule agree; they diverge in May, which
+# is why May is governed by the separate 2026-05-01 vintage rather than by this file.
+tou:
+  rules:
+    - {period: on_peak, hours: [[16, 21]]}
+    - {period: super_off_peak, hours: [[0, 6]], days: weekday}
+    - {period: super_off_peak, hours: [[10, 14]], days: weekday, months: [3, 4]}
+    - {period: super_off_peak, hours: [[0, 14]], days: weekend}
+  default_period: off_peak
+  holiday_calendar: sdge_residential
+  labels: {on_peak: On-Peak, off_peak: Off-Peak, super_off_peak: Super Off-Peak}
+
+fixed_name: Base Services Charge
+fixed_per_day:
+  standard: 0.79343
+  care: 0.19713
+
+# UDC total is period- and season-flat, as on every TOU-DR1 vintage.
+energy:
+  summer_on_peak:        {standard: 0.34652, care: 0.21578}
+  summer_off_peak:       {standard: 0.34652, care: 0.21578}
+  summer_super_off_peak: {standard: 0.34652, care: 0.21578}
+  winter_on_peak:        {standard: 0.34652, care: 0.21578}
+  winter_off_peak:       {standard: 0.34652, care: 0.21578}
+  winter_super_off_peak: {standard: 0.34652, care: 0.21578}
+
+baseline:
+  allowances:
+    coastal_basic:         {summer:  9.0, winter:  9.2}
+    inland_basic:          {summer: 10.4, winter:  9.6}
+    mountain_basic:        {summer: 13.6, winter: 12.9}
+    desert_basic:          {summer: 15.9, winter: 10.9}
+    coastal_all_electric:  {summer:  8.3, winter: 13.5}
+    inland_all_electric:   {summer: 10.1, winter: 15.8}
+    mountain_all_electric: {summer: 16.5, winter: 26.0}
+    desert_all_electric:   {summer: 18.5, winter: 20.0}
+  allowance_multiplier: 1.30
+  # 4/1/2026 table: standard (0.10892); printed CARE (0.07080) = 0.65 x 0.10892.
+  credit_per_kwh: {standard: -0.10892, care: -0.07080}
+
+minimum_bill:
+  per_day: {standard: 0.329, care: 0.164}
+  citation: >-
+    SDG&E Schedule TOU-DR1, Minimum Bill, Cal. P.U.C. Sheet 29955-E (Advice 3167-E).
+    NOTE the sheet's rate values are from the 2018 filing and the 4/1/2026 Total Rates
+    Table does not restate the minimum bill; confirm the $0.329/$0.164 figures are still
+    current before shipping a dollar figure that depends on the floor binding.
+
+# Unchanged from the 1/1/2026 vintage: the NBC components did not move when the UDC total
+# did. PPP 0.01515 + ND 0.00000 + CTC (0.00007) + WF-NBC/DWR-BC 0.00591 = 0.02099 std;
+# CARE 0.65 x (0.01515 - 0.00007) = 0.00980, WF-NBC/DWR-BC exempt.
+non_bypassable:
+  included_in_energy_rate: true
+  components:
+    Public Purpose Programs:       {standard:  0.01515, care: 0.00985}
+    Nuclear Decommissioning:       {standard:  0.00000, care: 0.00000}
+    Competition Transition Charge: {standard: -0.00007, care: -0.00005}
+    Wildfire Fund / DWR Bond:      {standard:  0.00591, care: 0.00000}
+  citation: >-
+    SDG&E Schedule TOU-DR1 Total Rates Table components (PPP, ND, CTC, WF-NBC/DWR-BC),
+    4/1/2026, retrieved 2026-09-07; classed non-bypassable per PG&E Schedule NBT Cal.
+    P.U.C. Sheet 57359-E SC 2.f. CARE WF-NBC exemption: Sheet 29953-E note 3 and the
+    CARE table's note 1.

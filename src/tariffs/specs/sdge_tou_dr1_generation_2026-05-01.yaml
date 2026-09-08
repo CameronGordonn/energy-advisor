@@ -1,0 +1,47 @@
+# SDG&E Schedule EECC matched to TOU-DR1 — GENERATION layer, 2026-05-01 vintage.
+# RATES ARE THE 4/1/2026 SHEET'S; ONLY THE TOU WINDOW CHANGED ON THIS DATE.
+#
+# See `sdge_tou_dr1_delivery_2026-05-01.yaml` for the full explanation of why a vintage
+# exists on a date with no published rate table: the weekday 10:00-14:00 super-off-peak
+# window went year-round effective 2026-05-01, in the middle of the 4/1 rate vintage, and
+# the two layers must carry identical period definitions. Composition and the CARE
+# derivation: see `sdge_tou_dr1_generation_2026-06-01.yaml`.
+#
+# The EECC values below are the 4/1 sheet's, which are also the 6/1 sheet's — generation
+# did not move on 6/1 even though delivery did.
+schedule_id: TOU-DR1
+name: SDG&E bundled generation (Schedule EECC) matched to TOU-DR1
+provider: SDG&E
+layer: generation
+effective_date: 2026-05-01
+citation: >-
+  RATES: SDG&E "Schedule TOU-DR1 - Residential Time of Use Service Effective 4/1/2026"
+  Total Rates Table, EECC Rate column, and the matching TOU-DR1-CARE table (both retrieved
+  2026-09-07), which remained in force through May 2026 — SDG&E published no 5/1/2026
+  table (that URL returns HTTP 404). PERIOD DEFINITIONS: weekday 10:00-14:00 super-off-peak
+  became year-round effective 2026-05-01 per SDG&E's own publications
+  (sdgetoday.com/NewSuperPeakHours; sdge.com/super-off-peak-residential, both retrieved
+  2026-09-07); the superseding advice letter and revised Cal. P.U.C. sheet were not
+  located. Commodity component defined by Schedule EECC; seasons per Schedule EECC.
+
+seasons:
+  summer_months: [6, 7, 8, 9, 10]
+  winter_months: [11, 12, 1, 2, 3, 4, 5]
+
+# YEAR-ROUND weekday 10:00-14:00 super-off-peak; identical to the matching delivery spec.
+tou:
+  rules:
+    - {period: on_peak, hours: [[16, 21]]}
+    - {period: super_off_peak, hours: [[0, 6], [10, 14]], days: weekday}
+    - {period: super_off_peak, hours: [[0, 14]], days: weekend}
+  default_period: off_peak
+  holiday_calendar: sdge_residential
+  labels: {on_peak: On-Peak, off_peak: Off-Peak, super_off_peak: Super Off-Peak}
+
+energy:
+  summer_on_peak:        {standard: 0.34920, care: 0.2269800}
+  summer_off_peak:       {standard: 0.12853, care: 0.0835445}
+  summer_super_off_peak: {standard: 0.04121, care: 0.0267865}
+  winter_on_peak:        {standard: 0.27475, care: 0.1785875}
+  winter_off_peak:       {standard: 0.19304, care: 0.1254760}
+  winter_super_off_peak: {standard: 0.10228, care: 0.0664820}

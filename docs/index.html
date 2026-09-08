@@ -573,7 +573,7 @@ care_baseline = 0.65 × standard</pre>
 <section>
   <div class="sechead"><span class="num">§6</span><h2>Reproducing this</h2></div>
   <pre>conda env create -f environment.yml &amp;&amp; conda activate energy-advisor
-pytest                                              <b># 166 tests</b>
+pytest                                              <b># 331 tests</b>
 
 PYTHONPATH=src python scripts/reconcile_report.py   <b># the 11 line-item comparisons</b>
 PYTHONPATH=src python scripts/rate_optimizer.py     <b># ranking, why, sensitivity, assumption audit</b>

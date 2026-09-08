@@ -42,15 +42,18 @@ from uncertainty.montecarlo import simulate_payback
 YEAR = 2026
 TZ = "America/Los_Angeles"
 
-# The analysis window is the twelve months from 2026-06-01, NOT calendar 2026, because
-# that is the span the committed SDG&E specs actually cover: the TOU-DR1 delivery and
-# generation layers are both effective 2026-06-01, and SDG&E's earlier 2026 vintages
-# (1/1/2026 and 4/1/2026 rate tables, and the pre-2026-05-01 March/April-only super-off-peak
-# window) are not transcribed. `marginal_energy_price` refuses to price a date no spec
-# covers rather than extrapolating backwards, so this window is enforced, not just
-# documented. Transcribing the earlier vintages would let this run over calendar 2026.
-START = date(YEAR, 6, 1)
-END = date(YEAR + 1, 5, 31)  # inclusive
+# CALENDAR 2026. This window used to start on 2026-06-01 because that was the only
+# committed SDG&E vintage and `marginal_energy_price` refuses to price a date no spec
+# covers rather than extrapolating backwards. The 1/1/2026, 4/1/2026 and 2026-05-01
+# TOU-DR1 vintages are now transcribed, so a calendar year is covered end to end and the
+# run crosses four rate versions per layer instead of one.
+#
+# That matters for more than tidiness: January-April are priced by vintages on which the
+# weekday 10:00-14:00 window is NOT super-off-peak (the year-round extension took effect
+# 2026-05-01), so a battery scheduled against this window sees the real, changing daytime
+# price rather than one year's rule projected backwards over the whole span.
+START = date(YEAR, 1, 1)
+END = date(YEAR, 12, 31)  # inclusive
 
 
 def _window(idx: pd.DatetimeIndex) -> pd.DatetimeIndex:

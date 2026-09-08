@@ -63,7 +63,7 @@ non-bypassable charges.
 ```bash
 conda env create -f environment.yml   # first time
 conda activate energy-advisor
-pytest                                 # run the suite (166 tests)
+pytest                                 # run the suite (331 tests)
 ruff check . && ruff format --check .  # lint / format
 ```
 

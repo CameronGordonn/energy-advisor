@@ -119,6 +119,9 @@ def test_super_off_peak_is_year_round_on_weekdays_not_march_april_only(layers):
 # --- Non-bypassable charges: the NEM import floor on every SDG&E schedule ---------------
 
 SDGE_DELIVERY = [
+    "sdge_tou_dr1_delivery_2026-01-01.yaml",
+    "sdge_tou_dr1_delivery_2026-04-01.yaml",
+    "sdge_tou_dr1_delivery_2026-05-01.yaml",
     "sdge_tou_dr1_delivery_2026-06-01.yaml",
     "sdge_tou_dr2_delivery_2026-06-01.yaml",
     "sdge_ev_tou_5_delivery_2026-06-01.yaml",

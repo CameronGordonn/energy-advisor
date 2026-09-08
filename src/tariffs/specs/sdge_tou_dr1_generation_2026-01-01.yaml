@@ -1,0 +1,72 @@
+# SDG&E Schedule EECC matched to TOU-DR1 — GENERATION layer (bundled commodity),
+# 1/1/2026 vintage.
+#
+# The bundled half of the 1/1/2026 TOU-DR1 sheet. Composition, the CARE derivation and the
+# CCA/PCIA note are exactly as documented in `sdge_tou_dr1_generation_2026-06-01.yaml`;
+# that header is the canonical explanation and is not repeated here. What differs:
+#
+#   1. EECC VALUES. This is the only one of the three 2026 vintages whose EECC differs:
+#          1/1/2026   S 0.34962 / 0.12868 / 0.04126   W 0.27508 / 0.19327 / 0.10241
+#          4/1/2026   S 0.34920 / 0.12853 / 0.04121   W 0.27475 / 0.19304 / 0.10228
+#          6/1/2026   S 0.34920 / 0.12853 / 0.04121   W 0.27475 / 0.19304 / 0.10228
+#      i.e. generation moved on 4/1 and then held; DELIVERY moved again on 6/1 while
+#      generation did not. That is precisely why the engine versions the two layers
+#      independently — a single "rate change date" would misprice one layer or the other.
+#
+#   2. SUPER-OFF-PEAK WINDOW is March/April only on this vintage (pre-2026-05-01). The
+#      rules below must stay byte-identical to the matching delivery spec's, or the two
+#      layers would bucket the same kWh differently; a test asserts it.
+#
+#   3. PCIA TABLE. The 1/1/2026 sheet prints a DIFFERENT residential PCIA table from the
+#      4/1 and 6/1 sheets, by vintage ($/kWh): 2001 Legacy (0.00006), 2009 0.01535,
+#      2010 0.02006, 2011 0.03024, 2012 0.03630, 2013 0.03564, 2014 0.03565, 2015 0.03680,
+#      2016 0.03588, 2017 0.03569, 2018 0.03662, 2019 0.03442, 2020 0.03598, 2021 0.03557,
+#      2022 0.02999, 2023 0.02823, 2024 0.05045, 2025 0.04977, 2026 0.04977.
+#      ⭐ This retires a loose end: the 2026-06-01 delivery spec's header recorded that
+#      "an earlier retrieval read 0.03662 / 0.03662-era values" for the 2018/2026 vintages
+#      and treated them as superseded by the 6/1 sheet's 0.03670 / 0.04987. They were not
+#      an error — they are the 1/1/2026 sheet's values, transcribed correctly from a
+#      different vintage. Both are right for their own dates.
+#      The PCIA is a CCA-only charge and is NOT billed by this spec (a bundled customer
+#      pays EECC instead); it is recorded here for the still-unauthored CCA overlay.
+schedule_id: TOU-DR1
+name: SDG&E bundled generation (Schedule EECC) matched to TOU-DR1
+provider: SDG&E
+layer: generation
+effective_date: 2026-01-01
+citation: >-
+  SDG&E "Schedule TOU-DR1 - Residential Time of Use Service Effective 1/1/2026" Total
+  Rates Table, EECC Rate column (sdge.com/sites/default/files/regulatory/1-1-26 Schedule
+  TOU-DR1 Total Rates Table.pdf), and the matching "1-1-26 Schedule TOU-DR1-CARE Total
+  Rates Table.pdf" for the CARE derivation, both retrieved 2026-09-07. Commodity component
+  defined by Schedule EECC; seasons per Schedule EECC "Summer: June 1 - October 31,
+  Winter: November 1 - May 31". Period definitions per the matching delivery spec.
+
+seasons:
+  summer_months: [6, 7, 8, 9, 10]
+  winter_months: [11, 12, 1, 2, 3, 4, 5]
+
+# Must classify every hour identically to sdge_tou_dr1_delivery_2026-01-01.yaml.
+# March/April-only weekday 10:00-14:00 super-off-peak: this vintage pre-dates the
+# 2026-05-01 year-round extension.
+tou:
+  rules:
+    - {period: on_peak, hours: [[16, 21]]}
+    - {period: super_off_peak, hours: [[0, 6]], days: weekday}
+    - {period: super_off_peak, hours: [[10, 14]], days: weekday, months: [3, 4]}
+    - {period: super_off_peak, hours: [[0, 14]], days: weekend}
+  default_period: off_peak
+  holiday_calendar: sdge_residential
+  labels: {on_peak: On-Peak, off_peak: Off-Peak, super_off_peak: Super Off-Peak}
+
+# EECC $/kWh. `standard` read straight off the 1/1/2026 EECC Rate column; `care` =
+# 0.65 x standard (the 35% CARE discount applied to this layer's share). Full precision is
+# kept so the delivery + generation sum reproduces SDG&E's printed CARE total exactly.
+# Summer on-peak is 8.5x super-off-peak here too — the whole TOU signal is in this layer.
+energy:
+  summer_on_peak:        {standard: 0.34962, care: 0.2272530}
+  summer_off_peak:       {standard: 0.12868, care: 0.0836420}
+  summer_super_off_peak: {standard: 0.04126, care: 0.0268190}
+  winter_on_peak:        {standard: 0.27508, care: 0.1788020}
+  winter_off_peak:       {standard: 0.19327, care: 0.1256255}
+  winter_super_off_peak: {standard: 0.10241, care: 0.0665665}

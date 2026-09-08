@@ -16,8 +16,10 @@
 #   Total Adjusted CARE Rate on all twelve cells — see tests/tariffs/test_sdge_layers.py.
 #   Still NOT authored: the CCA overlay (a CCA's own generation rate + the vintaged PCIA),
 #   because which CCA applies is unresolved. Residential PCIA per the 6/1/2026 sheet:
-#   2018 vintage 0.03670, 2026 vintage 0.04987 (an earlier retrieval recorded here read
-#   0.03662 / 0.04977; the printed sheet values supersede those). Full table is quoted in
+#   2018 vintage 0.03670, 2026 vintage 0.04987. (An earlier note here read 0.03662 /
+#   0.04977 and called those superseded; they are not an error — they are what the
+#   1/1/2026 sheet prints, now committed as sdge_tou_dr1_generation_2026-01-01.yaml.
+#   Each set is correct for its own vintage.) Full table is quoted in
 #   the generation spec's header.
 #
 # NON-BYPASSABLE CHARGES (differentiation invariant 4). Folded into the energy rates below,

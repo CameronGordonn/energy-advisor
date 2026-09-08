@@ -35,8 +35,10 @@
 # 2010 0.02010, 2011 0.03031, 2012 0.03637, 2013 0.03572, 2014 0.03572, 2015 0.03687,
 # 2016 0.03595, 2017 0.03576, 2018 0.03670, 2019 0.03450, 2020 0.03605, 2021 0.03564,
 # 2022 0.03005, 2023 0.02828, 2024 0.05055, 2025 0.04987, 2026 0.04987. (The TOU-DR1
-# delivery spec's comment quoted 0.03662 / 0.04977 for the 2018 / 2026 vintages from an
-# earlier retrieval; the values above are what the 6/1/2026 sheet prints and supersede it.)
+# delivery spec's comment quoted 0.03662 / 0.04977 for the 2018 / 2026 vintages and called
+# them superseded; they are in fact the 1/1/2026 sheet's values, correct for that vintage
+# and now committed in sdge_tou_dr1_generation_2026-01-01.yaml. The 4/1/2026 sheet prints
+# the same table as this one.)
 #
 # NOT MODELED HERE, deliberately:
 #  - The California Energy Commission surcharge ($0.0003/kWh on the PG&E specs) does NOT
