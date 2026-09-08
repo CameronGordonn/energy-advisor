@@ -52,3 +52,44 @@ jobs:
         # guessed number. TOU-DR-P is deliberately unloadable; this asserts the gate is
         # doing its job rather than silently passing everything.
         run: python -c "import sys; sys.path.insert(0, 'src'); from tariffs.loader import SPECS_DIR; print(f'{len(list(SPECS_DIR.glob(\"*.yaml\")))} tariff specs present')"
+
+  web:
+    name: browser tool (wasm parity + render)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: mamba-org/setup-micromamba@v2
+        with:
+          environment-file: environment.yml
+          cache-environment: true
+          cache-downloads: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: tools/package.json
+
+      - name: The shipped bundle must match src/
+        run: PYTHONPATH=src python scripts/build_web_engine.py --check
+
+      - name: Regenerate the native reference from the committed sample
+        # If this differs from tools/reference-sample.json the engine changed without the
+        # reference being refreshed, and the parity check below would compare against stale
+        # expectations rather than today's behaviour.
+        run: |
+          PYTHONPATH=src python scripts/inspect_export.py docs/sample-usage.csv --json > /tmp/ref.json
+          diff -u tools/reference-sample.json /tmp/ref.json
+
+      - name: Install browser-test deps
+        run: npm install --prefix tools
+
+      - name: The browser must compute what Python computes
+        run: node tools/test_engine_wasm.mjs
+
+      - name: The page must render a real inspection correctly
+        run: node tools/test_tool_render.mjs

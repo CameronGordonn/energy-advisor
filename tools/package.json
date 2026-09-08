@@ -1,0 +1,13 @@
+{
+  "name": "energy-advisor-web-tests",
+  "private": true,
+  "type": "module",
+  "description": "Headless checks for the browser tool at docs/index.html.",
+  "scripts": {
+    "test": "node test_engine_wasm.mjs && node test_tool_render.mjs"
+  },
+  "dependencies": {
+    "jsdom": "^26.0.0",
+    "pyodide": "0.28.3"
+  }
+}

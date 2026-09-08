@@ -1,0 +1,141 @@
+{
+  "source_name": "sample-usage.csv",
+  "utility": "PG&E",
+  "interval_minutes": 60,
+  "first_start": "2025-07-01 00:00:00-07:00",
+  "last_start": "2026-07-31 23:00:00-07:00",
+  "span_days": 396,
+  "n_intervals": 9503,
+  "n_estimated": 0,
+  "n_gaps": 1,
+  "coverage": 0.999895,
+  "dst_fall_back_days": [
+    "2025-11-02"
+  ],
+  "dst_spring_forward_days": [
+    "2026-03-08"
+  ],
+  "total_kwh": 4326.5,
+  "avg_kwh_per_day": 10.93,
+  "by_month": [
+    {
+      "month": "2025-07",
+      "kwh": 388.7,
+      "days": 31
+    },
+    {
+      "month": "2025-08",
+      "kwh": 369.57,
+      "days": 31
+    },
+    {
+      "month": "2025-09",
+      "kwh": 306.96,
+      "days": 30
+    },
+    {
+      "month": "2025-10",
+      "kwh": 292.75,
+      "days": 31
+    },
+    {
+      "month": "2025-11",
+      "kwh": 320.29,
+      "days": 30
+    },
+    {
+      "month": "2025-12",
+      "kwh": 346.43,
+      "days": 31
+    },
+    {
+      "month": "2026-01",
+      "kwh": 345.9,
+      "days": 31
+    },
+    {
+      "month": "2026-02",
+      "kwh": 295.27,
+      "days": 28
+    },
+    {
+      "month": "2026-03",
+      "kwh": 292.06,
+      "days": 31
+    },
+    {
+      "month": "2026-04",
+      "kwh": 274.54,
+      "days": 30
+    },
+    {
+      "month": "2026-05",
+      "kwh": 340.68,
+      "days": 31
+    },
+    {
+      "month": "2026-06",
+      "kwh": 368.08,
+      "days": 30
+    },
+    {
+      "month": "2026-07",
+      "kwh": 385.26,
+      "days": 31
+    }
+  ],
+  "by_hour_kwh": [
+    118.816,
+    103.274,
+    95.099,
+    91.033,
+    90.301,
+    107.731,
+    151.008,
+    205.794,
+    184.161,
+    140.848,
+    124.747,
+    120.717,
+    124.775,
+    133.064,
+    146.257,
+    171.905,
+    226.033,
+    335.995,
+    396.627,
+    387.783,
+    312.335,
+    236.927,
+    182.095,
+    139.174
+  ],
+  "weekday_kwh": 3003.67,
+  "weekend_kwh": 1322.83,
+  "peak_share": 0.3834,
+  "overnight_share": 0.1401,
+  "solar_window_share": 0.1163,
+  "peak_share_weekday": 0.3835,
+  "busiest_day": "2025-07-12",
+  "busiest_day_kwh": 14.23,
+  "busiest_hour_of_day": 18,
+  "has_export_register": false,
+  "export_kwh": 0.0,
+  "findings": [
+    {
+      "kind": "watch",
+      "title": "38% of your electricity is used during peak hours",
+      "detail": "Between 4 and 9 p.m. — the window both PG&E and SDG&E charge the most for on their standard residential plans. That is above the 21% you would see from a household with a flat, featureless load, so time-of-use pricing works against you here. Moving laundry, dishwashing, pool pumps or EV charging outside that window is the single largest lever you have."
+    },
+    {
+      "kind": "info",
+      "title": "You use about 11 kWh a day",
+      "detail": "For context, the average California single-family household uses roughly 16-20 kWh a day, though this varies enormously with climate zone, house size, and whether heating and cooking are electric or gas."
+    }
+  ],
+  "notes": [
+    "1 missing interval(s); coverage 0.9999",
+    "This meter reports hourly, not 15-minute, readings. That is fine for California time-of-use periods, which are all hour-aligned."
+  ],
+  "warnings": []
+}

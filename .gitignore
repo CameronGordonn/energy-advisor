@@ -41,3 +41,6 @@ coverage.xml
 .idea/
 .DS_Store
 *.swp
+
+# Node deps for the browser-tool tests (tools/)
+node_modules/

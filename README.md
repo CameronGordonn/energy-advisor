@@ -11,8 +11,12 @@ under NEM 3.0. See [CLAUDE.md](CLAUDE.md) for the design invariants and
 [![License: AGPL v3](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](environment.yml)
 
-**[Read the writeup →](https://camerongordonn.github.io/energy-advisor/)** — methodology, the household worked
-end to end, and everything still assumed.
+**[▶ Try it with your own data →](https://camerongordonn.github.io/energy-advisor/)** — drop in
+your PG&E or SDG&E Green Button export and see when you actually use electricity. The real
+Python parsers run in your browser via WebAssembly, so **the file never leaves your computer**.
+
+**[Read the methodology →](https://camerongordonn.github.io/energy-advisor/methodology.html)** —
+how the bill engine works, the household worked end to end, and everything still assumed.
 
 ## Bill-reconciliation accuracy
 
@@ -42,8 +46,8 @@ and is regenerated from the golden-bill regression suite.
 **[Read the methodology and case study →](docs/METHODOLOGY.md)** — how the engine computes a
 bill, what the residual above is made of, one household worked end to end, and a full list of
 what is still assumed or unverified. The same writeup as a standalone static page, with the
-residual chart, is [docs/index.html](docs/index.html) (open it locally, or serve `docs/` as the
-published site).
+residual chart, is [docs/methodology.html](docs/methodology.html), served at
+[camerongordonn.github.io/energy-advisor/methodology.html](https://camerongordonn.github.io/energy-advisor/methodology.html).
 
 ## Status
 
@@ -56,7 +60,7 @@ its definition of done is *demonstrated*, not merely implemented.
 | **M1** — SDG&E engine + CCA overlay | **Engine built, DoD blocked on data.** SDG&E TOU-DR1 / TOU-DR2 / EV-TOU-5 delivery specs, the TOU-DR1 bundled generation (EECC) layer, climate-zone baseline allowances and the non-bypassable-charge set all ship and are tariff-exact — the delivery and generation layers re-sum to SDG&E's own published Total Electric Rate and Total Adjusted CARE Rate on every cell. The DoD needs three real SDG&E bills, which no household can currently supply. The CCA generation overlay is deliberately un-authored until which CCA applies is known. |
 | **M2** — Rate optimizer | **Done on the PG&E household.** One command ranks every eligible schedule with CCA on/off, and reports the annual delta, a component-level explanation, a sensitivity note and an assumption audit. The utility's own free comparison tool was unavailable for cross-check, which is stated in the output. |
 | **M3** — NEM 3.0 solar + battery | **Engine complete, DoD blocked on data.** Real per-vintage ACC export tables with nine-year PTO lock-in, Net Billing Tariff settlement, the non-bypassable import floor, PVWatts production, greedy *and* LP battery dispatch, payback, and Monte Carlo ranges. The DoD needs one real household with solar/export interval data; none is available, and a synthetic load is not a substitute. |
-| **M4** — Public methodology + case study | **Done.** [docs/METHODOLOGY.md](docs/METHODOLOGY.md) covers reconciliation accuracy, engine design, the PG&E household end to end (including the finding that its cheapest move is leaving the CCA, not changing schedule), five findings generic calculators miss, and every open assumption; [docs/index.html](docs/index.html) is the same material as a static page with the residual chart. The table above leads this README, per the definition of done. The case study is self-attributed by decision, not anonymized — see the note in [ROADMAP.md](ROADMAP.md). |
+| **M4** — Public methodology + case study | **Done.** [docs/METHODOLOGY.md](docs/METHODOLOGY.md) covers reconciliation accuracy, engine design, the PG&E household end to end (including the finding that its cheapest move is leaving the CCA, not changing schedule), five findings generic calculators miss, and every open assumption; [docs/methodology.html](docs/methodology.html) is the same material as a static page with the residual chart. The table above leads this README, per the definition of done. The case study is self-attributed by decision, not anonymized — see the note in [ROADMAP.md](ROADMAP.md). |
 | **M5** — First external users | Not started. |
 
 Two findings the engine produced that generic calculators miss: on SDG&E the published

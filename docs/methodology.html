@@ -1,0 +1,715 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="An independent California bill engine, held to a plus-or-minus two dollar reconciliation gate against eleven real PG&amp;E statements. Methodology, case study, and everything still assumed.">
+<meta property="og:title" content="Reconciling a California Power Bill">
+<meta property="og:description" content="Eleven real PG&amp;E statements, worst error twenty-two cents, and a full accounting of everything still assumed.">
+<meta property="og:type" content="article">
+<title>Reconciling a California Power Bill</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Public+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --ground:#F1F3EE; --surface:#FBFBF8; --surface-2:#E9ECE3;
+  --ink:#171A13; --ink-2:#545A4C; --ink-3:#7E8477;
+  --rule:#DBDED3; --rule-2:#C8CCBE;
+  --accent:#0B7D52; --accent-soft:#E2EFE8;
+  --warn:#B24A0B; --warn-soft:#F6E9DE;
+  --serif:"Newsreader",Georgia,"Times New Roman",serif;
+  --sans:"Public Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --col:40rem;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --ground:#14170F; --surface:#1C1F19; --surface-2:#23271F;
+    --ink:#E9EBE2; --ink-2:#A5AA9A; --ink-3:#7B8172;
+    --rule:#2C3027; --rule-2:#3A3F33;
+    --accent:#2FA372; --accent-soft:#16281F;
+    --warn:#D07C22; --warn-soft:#2A1F12;
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#14170F; --surface:#1C1F19; --surface-2:#23271F;
+  --ink:#E9EBE2; --ink-2:#A5AA9A; --ink-3:#7B8172;
+  --rule:#2C3027; --rule-2:#3A3F33;
+  --accent:#2FA372; --accent-soft:#16281F;
+  --warn:#D07C22; --warn-soft:#2A1F12;
+}
+
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font-family:var(--sans);
+  font-size:16px;line-height:1.62;-webkit-font-smoothing:antialiased}
+.page{max-width:64rem;margin:0 auto;padding:0 1.5rem 6rem}
+
+/* ---------- masthead ---------- */
+.masthead{padding:4.5rem 0 2.25rem;border-bottom:1px solid var(--rule)}
+.eyebrow{font-family:var(--mono);font-size:.7rem;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--ink-3);display:flex;flex-wrap:wrap;gap:.5rem 1.25rem}
+h1{font-family:var(--serif);font-weight:500;font-size:clamp(2.5rem,6.5vw,4rem);
+  line-height:1.04;letter-spacing:-.02em;margin:1.25rem 0 0;text-wrap:balance;max-width:18ch}
+.standfirst{font-family:var(--serif);font-size:1.2rem;line-height:1.55;color:var(--ink-2);
+  max-width:var(--col);margin:1.5rem 0 0}
+.standfirst em{color:var(--ink);font-style:italic}
+
+/* ---------- stat strip ---------- */
+.strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(11rem,1fr));
+  gap:1px;background:var(--rule);border-bottom:1px solid var(--rule);margin-bottom:3.5rem}
+.stat{background:var(--ground);padding:1.5rem 1.5rem 1.65rem}
+.stat dt{font-family:var(--mono);font-size:.68rem;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--ink-3);margin:0 0 .55rem}
+.stat dd{margin:0;font-family:var(--mono);font-weight:600;font-size:1.75rem;
+  letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1}
+.stat dd small{display:block;font-family:var(--sans);font-weight:400;font-size:.78rem;
+  letter-spacing:0;color:var(--ink-3);margin-top:.5rem;line-height:1.4}
+.stat.key dd{color:var(--accent)}
+
+/* ---------- sections ---------- */
+section{margin:0 0 4.25rem}
+.sechead{display:flex;gap:1.1rem;align-items:baseline;border-top:1px solid var(--rule);
+  padding-top:1.1rem;margin:0 0 1.6rem}
+.sechead .num{font-family:var(--mono);font-size:.78rem;color:var(--accent);
+  font-weight:600;flex:none;padding-top:.25rem}
+.sechead h2{font-family:var(--serif);font-weight:500;font-size:clamp(1.6rem,3.4vw,2.1rem);
+  line-height:1.18;letter-spacing:-.015em;margin:0;text-wrap:balance}
+h3{font-family:var(--sans);font-weight:600;font-size:.82rem;letter-spacing:.09em;
+  text-transform:uppercase;color:var(--ink-2);margin:2.5rem 0 .85rem}
+p{max-width:var(--col);margin:0 0 1.15rem}
+p.wide{max-width:52rem}
+ul{max-width:var(--col);margin:0 0 1.15rem;padding-left:1.15rem}
+li{margin-bottom:.6rem}
+strong{font-weight:600}
+a{color:var(--accent);text-decoration-thickness:1px;text-underline-offset:2px}
+code,.m{font-family:var(--mono);font-size:.9em;font-variant-numeric:tabular-nums}
+code{background:var(--surface-2);padding:.1em .35em;border-radius:2px}
+.lede{font-family:var(--serif);font-size:1.1rem;color:var(--ink-2);max-width:var(--col)}
+
+/* pull-quote style rule for the governing constraint */
+.rule-box{max-width:var(--col);margin:1.5rem 0 1.75rem;padding:1.1rem 0 1.1rem 1.35rem;
+  border-left:2px solid var(--accent);font-family:var(--serif);font-size:1.12rem;
+  line-height:1.5;color:var(--ink)}
+
+/* ---------- data blocks ---------- */
+.block{background:var(--surface);border:1px solid var(--rule);margin:2rem 0 2.25rem}
+.block-hd{display:flex;flex-wrap:wrap;gap:.5rem 1rem;justify-content:space-between;
+  align-items:baseline;padding:.9rem 1.25rem;border-bottom:1px solid var(--rule)}
+.block-hd h4{margin:0;font-family:var(--mono);font-size:.72rem;letter-spacing:.11em;
+  text-transform:uppercase;color:var(--ink-2);font-weight:600}
+.block-hd .src{font-family:var(--mono);font-size:.7rem;color:var(--ink-3)}
+.block-body{padding:1.25rem}
+.scroll{overflow-x:auto}
+
+table{border-collapse:collapse;width:100%;font-size:.86rem;
+  font-variant-numeric:tabular-nums;min-width:34rem}
+th,td{text-align:left;padding:.5rem .7rem;border-bottom:1px solid var(--rule)}
+th{font-family:var(--mono);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--ink-3);font-weight:600;white-space:nowrap}
+td.n,th.n{text-align:right;font-family:var(--mono)}
+tbody tr:last-child td{border-bottom:none}
+tr.total td{border-top:2px solid var(--rule-2);font-weight:600}
+.pass{color:var(--accent);font-family:var(--mono);font-weight:600}
+.cur{color:var(--warn)}
+.hint{font-size:.78rem;color:var(--ink-3);margin:.85rem 0 0;max-width:46rem}
+
+/* ---------- chart ---------- */
+figure{margin:0}
+svg{display:block;width:100%;height:auto}
+.bar{cursor:pointer;transition:opacity .12s}
+.bar:hover{opacity:.72}
+.ax{font-family:"IBM Plex Mono",monospace;font-size:11px;fill:var(--ink-3)}
+.axlabel{font-family:"IBM Plex Mono",monospace;font-size:11px;fill:var(--ink-2);font-weight:500}
+.dlabel{font-family:"IBM Plex Mono",monospace;font-size:11px;fill:var(--ink-2);font-weight:600}
+#tip{position:fixed;pointer-events:none;opacity:0;transition:opacity .1s;z-index:20;
+  background:var(--ink);color:var(--ground);padding:.5rem .65rem;border-radius:3px;
+  font-family:var(--mono);font-size:.72rem;line-height:1.5;white-space:pre;
+  box-shadow:0 4px 14px rgba(0,0,0,.22)}
+
+/* ---------- findings ---------- */
+.findings{display:grid;gap:1px;background:var(--rule);border:1px solid var(--rule);margin:2rem 0}
+.finding{background:var(--surface);padding:1.4rem 1.5rem}
+.finding .fnum{font-family:var(--mono);font-size:.68rem;letter-spacing:.1em;color:var(--accent);
+  font-weight:600;display:block;margin-bottom:.5rem}
+.finding h5{font-family:var(--serif);font-weight:600;font-size:1.12rem;line-height:1.3;
+  margin:0 0 .6rem;color:var(--ink);text-wrap:balance}
+.finding p{font-size:.9rem;color:var(--ink-2);margin:0;max-width:46rem}
+.finding p+p{margin-top:.7rem}
+
+/* ---------- caveats / flags ---------- */
+.flags{display:grid;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));gap:1rem;margin:1.75rem 0}
+.flag{border-top:2px solid var(--warn);padding-top:.9rem}
+.flag .tag{font-family:var(--mono);font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--warn);font-weight:600;display:block;margin-bottom:.4rem}
+.flag p{font-size:.87rem;color:var(--ink-2);margin:0;max-width:none}
+
+pre{background:var(--surface);border:1px solid var(--rule);padding:1rem 1.15rem;overflow-x:auto;
+  font-family:var(--mono);font-size:.8rem;line-height:1.65;margin:1.5rem 0;color:var(--ink-2)}
+pre b{color:var(--ink);font-weight:600}
+
+footer{border-top:1px solid var(--rule);padding-top:1.75rem;margin-top:1rem;
+  font-size:.82rem;color:var(--ink-3);max-width:46rem}
+footer p{max-width:none}
+
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@media (max-width:640px){
+  .masthead{padding-top:3rem}
+  .sechead{gap:.8rem}
+  .block-body{padding:1rem .8rem}
+}
+
+/* back-nav to the tool */
+.nav-back{border-bottom:1px solid var(--rule);margin-bottom:0}
+.nav-back div{max-width:64rem;margin:0 auto;padding:.9rem 1.5rem;display:flex;
+  gap:1.5rem;justify-content:space-between;align-items:center;flex-wrap:wrap}
+.nav-back a{font-family:var(--mono);font-size:.76rem;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--ink-2);text-decoration:none;font-weight:600}
+.nav-back a:hover{color:var(--accent)}
+.nav-back .right{display:flex;gap:1.35rem}
+</style>
+<style>
+*{box-sizing:border-box}
+body{margin:0}
+img{max-width:100%}
+</style>
+</head>
+<body>
+
+<nav class="nav-back"><div>
+  <a href="./">&larr; Home Energy Advisor</a>
+  <span class="right">
+    <a href="./">Try the tool</a>
+    <a href="https://github.com/CameronGordonn/energy-advisor">Source</a>
+  </span>
+</div></nav>
+<div class="page">
+
+<header class="masthead">
+  <div class="eyebrow">
+    <span>Home Energy Advisor</span><span>Milestone M4 — methodology</span><span>September 2026</span>
+  </div>
+  <h1>Reconciling a California Power Bill</h1>
+  <p class="standfirst">An engine that prices a household's own metered intervals against the
+  published tariff sheets — and is <em>held to its residual</em>. Eleven real PG&amp;E statements,
+  worst error twenty-two cents, and a full accounting of everything still assumed.</p>
+</header>
+
+<dl class="strip">
+  <div class="stat key">
+    <dt>Statements reconciled</dt>
+    <dd>11 / 11<small>within the ±$2.00 gate</small></dd>
+  </div>
+  <div class="stat">
+    <dt>Worst single error</dt>
+    <dd>+$0.22<small>0.43% of that statement</small></dd>
+  </div>
+  <div class="stat">
+    <dt>Across all eleven</dt>
+    <dd>0.14%<small>$1,085.81 modeled vs $1,084.26 billed</small></dd>
+  </div>
+  <div class="stat">
+    <dt>Input</dt>
+    <dd>4,345<small>kWh of the household's own hourly intervals, 328 days</small></dd>
+  </div>
+</dl>
+
+<section>
+  <div class="sechead"><span class="num">§1</span><h2>The gate</h2></div>
+
+  <p class="lede">Most consumer energy calculators cannot tell you whether they would have
+  reproduced your last bill, because they never try. They price a modeled load profile against
+  a simplified rate, and the error disappears into a "typical savings" headline with no
+  residual to inspect.</p>
+
+  <p>This engine takes the opposite constraint as its foundation, and enforces it as a merge
+  gate rather than an aspiration:</p>
+
+  <div class="rule-box">No feature that produces a dollar figure ships until the bill engine
+  reproduces real utility bills, from real interval data, within ±$2 per month.</div>
+
+  <div class="block">
+    <div class="block-hd">
+      <h4>Modeled minus billed, by statement</h4>
+      <span class="src">scripts/reconcile_report.py · gate ±$2.00</span>
+    </div>
+    <div class="block-body">
+      <figure>
+        <svg id="chart" viewBox="0 0 720 262" role="img"
+             aria-label="Bar chart of modeled-minus-billed error for eleven statements, ranging from two cents to twenty-two cents, all far below the two dollar tolerance."></svg>
+      </figure>
+      <p class="hint">The tolerance gate sits at <span class="m">$2.00</span> — roughly nine
+      times the tallest bar here, and off the top of this scale. Hover a bar for that
+      statement's billed and modeled totals.</p>
+    </div>
+  </div>
+
+  <h3>The residual is one-sided, and that is the point</h3>
+  <p>Every one of the eleven errors is positive: the model runs consistently a little high.
+  A curve-fitted model would have a residual centred on zero. This one has a small,
+  one-directional bias with two known physical causes, both bounded and both recorded:</p>
+  <ul>
+    <li><strong>Meter-read boundary.</strong> Interval sums and the utility's billed kWh differ
+    by about <span class="m">0.3 kWh</span> per period, because a billing period ends at a meter
+    read time, not at a calendar-day boundary. At residential rates that is roughly
+    <span class="m">$0.10–$0.25</span> — most of the residual.</li>
+    <li><strong>The 2025-vintage franchise fee</strong> is still modeled as a percent-of-energy
+    approximation; the 2026 specs use the exact per-kWh rate from Schedule E-FFS. On the two
+    late-2025 statements it shows as a visible <span class="m">+$0.04–$0.05</span> on that one line.</li>
+  </ul>
+  <p>The errors are physical, not tuned away.</p>
+
+  <div class="block">
+    <div class="block-hd"><h4>Every statement, billed vs modeled</h4>
+      <span class="src">PG&amp;E E-TOU-C + 3CE generation · CARE</span></div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Billing period</th><th class="n">Billed $</th><th class="n">Modeled $</th>
+          <th class="n">Δ $</th><th>±$2</th></tr></thead>
+        <tbody id="rows"></tbody>
+        <tfoot><tr class="total"><td>Eleven statements</td><td class="n">1,084.26</td>
+          <td class="n">1,085.81</td><td class="n">+1.55</td><td class="pass">✓</td></tr></tfoot>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="sechead"><span class="num">§2</span><h2>How the engine computes a bill</h2></div>
+
+  <h3>The bill is a pure function</h3>
+  <p>No I/O, no network, no hidden state, deterministic:</p>
+  <pre>compute_bill(interval_series, [tariff_spec_versions], billing_period) -> itemized Bill</pre>
+  <p>Every utility-specific irregularity lives in a parser or a spec file, never in the billing
+  logic. That is what makes the counterfactual honest: re-simulating the household on a
+  different schedule is the <em>same function</em> with a different spec, not a second code path
+  with its own simplifications.</p>
+  <p>Bills are computed in <strong>layers</strong> — delivery, generation, adjustment — because
+  that is how California actually bills. The utility delivers; a Community Choice Aggregator may
+  supply the generation. Separating the layers is what makes the finding in §3 answerable at all.</p>
+
+  <h3>Tariff specs are data, and they carry citations</h3>
+  <p>Each schedule is a versioned YAML file with an effective date and a <code>citation</code>
+  naming the exact Cal. P.U.C. sheet number and advice letter every number came from. A spec
+  without a citation is invalid. An unknown value is written <code>UNVERIFIED</code> and the
+  loader <strong>raises</strong> rather than defaulting — an unfinished spec cannot quietly
+  produce a plausible-looking dollar figure.</p>
+  <p>That rule has already paid for itself twice. Schedule <strong>TOU-DR-P</strong> is committed
+  and deliberately does not load: its period windows are unsourced, and it carries a
+  <strong>RYU Event Period Adder of $1.16/kWh</strong> on event days that the engine has no
+  concept for. Defaulting the event count to zero would make TOU-DR-P the cheapest plan on the
+  board — a free lunch manufactured entirely out of an unmodeled charge. And committing a
+  genuinely incomplete spec exposed a real defect: the loader validated <em>every</em> file in
+  the directory before filtering by schedule, so one half-finished SDG&amp;E spec broke all eleven
+  golden bills.</p>
+
+  <h3>Rate versions split inside a billing period</h3>
+  <p>A single statement routinely straddles a rate change, and delivery and generation change on
+  different dates. In the case-study year alone: PG&amp;E delivery changed three times, the summer
+  season began 1 June, and the CCA's generation rate changed on <span class="m">2026-02-15</span>
+  — a date <em>derived from the household's interval data</em> by finding the split that
+  reproduces the statement's printed peak/off-peak kWh, then confirmed against the CCA's
+  published sheet.</p>
+
+  <h3>Periods are N-period, day-typed, month-conditional</h3>
+  <p>Time-of-use resolution is an ordered, first-match-wins rule list. SDG&amp;E requires it: three
+  periods, different weekday and weekend windows, and month-conditional carve-outs. Holidays
+  price as weekend days — and the two utilities do not agree on which days those are. Both name
+  the same eight holidays, but PG&amp;E follows federal observance while SDG&amp;E Electric Rule 1
+  states that a holiday falling on Sunday moves to Monday and <em>no change is made for holidays
+  falling on Saturday</em>. So on 4 July 2026, a Saturday, a PG&amp;E customer gets Friday the 3rd
+  priced off-peak and an SDG&amp;E customer gets nothing.</p>
+
+  <h3>Two things that look like schema gaps and are not</h3>
+  <p>Flattening PG&amp;E's tiered <strong>E-1</strong> to an average would destroy the marginal
+  price signal the optimizer exists to compare. Instead E-1 is expressed through the existing
+  baseline-credit machinery, which is an algebraic identity rather than an approximation:</p>
+  <pre>tier1·min(u,B) + tier2·max(0,u−B)  ==  tier2·u + (tier1−tier2)·min(u,B)
+<b>0.32561 − 0.40702 = −0.08141</b>   ← exactly the printed baseline credit</pre>
+  <p>PG&amp;E's own unbundling confirms this is the tariff's real structure: the tier difference
+  <em>is</em> a named component, the Conservation Incentive Adjustment. And SDG&amp;E's
+  non-bypassable charges already sit inside the published energy rate, so the netting logic
+  <em>carves them out</em> of the offsettable subtotal instead of adding a line — no double count.</p>
+</section>
+
+<section>
+  <div class="sechead"><span class="num">§3</span><h2>One household, end to end</h2></div>
+
+  <p><strong>Disclosure.</strong> This is the author's own account, published deliberately and
+  with attribution. Anonymising it would be theatre — the repository carries my name — and
+  blurring the dates or amounts would destroy the one property that makes the reconciliation
+  worth reading, which is that a third party can check the rates against the tariff sheets. The
+  account is CARE-enrolled, California's low-income discount, disclosed here because the CARE
+  modeling below is one of the more interesting results and cannot be presented honestly with
+  the rate class hidden.</p>
+
+  <div class="block">
+    <div class="block-hd"><h4>The account</h4><span class="src">2025-08-02 → 2026-06-25</span></div>
+    <div class="scroll">
+      <table>
+        <tbody>
+          <tr><th>Utility / schedule</th><td>PG&amp;E <strong>E-TOU-C</strong> — peak 4–9 p.m. every day</td></tr>
+          <tr><th>Generation</th><td>Central Coast Community Energy (3CE), schedule MBRETCH1 — a CCA, so PG&amp;E does delivery only</td></tr>
+          <tr><th>Rate class</th><td>CARE (low-income discount)</td></tr>
+          <tr><th>Baseline territory</th><td>T, all-electric</td></tr>
+          <tr><th>Local tax</th><td>City of Santa Cruz Utility Users' Tax, 8.5% on both layers</td></tr>
+          <tr><th>Meter</th><td>hourly intervals — this meter stores nothing finer</td></tr>
+          <tr><th>Window</th><td><span class="m">4,345 kWh</span> over <span class="m">328</span> days</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <p>This is not a vanilla bundled account, and that turned out to be the point. The CCA overlay,
+  the PCIA, the generation credit and the CARE discount that the roadmap had deferred to a later
+  milestone were all required immediately, just to reproduce the first bill.</p>
+
+  <h3>CARE rates are derived, then independently checked</h3>
+  <p>PG&amp;E does not print residential CARE rates in its tariff book. They were solved from the
+  CARE rates appearing on the household's own statements — two parameters, five independent
+  constraints, fitting to <span class="m">≤1e-5</span>:</p>
+  <pre>care_energy   = 0.65 × standard − 0.01038
+care_baseline = 0.65 × standard</pre>
+  <p>The question is whether that is a coincidence of one schedule or a real statewide rule.
+  Three checks say it is real. Applying it to E-1's two <em>printed</em> tier rates yields a CARE
+  tier differential of <span class="m">−0.05291</span>, exactly the CARE Baseline Credit printed
+  on the E-TOU-C statements — a different schedule, a number never used in the fit. SDG&amp;E,
+  unlike PG&amp;E, prints its CARE tables explicitly, and they state <em>"CARE Discount 35%"</em>.
+  And on SDG&amp;E the layer split is not merely consistent but exact: delivery and generation
+  re-sum to the published Total Electric Rate <em>and</em> Total Adjusted CARE Rate on all twelve
+  season × period cells. It remains an assumption on PG&amp;E, and
+  <code>--no-care</code> produces the fully tariff-grounded ranking with no derived rate in it.</p>
+
+  <h3>The result: switch — but not for the reason anyone expects</h3>
+  <p>Re-simulating the same 4,345 kWh of real intervals under every eligible schedule, at rates
+  in effect today, with the CCA on and off:</p>
+
+  <div class="block">
+    <div class="block-hd"><h4>Annual cost by plan</h4>
+      <span class="src">scripts/rate_optimizer.py · two EV-only schedules excluded as ineligible</span></div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th class="n">#</th><th>Plan</th><th class="n">Annual $</th>
+          <th class="n">$ / mo</th><th class="n">vs current</th><th></th></tr></thead>
+        <tbody>
+          <tr><td class="n">1</td><td>E-TOU-C + PG&amp;E</td><td class="n">933.50</td><td class="n">86.52</td><td class="n pass">−170.72</td><td class="pass">recommended</td></tr>
+          <tr><td class="n">2</td><td>E-1 (tiered) + PG&amp;E</td><td class="n">990.57</td><td class="n">91.81</td><td class="n">−113.65</td><td></td></tr>
+          <tr><td class="n">3</td><td>E-TOU-D + PG&amp;E</td><td class="n">1,038.50</td><td class="n">96.25</td><td class="n">−65.72</td><td></td></tr>
+          <tr><td class="n">4</td><td class="cur">E-TOU-C + 3CE</td><td class="n cur">1,104.22</td><td class="n cur">102.34</td><td class="n cur">—</td><td class="cur">current</td></tr>
+          <tr><td class="n">5</td><td>E-1 (tiered) + 3CE</td><td class="n">1,160.91</td><td class="n">107.60</td><td class="n">+56.69</td><td></td></tr>
+          <tr><td class="n">6</td><td>E-TOU-D + 3CE</td><td class="n">1,208.80</td><td class="n">112.04</td><td class="n">+104.58</td><td></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="hint" style="padding:0 1.25rem 1.1rem">EV-only schedules are <em>excluded</em>, not
+    merely flagged, because this household has no plug-in vehicle. Flagging an ineligible plan
+    still lets it become the headline; filtering cannot.</p>
+  </div>
+
+  <p><strong>The $170.72 a year has almost nothing to do with the rate schedule.</strong> The
+  recommended plan is the schedule the household is already on. The whole saving comes from
+  leaving the CCA, and it decomposes cleanly:</p>
+
+  <div class="block">
+    <div class="block-hd"><h4>Where the money actually differs</h4><span class="src">annual $ · credits in parentheses, per tariff convention</span></div>
+    <div class="scroll">
+      <table>
+        <thead><tr><th>Component</th><th class="n">Annual $</th></tr></thead>
+        <tbody>
+          <tr><td>Power Charge Indifference Adjustment — 2018 vintage</td><td class="n">159.88</td></tr>
+          <tr><td>Utility Users' Tax levied on that PCIA</td><td class="n">13.59</td></tr>
+          <tr><td>Franchise fee</td><td class="n">2.54</td></tr>
+          <tr><td>3CE generation being cheaper than PG&amp;E's</td><td class="n">(4.85)</td></tr>
+        </tbody>
+        <tfoot><tr class="total"><td>Net cost of staying with the CCA</td><td class="n">170.72</td></tr></tfoot>
+      </table>
+    </div>
+  </div>
+
+  <p>The mechanism is checkable on the sheets. A <strong>2018-vintage</strong> CCA customer pays
+  a PCIA of <span class="m">0.03679/kWh</span>, while the <strong>2026 bundled</strong> PCIA is
+  <span class="m">−0.01011</span> — a credit. That ≈4.7¢/kWh gap is wider than the CCA's
+  generation discount, so the CCA has quietly become the more expensive option for this
+  particular vintage. Nothing about the household's usage is unusual: the finding is entirely an
+  artefact of <em>when service started</em>, and generic calculators miss it because they do not
+  model PCIA vintages at all.</p>
+
+  <h3>What would have to be true for this to be wrong</h3>
+  <p>Reporting a recommendation without its failure conditions is the thing this project exists
+  not to do.</p>
+  <div class="flags">
+    <div class="flag"><span class="tag">Not immediate</span>
+      <p>PG&amp;E Rules 22.1/23.1 require <strong>six months' advance notice</strong> to elect
+      bundled service, with Transitional Bundled Service (Schedule TBCC, short-term market
+      prices) in between. A saving realised months later after an unpriced TBS window is not the
+      annual figure above. This caveat prints in the report itself.</p></div>
+    <div class="flag"><span class="tag">Unpriced alternative</span>
+      <p>The CCA's discount product, 3Cflex, is 5.264¢/kWh cheaper than the default modeled here.
+      Staying with the CCA and switching products is a plausible option this engine cannot yet rank.</p></div>
+    <div class="flag"><span class="tag">Snapshot</span>
+      <p>No escalation, no pending rate cases. PCIA vintages reset annually; the gap driving this
+      result can narrow.</p></div>
+    <div class="flag"><span class="tag">Sensitivity</span>
+      <p>E-1 overtakes E-TOU-C only if evening (4–9 p.m.) usage grew <strong>353%</strong>, or
+      132% as a load-neutral shift. E-TOU-D never overtakes it on a load-neutral shift at any
+      tested magnitude.</p></div>
+  </div>
+  <p>And the largest single driver <em>between schedules</em> is the baseline credit, which
+  E-TOU-C and E-1 have and E-TOU-D does not — not the peak/off-peak spread most rate advice
+  fixates on.</p>
+
+  <h3>The unverified assumption, and why it cannot change the answer</h3>
+  <p>The statements carry a <strong>Utility Users' Tax Adjustment</strong>: a municipal credit
+  cancelling most of the gross 8.5% tax, whose mechanism is not derivable from the bills and
+  could not be confirmed from public sources. Five candidate mechanisms were fitted across all
+  eleven statements; a fixed credit of <span class="m">$0.21649 per billing day</span> had the
+  tightest fit — coefficient of variation <span class="m">0.080</span>, against
+  <span class="m">0.207</span> for per-kWh and <span class="m">0.330</span> for a fraction of the
+  net bill.</p>
+  <p>That is adopted, and still marked UNVERIFIED. What makes it safe is not the fit quality but
+  the <em>shape</em>: a per-day credit is schedule-independent, so it shifts every candidate by
+  the same constant and cannot reorder a ranking. The optimizer does not assert this — it
+  re-ranks under all three rival mechanisms and prints all three orders, which are identical. An
+  assumption you cannot verify should be handled by showing it does not matter, not by arguing it
+  is probably right.</p>
+
+  <h3>The cross-check that is still missing</h3>
+  <p>The milestone asks for a comparison against the utility's own free rate-comparison tool. It
+  could not be completed: PG&amp;E's Rate Plan Comparison sits behind an account login and, for
+  this account, returns <em>"This account has no service agreement eligible for rate
+  enrollment"</em> — most likely because generation is with a CCA. The harness is built and
+  waiting behind a <code>--pge-comparison</code> flag, and the report prints the exact steps to
+  close it. It is listed as open rather than quietly dropped. Four cross-checks that <em>are</em>
+  complete: every rate traces to a Cal. P.U.C. sheet and the unbundled components sum to the
+  printed total exactly on all four schedules; the generation credit derived from the tariff
+  (<span class="m">−0.12699 / −0.10031</span>) reproduces the value independently least-squares
+  fitted from the bills (<span class="m">−0.12705 / −0.10030</span>) to
+  <span class="m">6e-05</span>; 3CE's published sheet reproduces the bill-derived rates exactly;
+  and the E-TOU-C leg of the ranking is the same engine that reproduces all eleven statements
+  within $0.22.</p>
+</section>
+
+<section>
+  <div class="sechead"><span class="num">§4</span><h2>Five findings a generic calculator misses</h2></div>
+  <p class="lede">These came out of building the engine, not out of looking for marketing copy.
+  Each is checkable from public documents.</p>
+
+  <div class="findings">
+    <div class="finding"><span class="fnum">Finding 01</span>
+      <h5>On SDG&amp;E, the nine-year NEM 3.0 vintage lock-in is currently worth nothing</h5>
+      <p>Export rates under the Net Billing Tariff lock for nine years by application vintage, and
+      the standard installer pitch is to sign before rates drop. SDG&amp;E's published NBT2025,
+      NBT2026 and current-year export tables were parsed in full and compared cell by cell: they
+      are <strong>byte-identical for every overlapping year</strong> — 0.0 maximum absolute
+      difference across 23,040 cells. On SDG&amp;E today, "lock in before rates drop" has no
+      dollars behind it. That is the opposite of the PG&amp;E vintage story the pitch is borrowed
+      from.</p></div>
+
+    <div class="finding"><span class="fnum">Finding 02</span>
+      <h5>Export rates rise <em>within</em> a locked vintage, so a lock is not a flat number</h5>
+      <p>The same tables show a 2026 mean full export rate of <span class="m">0.0883</span> rising
+      to <span class="m">0.1432</span> by 2035. The lock fixes a 576-values-per-year schedule, not
+      a constant. Code that models a locked vintage as one number misprices every year after the
+      first.</p></div>
+
+    <div class="finding"><span class="fnum">Finding 03</span>
+      <h5>On EV-TOU-5, roughly 45% of the super-off-peak delivery charge is non-bypassable</h5>
+      <p>That schedule collapses its super-off-peak distribution charge —
+      <span class="m">0.04114</span> against <span class="m">0.31711</span> elsewhere — but does
+      <strong>not</strong> discount the non-bypassable charges. So in exactly the window a battery
+      or an EV charges in, <span class="m">0.02099</span> of the <span class="m">0.04705</span>
+      total is a charge no export can ever offset, against about 6.5% in the schedule's other
+      windows. A calculator netting exports against the headline delivery rate overstates the
+      value of shifting imports into super-off-peak by roughly 2×.</p></div>
+
+    <div class="finding"><span class="fnum">Finding 04</span>
+      <h5>On TOU-DR1, 100% of the time-of-use price signal lives in the generation layer</h5>
+      <p>The delivery total is <span class="m">0.32948</span> for <em>every</em> period in
+      <em>both</em> seasons — perfectly flat. The entire summer on-peak-to-super-off-peak spread
+      of <span class="m">0.30799/kWh</span> sits in the generation component. Any tool that
+      approximates generation from delivery — tempting, since delivery rates are easier to obtain
+      — produces a flat price signal and understates every load-shift conclusion.</p>
+      <p>This engine made that mistake internally before the generation layer was authored, and
+      the correction was large: a hand-entered super-off-peak price of
+      <span class="m">0.22</span> against a real total of <span class="m">0.37660</span>. A 71%
+      understatement of the cost of importing in precisely the hour a battery charges — an error
+      biased toward recommending the battery.</p></div>
+
+    <div class="finding"><span class="fnum">Finding 05</span>
+      <h5>A perfect-foresight optimizer can settle worse than a dumb controller</h5>
+      <p>The battery module always reports both a greedy time-of-use controller and a cvxpy linear
+      program. The LP optimises a marginal-price proxy; actual dollars come from the Net Billing
+      Tariff settlement, whose export credit caps and non-bypassable floor the LP never sees.
+      Which one wins in settled dollars is a per-case result, not a fixed ordering. Reporting only
+      the LP and calling it a theoretical maximum would overstate achievable savings on some
+      configurations and understate them on others.</p></div>
+  </div>
+</section>
+
+<section>
+  <div class="sechead"><span class="num">§5</span><h2>What is still assumed, approximate, or unknown</h2></div>
+  <p class="lede">Presented in full, because a methodology writeup that lists only its strengths
+  is marketing.</p>
+
+  <h3>Blocked on data, not on code</h3>
+  <p>Two milestones have complete, tested engines whose definitions of done cannot be
+  demonstrated. The <strong>SDG&amp;E reconciliation</strong> needs three real SDG&amp;E bills;
+  the specs are tariff-exact and the layers re-sum to SDG&amp;E's published totals, but no
+  household can currently supply bills or a Green Button export. The <strong>NEM 3.0
+  payback</strong> needs one real household with solar and export interval data. None exists.</p>
+  <p>The demonstration driver therefore runs on a clearly labelled <strong>synthetic load</strong>
+  — and for that reason <strong>no payback figure from it appears anywhere in this
+  document</strong>. Its rates, non-bypassable charge set and ACC export tables are all real and
+  cited; the load is not, and a payback number computed on a fabricated load is exactly the kind
+  of figure that survives out of context. The engine is done. The claim is not.</p>
+
+  <h3>Assumptions carried into published numbers</h3>
+  <div class="flags">
+    <div class="flag"><span class="tag">Derived, not printed</span>
+      <p>PG&amp;E CARE rates are solved from bills, not published in the tariff book.
+      <code>--no-care</code> removes them from every figure.</p></div>
+    <div class="flag"><span class="tag">Mechanism unverified</span>
+      <p>The Santa Cruz UUT Adjustment, handled by demonstrating ranking-invariance across all
+      three candidate mechanisms rather than by picking one.</p></div>
+    <div class="flag"><span class="tag">Source is not a tariff sheet</span>
+      <p>SDG&amp;E's super-off-peak window went year-round effective 2026-05-01. Sourced from
+      SDG&amp;E's own customer-facing publications and corroborated by contemporaneous local news;
+      the superseding advice letter and revised Cal. P.U.C. sheet were <em>not located</em>. Any
+      spec vintage before that date must restore the March/April restriction.</p></div>
+  </div>
+
+  <h3>Known approximations, all under $0.05 per bill</h3>
+  <ul>
+    <li>The 2025-vintage franchise fee uses a percent-of-energy approximation; 2026 uses the exact
+    per-kWh rate from Schedule E-FFS.</li>
+    <li>The 2025 summer generation credit is fitted from a single summer sub-period; the 2026 one
+    is tariff-exact.</li>
+    <li>The California Climate Credit is modeled as an observed per-bill line rather than a
+    versioned semiannual credit.</li>
+    <li>The California Energy Commission surcharge is asserted on PG&amp;E specs and
+    <strong>deliberately not asserted either way</strong> on SDG&amp;E, whose rate tables show no
+    such column. Adding it unsourced would break the layer-identity test.</li>
+  </ul>
+
+  <h3>Schema limits</h3>
+  <p>Rates carry only <code>standard</code> and <code>care</code> variants, so FERA and the
+  affordable-housing class are not modelable. Per-kWh adders have no CARE variant. There is no
+  tiers concept — currently correct, for the reason given in §2. And where a modeling choice has
+  dollar impact, it is surfaced as a decision rather than made silently: SDG&amp;E baseline
+  allowances are per climate zone, so the territory must be supplied at bill time and omitting it
+  <strong>raises</strong> rather than defaulting, because a wrong zone silently mis-sizes the
+  largest credit on a California bill.</p>
+</section>
+
+<section>
+  <div class="sechead"><span class="num">§6</span><h2>Reproducing this</h2></div>
+  <pre>conda env create -f environment.yml &amp;&amp; conda activate energy-advisor
+pytest                                              <b># 331 tests</b>
+
+PYTHONPATH=src python scripts/reconcile_report.py   <b># the 11 line-item comparisons</b>
+PYTHONPATH=src python scripts/rate_optimizer.py     <b># ranking, why, sensitivity, assumption audit</b>
+PYTHONPATH=src python scripts/nem3_report.py        <b># NEM 3.0 engine (real rates, synthetic load)</b></pre>
+  <p>The golden-bill reconciliation is the merge gate: nothing touching the tariff or NEM modules
+  lands while any of the eleven statements is out of tolerance. Real interval exports and bill
+  PDFs are gitignored and never committed; the committed fixtures carry no name, address or
+  account number.</p>
+</section>
+
+<footer>
+  <p>Home Energy Advisor — an independent decision engine for California IOU customers. The
+  customer supplies their own Green Button interval data; every other input is a free public
+  feed. Figures on this page are produced by scripts in the repository and were current at
+  September 2026. This is analysis of published tariffs, not financial advice.</p>
+</footer>
+
+</div>
+<div id="tip" role="status"></div>
+
+<script>
+(function(){
+  var D=[
+    ["2025-08-02 → 2025-08-25","Aug",70.57,70.73],
+    ["2025-08-26 → 2025-09-24","Sep",107.52,107.74],
+    ["2025-09-25 → 2025-10-26","Oct",49.11,49.32],
+    ["2025-10-27 → 2025-11-24","Nov",82.08,82.10],
+    ["2025-11-25 → 2025-12-26","Dec",73.77,73.87],
+    ["2025-12-27 → 2026-01-27","Jan",156.88,157.09],
+    ["2026-01-28 → 2026-02-26","Feb",168.75,168.93],
+    ["2026-02-27 → 2026-03-29","Mar",93.86,93.97],
+    ["2026-03-30 → 2026-04-27","Apr",90.05,90.12],
+    ["2026-04-28 → 2026-05-27","May",112.20,112.32],
+    ["2026-05-28 → 2026-06-25","Jun",79.47,79.62]
+  ];
+  var d2=function(n){return (Math.round(n*100)/100).toFixed(2);};
+  var delta=function(r){return Math.round((r[3]-r[2])*100)/100;};
+
+  /* ---- table ---- */
+  var rows=D.map(function(r){
+    return '<tr><td class="m">'+r[0]+'</td><td class="n">'+d2(r[2])+'</td><td class="n">'+
+      d2(r[3])+'</td><td class="n">+'+d2(delta(r))+'</td><td class="pass">✓</td></tr>';
+  }).join("");
+  document.getElementById("rows").innerHTML=rows;
+
+  /* ---- chart ---- */
+  var W=720,H=262,L=52,R=16,T=22,B=52;
+  var pw=W-L-R, ph=H-T-B, base=T+ph, ymax=0.25;
+  var band=pw/D.length, bw=Math.min(30,band-24);
+  var y=function(v){return base-(v/ymax)*ph;};
+  var s=[];
+
+  /* gridlines + y ticks */
+  [0,0.05,0.10,0.15,0.20,0.25].forEach(function(t){
+    var yy=y(t);
+    s.push('<line x1="'+L+'" y1="'+yy+'" x2="'+(W-R)+'" y2="'+yy+
+      '" stroke="var(--rule)" stroke-width="1"/>');
+    s.push('<text class="ax" x="'+(L-10)+'" y="'+(yy+4)+'" text-anchor="end">'+
+      (t===0?'0':'$'+t.toFixed(2))+'</text>');
+  });
+
+  var vals=D.map(delta), mx=Math.max.apply(null,vals), mn=Math.min.apply(null,vals);
+  var labelled=false, minLabelled=false;
+
+  D.forEach(function(r,i){
+    var v=delta(r), x=L+band*i+(band-bw)/2, h=Math.max(base-y(v),2), yy=base-h;
+    var rr=Math.min(4,bw/2,h);
+    /* rounded data-end anchored to the baseline */
+    var p='M'+x+','+base+' L'+x+','+(yy+rr)+' Q'+x+','+yy+' '+(x+rr)+','+yy+
+          ' L'+(x+bw-rr)+','+yy+' Q'+(x+bw)+','+yy+' '+(x+bw)+','+(yy+rr)+
+          ' L'+(x+bw)+','+base+' Z';
+    s.push('<path class="bar" d="'+p+'" fill="var(--accent)" '+
+      'data-p="'+r[0]+'" data-a="'+d2(r[2])+'" data-m="'+d2(r[3])+'" data-d="'+d2(v)+'"/>');
+    s.push('<text class="ax" x="'+(x+bw/2)+'" y="'+(base+18)+'" text-anchor="middle">'+r[1]+'</text>');
+    if(v===mx&&!labelled){labelled=true;
+      s.push('<text class="dlabel" x="'+(x+bw/2)+'" y="'+(yy-8)+'" text-anchor="middle">+0.22 worst</text>');}
+    else if(v===mn&&!minLabelled){minLabelled=true;
+      s.push('<text class="dlabel" x="'+(x+bw/2)+'" y="'+(yy-8)+'" text-anchor="middle">+0.02 best</text>');}
+  });
+
+  /* baseline + axis title */
+  s.push('<line x1="'+L+'" y1="'+base+'" x2="'+(W-R)+'" y2="'+base+
+    '" stroke="var(--rule-2)" stroke-width="1.5"/>');
+  s.push('<text class="axlabel" x="'+L+'" y="'+(H-10)+'">modeled − billed, per statement '+
+    '(statements labelled by closing month, Aug 2025 → Jun 2026)</text>');
+  document.getElementById("chart").innerHTML=s.join("");
+
+  /* ---- hover ---- */
+  var tip=document.getElementById("tip");
+  document.querySelectorAll(".bar").forEach(function(el){
+    el.addEventListener("mouseenter",function(e){
+      tip.textContent=el.dataset.p+"\nbilled   $"+el.dataset.a+
+        "\nmodeled  $"+el.dataset.m+"\nΔ         +$"+el.dataset.d;
+      tip.style.opacity="1";
+    });
+    el.addEventListener("mousemove",function(e){
+      var w=tip.offsetWidth||200;
+      tip.style.left=Math.min(e.clientX+14,window.innerWidth-w-12)+"px";
+      tip.style.top=(e.clientY+16)+"px";
+    });
+    el.addEventListener("mouseleave",function(){tip.style.opacity="0";});
+  });
+})();
+</script>
+</body>
+</html>
