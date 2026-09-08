@@ -6,7 +6,7 @@ current: state, how to run, open decisions, exact next action._
 ## Status: **M0, M2, M4 done. M1 and M3 have complete engines, DoDs blocked on data.**
 _(2026-09-07, session 7)_
 
-> **Session 7 shipped M4 — the public methodology writeup and case study.** (commit `17d00dc`)
+> **Session 7 shipped M4 — the public methodology writeup and case study.** (commit `b0df750`)
 > 166 tests green, ruff clean, **11/11 PG&E golden bills still reconcile** (worst +$0.22).
 > Nothing this session touched `tariffs/` or `nem3/`; the change is docs, README, ROADMAP
 > and a privacy scrub. Full detail in SESSION_NOTES §Session 7 — do not re-derive.

@@ -4,7 +4,7 @@ Running log of decisions made and decisions pending. Newest first.
 
 ## 2026-09-07 — Session 7 (M4: public methodology + case study; privacy decision)
 
-Committed `17d00dc` on `session-4-nperiod-tou-m2` (not pushed, not merged to main).
+Committed `b0df750` on `session-4-nperiod-tou-m2` (not pushed, not merged to main).
 
 **166 tests green, ruff clean, 11/11 PG&E golden bills still reconcile** (worst +$0.22 —
 unchanged; nothing in this session touches `tariffs/` or `nem3/`). Took the M4 milestone
