@@ -1,0 +1,72 @@
+# San Diego Community Power (SDCP) — GENERATION layer for SDG&E Schedule TOU-DR1.
+# 2022 ENROLLMENT COHORT: National City, and the unincorporated County of San Diego.
+# THE EARLIER 2026 VINTAGE. Superseded by the 5/1/2026 sheet; governs Jan 1 - Apr 30 2026.
+#
+# See sdcp_2022v_tou_dr1_generation_2026-05-01.yaml for the full discussion of the cohort
+# split, the product choice, the summer super-off-peak floor and the CARE/FERA reading.
+#
+# ⭐ WHY THIS VINTAGE IS AUTHORED AND NOT SKIPPED. `load_specs` takes the newest version
+# effective on or before the bill date. With only the 5/1/2026 sheet committed, any bill or
+# analysis window touching Jan-Apr 2026 would either be refused or — worse, if a caller
+# widened the window — priced at the wrong vintage. Session 9 deliberately declined to author
+# a January-only spec for exactly the mirror-image reason (it would have silently priced
+# September at January rates). With both vintages present the engine covers calendar 2026,
+# which is the window `scripts/nem3_report.py` runs, and splits at the correct date.
+#
+# ⭐ THIS VINTAGE CARRIES THE PRE-2026-05-01 TOU WINDOW, and that is the point. The weekday
+# 10:00-14:00 super-off-peak period applies in MARCH AND APRIL ONLY here, per this sheet's
+# own printed table — SDCP's January and May sheets differ in exactly the way SDG&E's own
+# publications say the tariff changed on 2026-05-01. Pricing Jan-Apr with the year-round
+# window would classify four hours of every weekday as super-off-peak instead of off-peak.
+#
+# ⚠ NO DOLLAR FIGURE MAY SHIP FROM THIS SPEC YET — invariant 1 is not met for SDG&E.
+#
+# PRODUCT: PowerOn (default). PowerBase on this 1/1/2026 sheet, recorded not modeled:
+#         summer on 0.28086  off 0.08442  super-off 0.01000
+#         winter on 0.21459  off 0.14185  super-off 0.06106
+#     Power100 = PowerOn + $0.01000/kWh, printed as its own table.
+# Cohort differential on this vintage is a constant $0.00558/kWh (it is $0.00559 on the
+# 5/1/2026 vintage), again excepting the floored summer super-off-peak cell.
+schedule_id: TOU-DR1
+name: San Diego Community Power generation (PowerOn, 2022 cohort) matched to SDG&E TOU-DR1
+provider: SDCP-2022V
+layer: generation
+effective_date: 2026-01-01
+citation: >-
+  San Diego Community Power, "2026 Current Residential Rates", RESIDENTIAL section, table
+  "TOU-DR-1 Residential Time-Of-Use", PowerOn column; sheet footer "Effective January 1,
+  2026" (sdcommunitypower.org/wp-content/uploads/2026/01/Res_2022V_2026.pdf), retrieved
+  2026-09-08 and text-extracted locally with poppler `pdftotext -layout` rather than
+  paraphrased. Listed under Historical Rates at sdcommunitypower.org/residential-rates/ and
+  applicable to customers in National City and the unincorporated communities of San Diego County.
+  Rates are generation/supply only and exclude SDG&E transmission and delivery charges and
+  the PCIA, per the sheet's own footer. Seasons and TOU periods from the "SEASONS" and
+  "TIME-OF-USE PERIODS" tables on the same sheet; CARE/FERA treatment and the SDG&E schedule
+  mapping from the "RATE KEY" section of the same sheet; holidays per SDG&E Electric Rule 1.
+  Superseded by the sheet effective 2026-05-01.
+
+seasons:
+  summer_months: [6, 7, 8, 9, 10]
+  winter_months: [11, 12, 1, 2, 3, 4, 5]
+
+# Pre-2026-05-01 windows, matching this sheet's printed tables and the SDG&E delivery and
+# generation specs of the same vintage. Weekday Super-Off Peak is "Midnight - 6:00 a.m."
+# plus "10:00 a.m. - 2:00 p.m. in March and April"; March and April are winter months here
+# (winter = Nov-May), so the month restriction and the season agree.
+tou:
+  rules:
+    - {period: on_peak, hours: [[16, 21]]}
+    - {period: super_off_peak, hours: [[0, 6]], days: weekday}
+    - {period: super_off_peak, hours: [[10, 14]], days: weekday, months: [3, 4]}
+    - {period: super_off_peak, hours: [[0, 14]], days: weekend}
+  default_period: off_peak
+  holiday_calendar: sdge_residential
+  labels: {on_peak: On-Peak, off_peak: Off-Peak, super_off_peak: Super Off-Peak}
+
+energy:
+  summer_on_peak:        {standard: 0.30184, care: 0.30184}
+  summer_off_peak:       {standard: 0.09214, care: 0.09214}
+  summer_super_off_peak: {standard: 0.01000, care: 0.01000}
+  winter_on_peak:        {standard: 0.23109, care: 0.23109}
+  winter_off_peak:       {standard: 0.15345, care: 0.15345}
+  winter_super_off_peak: {standard: 0.06721, care: 0.06721}

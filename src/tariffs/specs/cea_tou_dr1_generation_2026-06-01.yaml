@@ -55,11 +55,34 @@
 # all to the single CEA rate "TOU-DR-1", i.e. CEA bills the same generation rate regardless
 # of CARE status, and the CARE discount is applied by SDG&E on its own charges. `care` is
 # therefore set equal to `standard` here — read off CEA's mapping table, not assumed.
-# ⚠ UNVERIFIED CONSEQUENCE, flagged rather than buried: this implies a CARE customer on a
-# CCA receives a smaller total discount than a CARE customer on bundled service, because
-# the 35% is applied to a smaller base. That follows from the two published documents but
-# has NOT been confirmed against a real CCA CARE bill. Confirm before any CARE CCA dollar
-# figure ships.
+# ⚠ UNVERIFIED CONSEQUENCE, flagged rather than buried: composing this layer the way the
+# engine currently does implies a CARE customer on a CCA receives a smaller total discount
+# than a CARE customer on bundled service, because the 35% is applied to a smaller base.
+# That has NOT been confirmed against a real CCA CARE bill.
+#
+# ⭐ SESSION 10 FOUND PUBLISHED EVIDENCE POINTING THE OTHER WAY. Do not treat the sentence
+# above as settled. In SDG&E's own "SDG&E - SDCP Joint Rate Comparison" (effective
+# 1/1/2026, sdge.com/sites/default/files/SDCP_SDGE%20JRC%2001.01.2026_Draft.pdf), the
+# quantity (CCA total $/kWh - SDG&E bundled total $/kWh) is the SAME in the standard, CARE
+# and FERA tables — across DR, TOU-DR, TOU-DR1 and TOU-DR2 and all three SDCP products,
+# agreeing to <=2e-5 in 11 of 12 rows. If the discount were applied only to SDG&E's own
+# charges, a CCA customer's absolute discount would be smaller by 0.35 x EECC and that
+# delta could not be class-invariant. SDG&E's comparison therefore implies the CARE
+# discount is computed on the BUNDLED-EQUIVALENT bill, with the CCA generation swap and
+# the PCIA applied undiscounted on top.
+# Weighed against that, and why the engine was NOT changed on the strength of it:
+#   * the JRC's per-line allocation is demonstrably presentational, not tariff structure —
+#     its SDG&E generation line is identical in the CARE and non-CARE tables, which the
+#     tariff says is false (our own specs reconstruct SDG&E's printed Total Adjusted CARE
+#     Rate as 0.65 x (UDC - 0.00864) + 0.65 x EECC). Only its TOTALS carry information.
+#     The class-invariance above is a totals-level fact, so it survives that caveat.
+#   * on the OTHER utility the engine has 11 real bills for a CCA (3CE) + CARE household,
+#     and they reconcile within +-$0.22 with the discount applied to the DELIVERY layer
+#     only. That is direct bill evidence, and it outranks a comparison document.
+#   * the two are not necessarily in conflict: PG&E and SDG&E may compose it differently.
+# Dollar impact of getting it wrong: 0.35 x EECC, roughly 4-5 c/kWh, ~$170-210/yr on a
+# 4,000-6,000 kWh household. See open decision 9 in HANDOFF.md. Resolve it against a real
+# SDG&E CCA CARE bill before any CARE CCA dollar figure ships.
 schedule_id: TOU-DR1
 name: Clean Energy Alliance generation (Clean Impact) matched to SDG&E TOU-DR1
 provider: CEA

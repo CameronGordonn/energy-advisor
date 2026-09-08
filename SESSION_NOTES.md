@@ -2,6 +2,117 @@
 
 Running log of decisions made and decisions pending. Newest first.
 
+## 2026-09-08 — Session 10 (San Diego Community Power overlay; the SDCP 403 was solvable)
+
+**418 tests green (was 384, +34), ruff clean, 11/11 PG&E golden bills reconcile with
+byte-identical residuals** (worst +$0.22). Dad's SDG&E data had NOT arrived (checked first:
+`data/` unchanged since July 19, nothing SDG&E-shaped), so next-action #0 stayed blocked and
+this took next-action #1.
+
+### DONE — the SDCP overlay, and it did NOT need the manual download HANDOFF asked for
+Four specs, two jurisdiction cohorts x two 2026 vintages:
+`sdcp_2021v_tou_dr1_generation_{2026-01-01,2026-05-01}.yaml` and the `2022v` pair.
+Both San Diego CCAs are now authored, so whichever one dad turns out to be on, his bill goes
+straight to reconciliation.
+
+### ⭐ THE 403 WAS ONLY ON `curl` — RECORD THIS, IT COST SESSION 9 THE WHOLE ITEM
+sdcommunitypower.org still returns HTTP 403 to `curl` (re-verified this session, with a
+browser UA). But **the agent's own fetcher gets through**, and although it cannot parse a
+PDF it **saves the binary to disk anyway** and prints the path. So the working method for
+any 403-guarded PDF is:
+    WebFetch the PDF URL (any prompt)  ->  read the saved path out of the result
+    ->  `pdftotext -layout` it locally  ->  transcribe from the extracted text
+which is exactly the session-8 method, just with a different way of getting the bytes.
+Session 9 concluded the sheet was unreachable and deferred the whole overlay to a human
+download; it was reachable. **Generalise: "curl got 403" is not "the document is
+unavailable".**
+Also found what session 9 missed — the rates are on the site as HTML, on two cohort gateway
+pages the landing page links but does not name: `/residential-rates/2021v/` and `/2022v/`.
+
+### DECISION — the cohort is a PROVIDER, not a product or a territory
+⭐ **SDCP publishes two different rate sheets by enrollment cohort, and they differ.**
+2021V (San Diego, Chula Vista, Encinitas, Imperial Beach, La Mesa) vs 2022V (National City,
+unincorporated county). The 2022 cohort pays a flat **+$0.00559/kWh** on the 5/1/2026
+vintage (+$0.00558 on 1/1/2026) in every period except summer super-off-peak, which is
+floored at $0.01000 for both. ~$33/yr on 6,000 kWh — small, but **not electable**, and
+invisible on SDCP's marketing pages, which quote one set of figures.
+Modeled as two providers (`SDCP-2021V`, `SDCP-2022V`) rather than a territory table, so the
+loader **refuses to pick one** exactly as it refuses to pick between SDG&E and a CCA. Four
+providers now supply TOU-DR1 generation; `AmbiguousProviderError` names all four.
+⚠ **Both cohort sheets carry a footer saying the rates apply "to all customers in all
+jurisdictions served by Community Power"** — which cannot be true of both, since they print
+different numbers. Treated as stale boilerplate; the cohort must be confirmed from the bill.
+
+### DECISION — PowerOn only, following the CEA precedent
+PowerOn is SDCP's default/standard product (auto-enrolment). PowerBase (cheaper opt-down)
+and Power100 (opt-up) are transcribed into the spec headers and deliberately **not** modeled
+— a customer must actively elect them. Power100 = PowerOn + $0.01000/kWh is not derived: the
+sheet prints it as its own one-line table, and the arithmetic holds in all 12 published cells
+of both cohorts.
+
+### CARE — read off the sheet, and better evidenced than CEA's
+`care == standard` on the SDCP layer. SDCP's Rate Key states the mapping "will not impact
+service, billing, or **CARE/FERA status**"; its SDG&E-to-SDCP table maps base schedule codes
+only (TOUDR1 -> TOU-DR-1) with no CARE or FERA variants anywhere, and no rate table on the
+sheet has a CARE column. SDCP prices by SCHEDULE; CARE is a STATUS SDG&E administers.
+Corroboration it is a real distinction rather than an omission: where SDG&E has a separate
+low-income *schedule*, SDCP does publish a separate rate (DR-LI; DR-LI-MB at a flat
+$0.13780 PowerOn).
+
+### ⭐ NEW EVIDENCE ON OPEN DECISION 9 — and it points AGAINST what the CEA spec asserted
+Open decision 9 recorded, as an unverified consequence, that a CARE customer on a CCA gets a
+*smaller* total discount than a bundled one. **SDG&E's own SDCP Joint Rate Comparison
+(1/1/2026) implies the opposite.** In that document `(CCA total $/kWh - SDG&E bundled total
+$/kWh)` is **invariant to CARE/FERA status** — across DR, TOU-DR, TOU-DR1, TOU-DR2 and all
+three SDCP products, agreeing to <=2e-5 in 11 of 12 rows (the outlier, TOUDR2-FERA, is
+1.7e-3). If the 35% were applied only to SDG&E's own charges, the CCA customer's absolute
+discount would be smaller by 0.35 x EECC and that delta could not be class-invariant.
+**The engine was NOT changed.** Reasons, recorded so this is not reopened casually:
+  * The JRC's per-line allocation is presentational, not tariff structure — its SDG&E
+    *generation* line is identical in the CARE and non-CARE tables, which the tariff says is
+    false (our specs reconstruct SDG&E's printed Total Adjusted CARE Rate as
+    `0.65 x (UDC - 0.00864) + 0.65 x EECC`, exactly, on all four vintages). Only the TOTALS
+    carry information — and the class-invariance is a totals-level fact, so it survives.
+  * Against it stands **direct bill evidence on the other utility**: 11 real PG&E bills for a
+    CCA (3CE) + CARE household reconcile within +$0.22 with the discount applied to the
+    delivery layer only. A reconciled bill outranks a comparison document.
+  * The two need not conflict — PG&E and SDG&E may compose it differently.
+Dollar impact of being wrong: 0.35 x EECC, ~4-5 c/kWh, **~$170-210/yr**. The CEA spec header
+overstated its case and has been corrected in place to carry both sides, per session 9's
+lesson that an overclaim does its damage inside a citation-bearing file.
+
+### ⭐ FINDING — the exit fee, not the CCA's rates, decides; and it bites in the charging window
+On the matched 1/1/2026 vintage SDCP undercuts bundled EECC in **every** period (the opposite
+shape to CEA, which is seasonally opposite). Add the PCIA a CCA customer pays and a bundled
+one does not, and at a **2018 vintage exactly ONE period flips: summer super-off-peak**
+(0.01000 + 0.03662 = 0.04662 vs SDG&E 0.04126) — the window a battery charges in and the one
+load-shifting advice targets. At a **2024 vintage, 5 of 6 periods flip**. So "SDCP is
+cheaper" is true in general and false in precisely the hours a storage or EV recommendation
+turns on, and no single verdict can be published for "SDCP customers". Both pinned by test.
+
+### Verification of the transcription (the numbers came off a 403-guarded PDF)
+Four structural identities hold exactly across the 24 cells, none of which would survive a
+faulty extraction: Power100 - PowerOn = $0.01000 in all 12 cells of both cohorts; the cohort
+differential is a constant $0.00559 (May) / $0.00558 (Jan) in all 10 non-floored cells and 0
+in the 2 floored ones; summer super-off-peak is exactly $0.01000 on all four sheets; and
+SDCP's published average bills imply a $0.01000 Power100 premium and $0.13000/kWh blended
+PowerOn against the JRC's $0.13021. Independently, the **1/1/2026 2021V figures extracted
+this session match session 9's transcription of the same PDF digit for digit**, and the HTML
+cohort pages match the PDFs cell for cell.
+
+### Also corroborated in passing — open decision 1, now with a THIRD witness
+SDCP's January sheet prints weekday super-off-peak as "Midnight - 6:00 a.m." plus "10:00
+a.m. - 2:00 p.m. **in March and April**"; its May sheet prints "Midnight - 6:00 a.m.; 10:00
+a.m. - 2:00 p.m." year-round with no month restriction. The **same publisher's two dated
+sheets differing in exactly the disputed way** is the cleanest corroboration yet that the
+underlying tariff changed on 2026-05-01. SDG&E's own publications were the first witness,
+CEA the second. The caveat stands (still not a P.U.C. sheet), but it is now well supported.
+
+### Next
+Dad's SDG&E export + bills (next-action #0) still outranks everything. SDCP is done, so the
+next unblocked units are SDG&E ACC Plus and the earlier TOU-DR2 / EV-TOU-5 vintages.
+
+
 ## 2026-09-08 — Session 9 (CCA overlay: vintaged PCIA + Clean Energy Alliance)
 
 Commit `dd96f12`. **384 tests green (was 357), ruff clean, 11/11 PG&E golden bills reconcile

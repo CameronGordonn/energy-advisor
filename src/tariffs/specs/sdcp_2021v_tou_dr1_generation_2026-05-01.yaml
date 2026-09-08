@@ -1,0 +1,140 @@
+# San Diego Community Power (SDCP) — GENERATION layer for SDG&E Schedule TOU-DR1.
+# 2021 ENROLLMENT COHORT: San Diego, Chula Vista, Encinitas, Imperial Beach, La Mesa.
+#
+# The second San Diego CCA overlay, completing the pair opened in session 9 (see
+# cea_tou_dr1_generation_2026-06-01.yaml for the Clean Energy Alliance side and for the
+# full description of how a CCA bill composes on SDG&E). Which CCA applies is a CUSTOMER
+# fact determined by service address, so both are authored rather than one being guessed.
+#
+# ---------------------------------------------------------------------------------------
+# ⭐ SDCP PUBLISHES TWO DIFFERENT RATE SHEETS, BY ENROLLMENT COHORT, AND THEY DIFFER.
+# This is a second jurisdiction fact of the same kind as the SDG&E baseline climate zone,
+# and it is invisible on SDCP's own marketing pages, which quote a single set of figures.
+#     * 2021 cohort ("2021V"): San Diego, Chula Vista, Encinitas, Imperial Beach, La Mesa
+#     * 2022 cohort ("2022V"): National City, and the unincorporated County of San Diego
+# On this 5/1/2026 vintage the 2022 cohort pays EXACTLY $0.00559/kWh more in every period
+# except summer super-off-peak, which is floored at $0.01000 for both (see below). The
+# differential is a clean constant, not a reshaping of the TOU signal — on the 1/1/2026
+# vintage it is likewise a constant $0.00558. At ~6,000 kWh/yr that is ~$33/yr: small
+# against the PCIA vintage spread but larger than the entire PowerBase-vs-PowerOn product
+# choice in some periods, and it is not something a customer can elect. It is modeled as a
+# separate `provider` (SDCP-2021V / SDCP-2022V) so the loader REFUSES to pick one, exactly
+# as it refuses to pick between SDG&E and a CCA — see the note on provider below.
+#
+# ⚠ THE SHEET'S OWN BOILERPLATE CONTRADICTS THIS. Both cohort documents carry the footer
+# "These rates are applicable to all customers in all jurisdictions served by Community
+# Power", which cannot be true of both, since the two sheets print different numbers. The
+# cohort split is evidenced by the two separate documents and by SDCP's website routing
+# customers to them BY CITY (sdcommunitypower.org/residential-rates/2021v/ and /2022v/).
+# Treat the footer as stale boilerplate, and confirm the cohort from the customer's bill
+# before any dollar figure ships.
+#
+# ⭐ SUMMER SUPER-OFF-PEAK IS FLOORED AT $0.01000/kWh, in both cohorts, on both vintages,
+# for both PowerOn and PowerBase. A round number repeated across four independent sheets is
+# a policy floor, not a computed rate. Consequence worth stating because it inverts the
+# usual CCA story: SDCP's summer super-off-peak generation (0.01000) is a quarter of SDG&E's
+# bundled EECC (0.04126 on 1/1/2026), so in exactly the hours a battery or EV charges, the
+# CCA is dramatically cheaper — until the vintaged PCIA, which a CCA customer pays and a
+# bundled customer does not, is added back. At a 2018 vintage (0.03662 on 1/1/2026) the
+# comparison flips to 0.04662 vs 0.04126. **The exit fee can invert the comparison in
+# precisely the low-price hours load-shifting advice targets**, which is why the PCIA is
+# vintaged and supplied at bill time rather than pinned.
+#
+# ⚠ NO DOLLAR FIGURE MAY SHIP FROM THIS SPEC YET. Invariant 1 (reconciliation-gated) is not
+# met for SDG&E: no real SDG&E bill has ever been reproduced by this engine, CCA or bundled.
+# These rates are transcribed from SDCP's adopted schedule and are sheet-exact; the gate is
+# about the ENGINE reproducing a bill, and that remains unproven on this utility.
+# ---------------------------------------------------------------------------------------
+#
+# PRODUCT: this is PowerOn, SDCP's DEFAULT/standard residential product (53% renewable +
+# 2% carbon free), the one a customer is auto-enrolled into. The other two are recorded
+# here so they need not be re-researched, and are deliberately NOT modeled — following the
+# CEA precedent, a customer must actively elect them and defaulting anyone into a product
+# they did not choose would misstate their bill in one direction or the other:
+#     PowerBase (45% renewable, the cheaper opt-DOWN), $/kWh on this 5/1/2026 sheet:
+#         summer on 0.27484  off 0.07864  super-off 0.01000
+#         winter on 0.20865  off 0.13600  super-off 0.05530
+#     Power100  (100% renewable, opt-UP) = PowerOn + $0.01000/kWh in every period. That is
+#         not derived here: the sheet prints it as its own one-line table, "All Rate
+#         Schedules / All / Generation / Total / $0.01", and the arithmetic holds in all
+#         12 published cells of both cohorts.
+#
+# CARE/FERA: `care` is set equal to `standard`. This is READ OFF THE SHEET, not assumed.
+# SDCP's "Rate Key" states: "Your Community Power rate schedule may not exactly match your
+# SDG&E rate, as Community Power offers simplified, consolidated rate options. This will
+# not impact service, billing, or CARE/FERA status." Its SDG&E-to-SDCP mapping table lists
+# base schedule codes only (TOUDR1 -> TOU-DR-1) with no CARE or FERA variants anywhere, and
+# no rate table on the sheet carries a CARE column. SDCP prices by SCHEDULE; CARE/FERA is a
+# customer STATUS administered by SDG&E on the SDG&E bill. Corroboration that this is a real
+# distinction and not an omission: where SDG&E has a separate low-income *schedule*, SDCP
+# does publish a separate rate for it (DR-LI, and DR-LI-MB at a flat $0.13780 PowerOn).
+# ⚠ See open decision 9 in HANDOFF.md, which this spec does NOT close. What the CCA charges
+# is settled here; how SDG&E COMPOSES the CARE discount for a CCA customer is not, and the
+# two published sources conflict. Confirm against a real CCA CARE bill before any CARE CCA
+# dollar figure ships.
+schedule_id: TOU-DR1
+name: San Diego Community Power generation (PowerOn, 2021 cohort) matched to SDG&E TOU-DR1
+provider: SDCP-2021V
+layer: generation
+effective_date: 2026-05-01
+citation: >-
+  San Diego Community Power, "SDCP Combined Board Approved Rate Template_Effective on
+  05.01.2026 (Website Version)", RESIDENTIAL section, table "TOU-DR-1 Residential
+  Time-of-Use", PowerOn column; sheet footer "Community Power Rates Effective May 1, 2026"
+  (sdcommunitypower.org/wp-content/uploads/2026/04/Res_2021V_042026.pdf), retrieved
+  2026-09-08 and text-extracted locally with poppler `pdftotext -layout` rather than
+  paraphrased. Linked from sdcommunitypower.org/residential-rates/2021v/ as the current
+  rates for customers in San Diego, Chula Vista, Encinitas, Imperial Beach and La Mesa.
+  Rates are generation/supply only and exclude SDG&E transmission and delivery charges and
+  the PCIA, per the sheet's own footer. Seasons and TOU periods from the "Seasons" and
+  "Time-of-Use (TOU) Periods" tables on the same sheet; CARE/FERA treatment and the SDG&E
+  schedule mapping from the "Rate Key" section of the same sheet; holidays per SDG&E
+  Electric Rule 1. NOTE ON RETRIEVAL: sdcommunitypower.org returns HTTP 403 to scripted
+  requests, which blocked this sheet in session 9. The PDF was obtained through the agent's
+  own fetcher and extracted locally; the 24 cells were independently cross-checked against
+  the rate tables rendered in HTML on the two /residential-rates/ cohort pages and agree
+  exactly.
+
+seasons:
+  # "For all rate schedules, seasons are defined as follows: Summer: June 1 - October 31;
+  # Winter: November 1 - May 31" — identical to SDG&E's, which it must be: SDCP rides
+  # SDG&E's meter, schedule and billing determinants.
+  summer_months: [6, 7, 8, 9, 10]
+  winter_months: [11, 12, 1, 2, 3, 4, 5]
+
+# Must classify every hour identically to the SDG&E delivery layer it rides on, or the two
+# layers would price the same kWh into different buckets. A test asserts equality.
+#
+# ⭐ A THIRD INDEPENDENT PUBLISHER CORROBORATES THE 2026-05-01 WINDOW CHANGE. Open decision
+# 1 carries an honest caveat: SDG&E's extension of the weekday 10:00-14:00 super-off-peak
+# window from March/April-only to year-round was sourced to SDG&E's customer-facing
+# publications, and the superseding advice letter and revised Cal. P.U.C. sheet were never
+# located. Session 9 added CEA as a second witness. SDCP is now a third, and the cleanest,
+# because the SAME publisher's two dated sheets differ in exactly the disputed way:
+#   * SDCP "Effective January 1, 2026" prints weekday Super-Off Peak as "Midnight - 6:00
+#     a.m." plus "10:00 a.m. - 2:00 p.m. in March and April" (winter column only), and
+#     Off-Peak as "6:00 a.m. - 4:00 p.m. Excluding 10:00 a.m. - 2:00 p.m. in March and
+#     April; 9:00 p.m. - midnight".
+#   * THIS sheet prints weekday Super-Off Peak as "Midnight - 6:00 a.m.; 10:00 a.m. - 2:00
+#     p.m." in BOTH the Summer and Winter columns, with no month restriction at all.
+# Two CCAs and SDG&E itself restructuring published periods on the same date is strong
+# evidence the underlying tariff changed. The caveat stands (still not a P.U.C. sheet) but
+# it is now materially better supported than when it was written.
+tou:
+  rules:
+    - {period: on_peak, hours: [[16, 21]]}
+    - {period: super_off_peak, hours: [[0, 6], [10, 14]], days: weekday}
+    - {period: super_off_peak, hours: [[0, 14]], days: weekend}
+  default_period: off_peak
+  holiday_calendar: sdge_residential
+  labels: {on_peak: On-Peak, off_peak: Off-Peak, super_off_peak: Super Off-Peak}
+
+# SDCP PowerOn generation $/kWh, read straight off the TOU-DR-1 table's PowerOn column.
+# `care` == `standard` per the Rate Key (see header).
+energy:
+  summer_on_peak:        {standard: 0.29579, care: 0.29579}
+  summer_off_peak:       {standard: 0.08635, care: 0.08635}
+  summer_super_off_peak: {standard: 0.01000, care: 0.01000}
+  winter_on_peak:        {standard: 0.22513, care: 0.22513}
+  winter_off_peak:       {standard: 0.14758, care: 0.14758}
+  winter_super_off_peak: {standard: 0.06144, care: 0.06144}

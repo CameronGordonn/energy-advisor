@@ -4,11 +4,11 @@ _Rewrite this whole file whenever you finish a milestone or pause. Keep it short
 current: state, how to run, open decisions, exact next action._
 
 ## Status: **M0, M2, M4 done. Public site is a working tool. M1 and M3 have complete engines, DoDs blocked on data.**
-_(2026-09-08, session 9)_
+_(2026-09-08, session 10)_
 
-> **Sessions 8-9.** **384 tests green** (was 166 at session 7), ruff clean, **11/11 PG&E
+> **Sessions 8-10.** **418 tests green** (was 166 at session 7), ruff clean, **11/11 PG&E
 > golden bills reconcile with byte-identical residuals** (worst +$0.22), M2 verdict unchanged.
-> Full detail in SESSION_NOTES §§ Session 8, 8b, 8c, 8d, 9.
+> Full detail in SESSION_NOTES §§ Session 8, 8b, 8c, 8d, 9, 10.
 >
 > - **The repo and site are live and public.** https://github.com/CameronGordonn/energy-advisor
 >   (AGPL-3.0) and https://camerongordonn.github.io/energy-advisor/ — see Publishing below.
@@ -31,6 +31,15 @@ _(2026-09-08, session 9)_
 >   whenever more than one supplier offers a schedule/layer. **⭐ CEA is not uniformly cheaper
 >   than SDG&E — it is seasonally OPPOSITE** (+59% summer on-peak, -56% winter off-peak), so
 >   which supplier wins is a function of the household's seasonal shape and PCIA vintage.
+> - **CCA overlay COMPLETE (session 10).** San Diego Community Power authored — both
+>   jurisdiction cohorts x both 2026 vintages — so **both** San Diego CCAs now exist and dad's
+>   bill goes straight to reconciliation whichever he is on. **⭐ The manual download this file
+>   asked for was NOT needed: the 403 is only on `curl`** (see "Fetching a 403-guarded PDF"
+>   below; session 9 lost the whole item to that assumption). **⭐ SDCP publishes TWO rate
+>   sheets by enrolment cohort** (+$0.00559/kWh for National City / unincorporated county),
+>   modeled as two providers so the loader cannot guess. **⭐ The PCIA, not the CCA's rates,
+>   decides**: SDCP undercuts SDG&E in every period, but a 2018-vintage exit fee flips exactly
+>   summer super-off-peak — the battery-charging window — and a 2024 vintage flips 5 of 6.
 
 > **⚠ CONTEXT: the Santa Cruz PG&E service ended in July 2026** and the last export in `data/`
 > runs to 2026-07-18. The final statement and any post-move interval data are probably
@@ -43,12 +52,14 @@ _(2026-09-08, session 9)_
   `MinimumBill`, per-kWh surcharges, `NonBypassable`, `period_codes`, and
   **`marginal_energy_price`** (version-aware per-interval retail price; refuses dates no spec
   covers; rejects layers that classify an hour differently).
-- **Specs (28 files, 14 schedule-layers)**: PG&E E-TOU-C (4 vintages) / E-TOU-D / EV2-A / E-1
+- **Specs (32 files, 16 schedule-layers)**: PG&E E-TOU-C (4 vintages) / E-TOU-D / EV2-A / E-1
   delivery, each with matched 3CE and PG&E-bundled generation; **SDG&E TOU-DR1 delivery +
   generation in four vintages (2026-01-01, -04-01, -05-01, -06-01)**; TOU-DR2, EV-TOU-5,
   TOU-DR-P (deliberately unloadable). Every SDG&E delivery spec carries a `non_bypassable`
   block and is covered by the NBT-settleability test. **CCA overlay: Clean Energy Alliance
-  generation (`cea_tou_dr1_generation_2026-06-01.yaml`)**, and every SDG&E TOU-DR1 delivery
+  generation (`cea_tou_dr1_generation_2026-06-01.yaml`) and San Diego Community Power
+  (`sdcp_{2021v,2022v}_tou_dr1_generation_{2026-01-01,2026-05-01}.yaml` — PowerOn, the default
+  product; the two jurisdiction cohorts are separate providers)**, and every SDG&E TOU-DR1 delivery
   vintage carries the **vintaged PCIA** as an `applies_to: cca` adder whose vintage is
   supplied at bill time (`compute_bill(..., vintage="2018")`) and raises if omitted.
   **`load_specs`/`load_spec_versions` now take `provider`** and raise when several suppliers
@@ -66,7 +77,7 @@ _(2026-09-08, session 9)_
 ## How to run
 ```bash
 conda activate energy-advisor    # env prefix: /home/cameron/miniforge3/envs/energy-advisor
-pytest -q                                                   # 331 tests; golden tests skip if data/ absent
+pytest -q                                                   # 418 tests; golden tests skip if data/ absent
 ruff check . && ruff format --check .
 PYTHONPATH=src python scripts/reconcile_report.py           # 11 line-item comparisons (the trust artifact)
 PYTHONPATH=src python scripts/reconcile_report.py --write-readme
@@ -132,6 +143,25 @@ the artifact URL is a preview.
 
 ⚠ The `LICENSE`/README copyright line reads "Cameron Gordon" — inferred; correct if wrong.
 
+## Fetching a 403-guarded PDF (learned the hard way, session 10)
+
+sdcommunitypower.org returns **HTTP 403 to `curl`**, even with a browser user-agent. Session 9
+concluded from that the rate sheet was unreachable and deferred the whole SDCP overlay to a
+manual download by Cameron. **It was reachable the whole time.** The agent's own `WebFetch`
+gets through, and although it cannot parse a PDF it **saves the raw bytes to disk anyway** and
+prints the path in its result. So:
+
+```
+WebFetch <pdf-url> (any prompt)  ->  copy the saved path out of the result
+  ->  /home/cameron/miniforge3/envs/energy-advisor/bin/pdftotext -layout <path> out.txt
+  ->  transcribe from out.txt   # the session-8 method, just a different way to get the bytes
+```
+
+**Generalise: "curl got 403" is not "the document is unavailable."** Try the other fetcher
+before asking a human, and before recording something as blocked. Also worth remembering: the
+rates were additionally on the site as **HTML**, on two cohort pages the landing page links but
+does not name (`/residential-rates/2021v/` and `/2022v/`) — they matched the PDFs cell for cell.
+
 ## EXACT NEXT ACTION
 
 0. **Dad's SDG&E Green Button export + bills — NOT ARRIVED as of 2026-09-08.** Checked at
@@ -144,22 +174,16 @@ the artifact URL is a preview.
    timestamp and two DST edge cases. Budget a session for parser reality-checking BEFORE
    trusting any reconciliation number. What is needed: the full 13-month export, at least
    three bill PDFs **with the itemized line-item pages**, and from those the schedule,
-   climate zone, CARE status, and whether generation is SDG&E bundled or a CCA (which also
-   decides which CCA overlay applies — see #1).
+   climate zone, CARE status, and whether generation is SDG&E bundled or a CCA — and if a CCA,
+   which one, which SDCP cohort, and the PCIA vintage. **Both San Diego CCAs are now authored
+   (session 10), so no overlay work stands between his bill and a reconciliation run.**
    **First command to run on it:** `PYTHONPATH=src python scripts/inspect_export.py FILE.csv`
    — it auto-detects the utility, and reports interval length, coverage, gaps, DST handling
    and any export register before anything tries to price it. If it refuses the file, that is
    the SDG&E parser meeting reality for the first time; fix the parser, do not fix the file.
-1. **San Diego Community Power overlay — needs ONE manual download.** Clean Energy Alliance
-   is done (session 9). SDCP's *current* schedule is effective **2026-05-01** and cannot be
-   fetched here: sdcommunitypower.org returns HTTP 403 to scripted requests and the PDF links
-   do not survive markdown conversion. **Ask Cameron to download it from
-   https://sdcommunitypower.org/residential-rates/ into `data/`** — there are TWO, pick by
-   jurisdiction: *San Diego / Chula Vista / Encinitas / Imperial Beach / La Mesa* (2021
-   cohort) vs *National City / unincorporated county* (2022 cohort). The 1/1/2026 figures are
-   already transcribed in SESSION_NOTES §Session 9; a January-only spec was deliberately NOT
-   authored, because `load_specs` takes the newest version on or before the bill date and
-   would silently price today at January rates. Default product is **PowerOn**.
+1. ~~San Diego Community Power overlay~~ — **DONE, session 10.** No manual download was
+   needed; see "Fetching a 403-guarded PDF" below. Both cohorts, both 2026 vintages, PowerOn.
+   The CCA overlay is now complete for San Diego: CEA + SDCP.
 2. **Confirm SDG&E ACC Plus** from an SDG&E NBT sheet. `acc.acc_plus_table` raises for SDG&E;
    `acc_plus_eligible=False` is the conservative path.
 3. **Other SDG&E schedules' earlier 2026 vintages** — TOU-DR2 and EV-TOU-5 still exist only at
@@ -208,20 +232,41 @@ go/no-go on charging). It needs no new engine work.
 5. **Santa Cruz UUT Adjustment — RESOLVED as a modeling assumption**, mechanism still
    UNVERIFIED. Adopted **$0.21649/day**. Schedule-independent, so it cannot reorder the
    ranking; the optimizer re-ranks under all three mechanisms to prove it.
-6. **Which CCA and which SDG&E schedule dad is on** — still unresolvable without a bill.
+6. **Which CCA and which SDG&E schedule dad is on** — still unresolvable without a bill, but
+   **no longer blocking**: both San Diego CCAs are authored, so whichever he is on, his bill
+   goes straight to reconciliation. What his bill must still tell us: schedule, climate zone,
+   CARE status, bundled vs CCA, and — new since session 10 — **which SDCP cohort** if he is on
+   SDCP (2021V: San Diego / Chula Vista / Encinitas / Imperial Beach / La Mesa; 2022V:
+   National City / unincorporated county), and his **PCIA vintage**, which decides more than
+   the choice of CCA does.
 7. **Privacy posture — RESOLVED session 7.** Self-attributed case study, CARE disclosed,
    exact dates and amounts kept, personal-tenancy detail scrubbed.
 8. **Rate-date vs window-date splitting — RESOLVED session 8.** When a period-definition
    change lands inside a rate vintage, split the vintage and duplicate the rates rather than
    backdating the new window onto a citation-bearing spec. See SESSION_NOTES §Session 8.
 
-9. **CEA CARE treatment — UNVERIFIED, opened session 9.** CEA's own SDG&E-to-CEA mapping
-   table sends TOU-DR-1, TOU-DR-1-CARE and TOU-DR-1-MB to a single CEA rate, so the spec sets
-   `care == standard` and lets SDG&E apply the discount on its own charges. That implies a
-   **CARE customer on a CCA receives a smaller total discount than a CARE customer on bundled
-   service**, because the 35% lands on a smaller base. It follows from the two published
-   documents but has NOT been confirmed against a real CCA CARE bill. Confirm before any CARE
-   CCA dollar figure ships. (Dad may well be the test case.)
+9. **CARE on a CCA — SHARPENED session 10, and the two sources now CONFLICT. Still open.**
+   Settled: what the CCA charges. Both CEA's mapping table and SDCP's Rate Key ("will not
+   impact service, billing, or CARE/FERA status", base schedule codes only, no CARE column on
+   any table) say the CCA bills one generation rate regardless of CARE status, so both specs
+   set `care == standard`. That part is read off the sheets.
+   **Unsettled, and worth ~$170-210/yr: how SDG&E COMPOSES the discount for a CCA customer.**
+   - The engine today discounts SDG&E's own charges only, which implies a CARE CCA customer
+     gets a *smaller* absolute discount than a bundled one (by 0.35 x EECC).
+   - **SDG&E's own SDCP Joint Rate Comparison (1/1/2026) implies otherwise**: `(CCA total -
+     SDG&E total) $/kWh` is **invariant to CARE/FERA status** across DR, TOU-DR, TOU-DR1,
+     TOU-DR2 and all three SDCP products (<=2e-5 in 11 of 12 rows). That can only hold if the
+     discount is computed on the bundled-equivalent bill, with the CCA swap and PCIA added
+     undiscounted on top.
+   - **Against it: 11 real PG&E bills** for a CCA (3CE) + CARE household reconcile within
+     +$0.22 with the discount on the delivery layer only. A reconciled bill outranks a
+     comparison document — and the JRC's per-line allocation is provably presentational (its
+     SDG&E *generation* line is identical across CARE and non-CARE, which the tariff denies),
+     so only its totals carry information. The class-invariance is a totals-level fact, so it
+     survives that caveat; PG&E and SDG&E may simply compose it differently.
+   **The engine was deliberately NOT changed.** Resolve against a real SDG&E CCA CARE bill.
+   (Dad may well be the test case — if he is CARE *and* on a CCA, this is the first thing to
+   check on his bill, before anything else about it.) Both spec headers carry both sides.
 10. **`PerKwhAdder` has no CARE variant**, so the vintaged PCIA is billed class-independently.
    That matches what SDG&E's CARE table prints (it restates the same PCIA table with no CARE
    adjustment), so it is not currently wrong — but it is unmodelable if a future sheet

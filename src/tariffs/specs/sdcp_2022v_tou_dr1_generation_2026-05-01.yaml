@@ -1,0 +1,69 @@
+# San Diego Community Power (SDCP) — GENERATION layer for SDG&E Schedule TOU-DR1.
+# 2022 ENROLLMENT COHORT: National City, and the unincorporated County of San Diego.
+#
+# The sibling of sdcp_2021v_tou_dr1_generation_2026-05-01.yaml, which carries the full
+# discussion of the cohort split, the PowerOn/PowerBase/Power100 product choice, the
+# $0.01000 summer super-off-peak floor, the CARE/FERA reading, and the corroboration of the
+# 2026-05-01 window change. Only what is specific to this cohort is repeated here.
+#
+# SDCP publishes a SEPARATE rate sheet per enrollment cohort and they differ. On this
+# 5/1/2026 vintage this cohort pays exactly $0.00559/kWh more than the 2021 cohort in every
+# period except summer super-off-peak, which is floored at $0.01000 for both. Which cohort
+# a customer belongs to is a jurisdiction fact — like the SDG&E baseline climate zone — and
+# is NOT electable, so the two cohorts are modeled as distinct providers and the loader
+# refuses to choose between them.
+#
+# ⚠ NO DOLLAR FIGURE MAY SHIP FROM THIS SPEC YET — invariant 1 is not met for SDG&E.
+#
+# PRODUCT: PowerOn, SDCP's default/standard residential product. Recorded and deliberately
+# not modeled, per the CEA and 2021V precedent:
+#     PowerBase (45% renewable, cheaper opt-DOWN), $/kWh on this 5/1/2026 sheet:
+#         summer on 0.28043  off 0.08423  super-off 0.01000
+#         winter on 0.21424  off 0.14159  super-off 0.06089
+#     Power100 = PowerOn + $0.01000/kWh in every period, printed as its own table.
+#
+# CARE/FERA: `care` == `standard`, read off this sheet's Rate Key exactly as on the 2021V
+# sheet. Does NOT close open decision 9 (how SDG&E composes the discount for a CCA
+# customer) — see the 2021V spec header.
+schedule_id: TOU-DR1
+name: San Diego Community Power generation (PowerOn, 2022 cohort) matched to SDG&E TOU-DR1
+provider: SDCP-2022V
+layer: generation
+effective_date: 2026-05-01
+citation: >-
+  San Diego Community Power, "SDCP Combined Board Approved Rate Template_Effective on
+  05.01.2026 (Website Version)", RESIDENTIAL section, table "TOU-DR-1 Residential
+  Time-of-Use", PowerOn column; sheet footer "Community Power Rates Effective May 1, 2026"
+  (sdcommunitypower.org/wp-content/uploads/2026/04/Res_2022V_042026.pdf), retrieved
+  2026-09-08 and text-extracted locally with poppler `pdftotext -layout` rather than
+  paraphrased. Linked from sdcommunitypower.org/residential-rates/2022v/ as the current
+  rates for customers in National City and the unincorporated communities of San Diego
+  County. Rates are generation/supply only and exclude SDG&E transmission and delivery
+  charges and the PCIA, per the sheet's own footer. Seasons and TOU periods from the
+  "Seasons" and "Time-of-Use (TOU) Periods" tables on the same sheet; CARE/FERA treatment
+  and the SDG&E schedule mapping from the "Rate Key" section of the same sheet; holidays
+  per SDG&E Electric Rule 1. Retrieval note as for the 2021V sheet: the site returns HTTP
+  403 to scripted requests; the PDF was obtained through the agent's own fetcher, extracted
+  locally, and cross-checked cell-for-cell against the HTML table on the cohort page.
+
+seasons:
+  summer_months: [6, 7, 8, 9, 10]
+  winter_months: [11, 12, 1, 2, 3, 4, 5]
+
+# Identical classification to the SDG&E delivery layer this rides on; asserted by test.
+tou:
+  rules:
+    - {period: on_peak, hours: [[16, 21]]}
+    - {period: super_off_peak, hours: [[0, 6], [10, 14]], days: weekday}
+    - {period: super_off_peak, hours: [[0, 14]], days: weekend}
+  default_period: off_peak
+  holiday_calendar: sdge_residential
+  labels: {on_peak: On-Peak, off_peak: Off-Peak, super_off_peak: Super Off-Peak}
+
+energy:
+  summer_on_peak:        {standard: 0.30138, care: 0.30138}
+  summer_off_peak:       {standard: 0.09194, care: 0.09194}
+  summer_super_off_peak: {standard: 0.01000, care: 0.01000}
+  winter_on_peak:        {standard: 0.23072, care: 0.23072}
+  winter_off_peak:       {standard: 0.15317, care: 0.15317}
+  winter_super_off_peak: {standard: 0.06703, care: 0.06703}
