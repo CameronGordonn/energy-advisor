@@ -102,6 +102,19 @@ deliberately absent from the public writeup.**
 go/no-go on charging). It needs no new engine work — it needs the writeup published and
 somewhere to post. Do not start it while M4's publish step is open.
 
+> **⚠ READ THIS BEFORE STARTING M5 — the two milestones are coupled.** M5 targets San Diego
+> (SDG&E) users, and **the engine has never been validated against a single real SDG&E bill or
+> a real SDG&E Green Button export.** `src/greenbutton/sdge.py` was written to the documented
+> format and never run on a real file; no SDG&E golden bill exists. Sending dollar figures to
+> five strangers on that basis would violate invariant 1 (reconciliation-gated), which is the
+> product's whole trust claim.
+> **The consequence is a sequencing rule, and it is good news:** the FIRST recruit who supplies
+> an SDG&E export *plus* three bills closes **M1's DoD**, and only then does the SDG&E path
+> earn the right to produce dollar figures for the other four. So recruit for data before
+> recruiting for sales, and tell the first one or two people plainly that they are validating
+> the engine, not buying a verdict. A PG&E recruit needs no such caveat — that path is already
+> reconciled 11/11.
+
 ## Open decisions
 1. **SDG&E TOU-DR1 super-off-peak window — RESOLVED.** Year-round, effective 2026-05-01.
    Residual caveat: the superseding advice letter / revised P.U.C. sheet were not located; the
