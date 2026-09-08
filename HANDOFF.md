@@ -52,7 +52,10 @@ _(2026-09-07, session 8)_
 - **M3 NEM 3.0 engine** (`src/nem3/`): `acc.py`, `netting.py`, `solar.py`, `pvwatts.py`,
   `battery.py` (greedy + cvxpy LP, both always returned), `payback.py`;
   `uncertainty/montecarlo.py`. Driver: `scripts/nem3_report.py`, **now calendar 2026**.
-- **M4 writeup**: `docs/METHODOLOGY.md` + `docs/index.html` (published, see above).
+- **M4 writeup**: `docs/METHODOLOGY.md` + `docs/methodology.html` (published, see above).
+- **Public tool** (`docs/index.html` + `docs/engine.js`): Green Button inspector running the
+  real parsers in the browser. Engine: `src/report/inspect.py`; CLI: `scripts/inspect_export.py`.
+  Sample data `docs/sample-usage.csv` is SYNTHETIC, from `scripts/make_sample_export.py`.
 
 ## How to run
 ```bash
@@ -63,6 +66,9 @@ PYTHONPATH=src python scripts/reconcile_report.py           # 11 line-item compa
 PYTHONPATH=src python scripts/reconcile_report.py --write-readme
 PYTHONPATH=src python scripts/rate_optimizer.py             # M2 ranking + sensitivity + assumption audit
 PYTHONPATH=src python scripts/nem3_report.py                # M3 solar+battery (REAL SDG&E rates, synthetic load)
+PYTHONPATH=src python scripts/inspect_export.py FILE.csv    # inspect any Green Button export (no pricing)
+PYTHONPATH=src python scripts/build_web_engine.py           # regenerate docs/engine.js after touching src/
+npm install --prefix tools && node tools/test_engine_wasm.mjs && node tools/test_tool_render.mjs
 PYTHONPATH=src python scripts/build_acc_tables.py --utility 'SDG&E' --vintage 2026 --source FILE.csv --citation '...'
 ```
 
@@ -86,8 +92,18 @@ not — these figures are deliberately absent from the public writeup.**
 ## Publishing — LIVE
 
 - **Repo:** https://github.com/CameronGordonn/energy-advisor (public, AGPL-3.0)
-- **Site:** https://camerongordonn.github.io/energy-advisor/
-- **CI:** green on `main`. Badge in README. Golden-bill tests SKIP in CI by design — they
+- **Site:** https://camerongordonn.github.io/energy-advisor/ — **an interactive tool**, not a
+  writeup: drop in a Green Button CSV, get load-shape analysis in plain English. The M4
+  writeup now lives at **/methodology.html**.
+- **How it works:** the page runs the REAL Python parsers under Pyodide/WebAssembly. Nothing
+  is uploaded — there is no server. `docs/engine.js` is generated from `src/` by
+  `scripts/build_web_engine.py`; `tests/report/test_web_engine.py` fails if it is stale, so
+  editing a parser without rebuilding is a red test rather than a stale website.
+- **The tool prices nothing, by design.** Load shape needs no reconciliation gate; dollars
+  do, and that gate is met for PG&E but not SDG&E. Enforced by tests, not intent.
+- **CI:** two jobs, both green on `main`. `test` runs ruff + pytest; `web` runs the browser
+  tool's wasm-parity and jsdom render checks (`tools/`, `npm install --prefix tools`).
+  Badge in README. Golden-bill tests SKIP in CI by design — they
   need the gitignored real interval export, so the badge proves engine/schema/loader/tariff
   identities, NOT the ±$2 reconciliation. Stated in the workflow header so it cannot overclaim.
 
@@ -122,6 +138,10 @@ the artifact URL is a preview.
    three bill PDFs **with the itemized line-item pages**, and from those the schedule,
    climate zone, CARE status, and whether generation is SDG&E bundled or a CCA (which also
    unblocks next-action #2).
+   **First command to run on it:** `PYTHONPATH=src python scripts/inspect_export.py FILE.csv`
+   — it auto-detects the utility, and reports interval length, coverage, gaps, DST handling
+   and any export register before anything tries to price it. If it refuses the file, that is
+   the SDG&E parser meeting reality for the first time; fix the parser, do not fix the file.
 1. **DONE — repo and site are live.** See the Publishing section above.
 2. **CCA generation overlay** — a CCA's own generation rate + the vintaged PCIA, replacing
    EECC. The PCIA vintage tables for **all four** 2026 SDG&E vintages are now recorded in the
