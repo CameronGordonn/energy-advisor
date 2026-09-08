@@ -319,6 +319,7 @@ def compute_layer(
     care: bool = False,
     service: Service = Service.CCA,
     territory: str | None = None,
+    vintage: str | None = None,
     allow_before_effective: bool = False,
 ) -> LayerBill:
     """Itemize one layer (delivery or generation) over an inclusive date period.
@@ -336,7 +337,10 @@ def compute_layer(
     ``service`` selects which lines a customer actually pays: the vintaged PCIA and the
     franchise fee surcharge are CCA/Direct-Access-only, per the schedules' own BILLING
     special conditions. It defaults to CCA because every golden bill in this repo is a CCA
-    account. ``territory`` picks a row of a spec's ``baseline.allowances`` table where one
+    account. ``vintage`` likewise picks a row of a vintaged adder's ``per_kwh_by_vintage``
+    table (the PCIA, whose rate depends on when the customer's load left bundled service);
+    like ``territory`` it raises rather than defaulting when the spec needs one.
+    ``territory`` picks a row of a spec's ``baseline.allowances`` table where one
     is published (SDG&E climate zones).
     """
     if isinstance(spec, TariffSpec):
@@ -436,7 +440,7 @@ def compute_layer(
         for adder in spec.adders:
             if not adder.applies_to.covers(service):
                 continue
-            amt, rate = adder.amount(season, usage)
+            amt, rate = adder.amount(season, usage, vintage=vintage)
             sub.append(
                 LineItem(
                     name=adder.name,
@@ -513,6 +517,7 @@ def compute_bill(
     care: bool = False,
     service: Service = Service.CCA,
     territory: str | None = None,
+    vintage: str | None = None,
     observed_adjustments: list[LineItem] | None = None,
     allow_before_effective: bool = False,
 ) -> Bill:
@@ -530,6 +535,7 @@ def compute_bill(
             care=care,
             service=service,
             territory=territory,
+            vintage=vintage,
             allow_before_effective=allow_before_effective,
         )
         for s in specs

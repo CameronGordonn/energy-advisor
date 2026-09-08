@@ -133,7 +133,9 @@ def main() -> None:
     # no longer illustrative for a BUNDLED SDG&E household. (A CCA customer pays their CCA's
     # generation rate plus the vintaged PCIA instead of EECC; that overlay is still
     # un-authored, so this run is bundled-only. The LOAD remains synthetic — see below.)
-    generation = load_spec_versions("TOU-DR1", Layer.GENERATION)
+    # provider is now required: TOU-DR1 generation can be supplied by SDG&E (bundled EECC)
+    # or by a CCA, and their rates differ by up to 20 c/kWh in a single period.
+    generation = load_spec_versions("TOU-DR1", Layer.GENERATION, provider="SDG&E")
 
     settings = NbtSettings(
         care=False,

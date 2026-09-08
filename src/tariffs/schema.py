@@ -386,6 +386,18 @@ class PerKwhAdder(_Base):
     The PG&E "Generation Credit" for CCA customers is a TOU-weighted PG&E generation
     rate, so where two bills pin down the peak/off split it is modeled as TOU (exact);
     where only one bill exists (summer, here) it falls back to a seasonal blend.
+
+    **Vintaged adders.** The PCIA is priced per *vintage* — the year the customer's load
+    departed bundled service — and on SDG&E's 2026 tables the CCA column spans 0.01538 to
+    0.05055 $/kWh. That 0.035 $/kWh spread is about $210/year on a 6,000 kWh household,
+    more than the entire annual saving the PG&E case study found from switching supplier,
+    so pinning one vintage into a spec would be the single largest error a CCA bill could
+    carry. A spec may therefore publish the whole table via
+    ``per_kwh_by_vintage`` and let the caller pass ``vintage`` at bill time, exactly as
+    ``Baseline.allowances`` does for climate zone. Like that one, an unknown or missing
+    vintage RAISES rather than defaulting: the customer's vintage is a customer fact and
+    guessing it silently mis-prices every imported kWh. A spec that legitimately knows its
+    customer (the PG&E specs, read off a bill) may still pin a flat ``per_kwh``.
     """
 
     name: str
@@ -399,6 +411,13 @@ class PerKwhAdder(_Base):
     per_kwh_tou: dict[str, float] = Field(
         default_factory=dict, description='N-period TOU rates keyed "<season>_<period>"'
     )
+    per_kwh_by_vintage: dict[str, float] = Field(
+        default_factory=dict,
+        description="vintage key -> flat $/kWh; selected by `vintage` at bill time",
+    )
+    vintage_pin: str | None = Field(
+        default=None, description="pin one row of per_kwh_by_vintage (customer known)"
+    )
     applies_to: AppliesTo = AppliesTo.ALL
     citation: str
 
@@ -411,6 +430,32 @@ class PerKwhAdder(_Base):
         }
         merged = {k: v for k, v in legacy.items() if v is not None} | self.per_kwh_tou
         object.__setattr__(self, "per_kwh_tou", merged)
+        return self
+
+    @model_validator(mode="after")
+    def _vintage_table_is_exclusive(self) -> PerKwhAdder:
+        """A vintaged adder may not also carry a flat or TOU rate.
+
+        Both forms present would mean two defensible answers for the same line, and which
+        one won would depend on resolution order rather than on the tariff.
+        """
+        if not self.per_kwh_by_vintage:
+            if self.vintage_pin is not None:
+                raise ValueError(
+                    f"adder {self.name!r}: vintage_pin set without a per_kwh_by_vintage table"
+                )
+            return self
+        others = [self.per_kwh, self.per_kwh_summer, self.per_kwh_winter]
+        if any(v is not None for v in others) or self.per_kwh_tou:
+            raise ValueError(
+                f"adder {self.name!r}: per_kwh_by_vintage cannot be combined with flat or "
+                "TOU rates — pick the form the tariff actually uses"
+            )
+        if self.vintage_pin is not None and self.vintage_pin not in self.per_kwh_by_vintage:
+            raise ValueError(
+                f"adder {self.name!r}: vintage_pin {self.vintage_pin!r} is not a key of "
+                f"per_kwh_by_vintage ({sorted(self.per_kwh_by_vintage)})"
+            )
         return self
 
     def _tou(self, season: Season, periods: list[str]) -> dict[str, float] | None:
@@ -427,6 +472,28 @@ class PerKwhAdder(_Base):
             )
         return present
 
+    def vintage_rate(self, vintage: str | None) -> float:
+        """$/kWh for ``vintage`` from ``per_kwh_by_vintage``.
+
+        Raises on a missing or unknown vintage rather than defaulting, for the same reason
+        ``Baseline.allowance_per_day`` raises on an unknown climate zone: the value is a
+        customer fact, and a wrong one mis-prices every kWh without looking wrong.
+        """
+        key = vintage or self.vintage_pin
+        if key is None:
+            raise ValueError(
+                f"adder {self.name!r} publishes a per-vintage table "
+                f"({sorted(self.per_kwh_by_vintage)}) but no vintage was supplied; the "
+                "customer's PCIA vintage is a customer fact and must be passed in "
+                "(compute_bill(..., vintage=...)), never defaulted"
+            )
+        if key not in self.per_kwh_by_vintage:
+            raise ValueError(
+                f"adder {self.name!r}: unknown vintage {key!r}; the tariff prices "
+                f"{sorted(self.per_kwh_by_vintage)}"
+            )
+        return self.per_kwh_by_vintage[key]
+
     def rate(self, season: Season) -> float:
         """Flat/seasonal $/kWh. Raises when only TOU rates exist (use :meth:`amount`)."""
         if self.per_kwh is not None:
@@ -436,8 +503,17 @@ class PerKwhAdder(_Base):
             raise ValueError(f"adder {self.name!r} has no rate for {season}")
         return val
 
-    def amount(self, season: Season, usage: dict[str, float]) -> tuple[float, float | None]:
+    def amount(
+        self,
+        season: Season,
+        usage: dict[str, float],
+        *,
+        vintage: str | None = None,
+    ) -> tuple[float, float | None]:
         """(amount, per-kwh rate or None). Rate is None for TOU adders (blended line)."""
+        if self.per_kwh_by_vintage:
+            r = self.vintage_rate(vintage)
+            return sum(usage.values()) * r, r
         periods = list(usage)
         tou = self._tou(season, periods)
         if tou is not None:

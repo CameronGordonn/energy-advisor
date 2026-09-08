@@ -186,7 +186,7 @@ def test_the_windows_the_2026_filing_did_not_touch_are_identical_everywhere(effe
 )
 @pytest.mark.parametrize("layer", [Layer.DELIVERY, Layer.GENERATION])
 def test_the_right_vintage_is_selected_for_a_date(on, expected, layer):
-    assert load_specs("TOU-DR1", layer, on=on).effective_date == expected
+    assert load_specs("TOU-DR1", layer, on=on, provider="SDG&E").effective_date == expected
 
 
 def test_a_calendar_2026_sdge_run_is_now_covered_end_to_end():
@@ -194,7 +194,7 @@ def test_a_calendar_2026_sdge_run_is_now_covered_end_to_end():
     year because the only committed vintage began 2026-06-01 and the engine refuses to
     extrapolate to a date no spec covers."""
     for layer in (Layer.DELIVERY, Layer.GENERATION):
-        versions = load_spec_versions("TOU-DR1", layer)
+        versions = load_spec_versions("TOU-DR1", layer, provider="SDG&E")
         assert min(v.effective_date for v in versions) <= date(2026, 1, 1)
         assert len(versions) == 4
 

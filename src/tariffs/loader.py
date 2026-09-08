@@ -58,19 +58,47 @@ def load_spec_file(path: str | Path) -> TariffSpec:
     return _validate(path, _read_raw(path))
 
 
-def _matching_specs(schedule_id: str, layer: Layer, specs_dir: Path) -> list[TariffSpec]:
-    """Every version of one schedule/layer in ``specs_dir``.
+class AmbiguousProviderError(ValueError):
+    """Several providers supply this schedule/layer — say which one the customer is on."""
 
-    Files are filtered on the *raw* ``schedule_id``/``layer`` keys BEFORE the UNVERIFIED
-    gate runs, so a half-finished spec for some other schedule cannot block the schedules
-    that are complete. The gate still fires — but only for the schedule actually asked
-    for, which is the schedule whose numbers are about to reach a dollar figure.
+
+def _matching_specs(
+    schedule_id: str,
+    layer: Layer,
+    specs_dir: Path,
+    provider: str | None = None,
+) -> list[TariffSpec]:
+    """Every version of one schedule/layer (and provider) in ``specs_dir``.
+
+    Files are filtered on the *raw* ``schedule_id``/``layer``/``provider`` keys BEFORE the
+    UNVERIFIED gate runs, so a half-finished spec for some other schedule cannot block the
+    schedules that are complete. The gate still fires — but only for the schedule actually
+    asked for, which is the schedule whose numbers are about to reach a dollar figure.
+
+    **Why provider matters.** One schedule's generation layer can be supplied by the
+    utility (SDG&E's bundled EECC) or by any CCA serving that territory (Clean Energy
+    Alliance, San Diego Community Power). All of them are legitimately
+    ``TOU-DR1``/``generation``, and their rates differ by up to 20 c/kWh in a single
+    period. Picking one silently would be a wrong answer that looks like a right one, so
+    when more than one provider matches and none was named, this RAISES.
     """
     out: list[TariffSpec] = []
     for p in sorted(specs_dir.glob("*.yaml")):
         raw = _read_raw(p)
-        if raw.get("schedule_id") == schedule_id and raw.get("layer") == layer.value:
-            out.append(_validate(p, raw))
+        if raw.get("schedule_id") != schedule_id or raw.get("layer") != layer.value:
+            continue
+        if provider is not None and raw.get("provider") != provider:
+            continue
+        out.append(_validate(p, raw))
+
+    providers = {s.provider for s in out}
+    if provider is None and len(providers) > 1:
+        raise AmbiguousProviderError(
+            f"{len(providers)} providers supply {schedule_id!r} {layer.value}: "
+            f"{sorted(providers)}. Who supplies the customer's generation is a customer "
+            "fact — pass provider=... rather than letting one be picked for them "
+            "(bundled utility vs CCA rates differ materially)."
+        )
     return out
 
 
@@ -79,13 +107,14 @@ def load_specs(
     layer: Layer,
     *,
     on: date,
+    provider: str | None = None,
     specs_dir: str | Path = SPECS_DIR,
 ) -> TariffSpec:
     """Return the spec for ``schedule_id``/``layer`` effective on date ``on``.
 
     Picks the newest spec whose ``effective_date`` is on or before ``on``.
     """
-    candidates = _matching_specs(schedule_id, layer, Path(specs_dir))
+    candidates = _matching_specs(schedule_id, layer, Path(specs_dir), provider)
     effective = [s for s in candidates if s.effective_date <= on]
     if not effective:
         raise ValueError(
@@ -99,6 +128,7 @@ def load_spec_versions(
     schedule_id: str,
     layer: Layer,
     *,
+    provider: str | None = None,
     specs_dir: str | Path = SPECS_DIR,
 ) -> list[TariffSpec]:
     """Return every version of ``schedule_id``/``layer``, sorted by effective_date.
@@ -107,7 +137,7 @@ def load_spec_versions(
     versions (not just the one effective on the period start) to split the period at
     each effective date. Raises if none are found.
     """
-    versions = _matching_specs(schedule_id, layer, Path(specs_dir))
+    versions = _matching_specs(schedule_id, layer, Path(specs_dir), provider)
     if not versions:
         raise ValueError(f"no {layer} spec found for schedule {schedule_id!r}")
     return sorted(versions, key=lambda s: s.effective_date)

@@ -163,6 +163,60 @@ minimum_bill:
     Table does not restate the minimum bill; confirm the $0.329/$0.164 figures are still
     current before shipping a dollar figure that depends on the floor binding.
 
+# --- CCA / DIRECT ACCESS ONLY ------------------------------------------------------------
+# Note 2 of the Total Rates Table: "Unbundled customers are those who take generation from
+# other providers, such as Direct Access (DA) or Community Choice Aggregation (CCA).
+# Unbundled customers do not pay SDG&E's commodity rates. The Total Energy Charge for an
+# unbundled customer includes UDC, WF-NBC, DWR-BC and Power Charge Indifference Adjustment
+# (PCIA) rates."
+#
+# The `energy` rates above are exactly UDC Total + WF-NBC/DWR-BC, so an unbundled customer's
+# bill is THIS layer + the PCIA below + their CCA's own generation spec, which replaces the
+# bundled EECC layer entirely. `applies_to: cca` keeps one delivery spec serving both
+# bundled and unbundled customers instead of two copies that would drift apart at the next
+# rate change — the same pattern the PG&E specs use.
+#
+# THE PCIA IS VINTAGED by the year the customer's load left bundled service, and on this
+# sheet the spread is 0.01538 .. 0.05055 $/kWh — a range of 0.03517/kWh, which on a
+# 6,000 kWh/yr household is about $211 a year, more than the whole annual saving
+# the PG&E case study found from switching supplier. Pinning one vintage here would be the
+# largest single error a CCA bill could carry. The whole table ships instead and the vintage is
+# supplied at bill time — `compute_bill(..., vintage="2018")` — and omitting it RAISES
+# rather than defaulting, exactly as an unknown baseline climate zone does.#
+# The 2001 Legacy vintage is DA-only on this sheet (a $(0.00006) credit, printed in the DA
+# column with no CCA value), so it is deliberately absent: a CCA customer cannot be on it.
+#
+# CARE: the TOU-DR1-CARE table prints this same PCIA table with no CARE adjustment, so the
+# PCIA is modeled as class-independent. (`PerKwhAdder` has no CARE variant in any case —
+# the schema gap recorded in HANDOFF; it is not binding here because the sheet shows none.)
+adders:
+  - name: Power Charge Indifference Adjustment (vintaged)
+    applies_to: cca
+    per_kwh_by_vintage:
+      "2009": 0.01538
+      "2010": 0.02010
+      "2011": 0.03031
+      "2012": 0.03637
+      "2013": 0.03572
+      "2014": 0.03572
+      "2015": 0.03687
+      "2016": 0.03595
+      "2017": 0.03576
+      "2018": 0.03670
+      "2019": 0.03450
+      "2020": 0.03605
+      "2021": 0.03564
+      "2022": 0.03005
+      "2023": 0.02828
+      "2024": 0.05055
+      "2025": 0.04987
+      "2026": 0.04987
+    citation: >-
+      SDG&E "Schedule TOU-DR1 - Residential Time of Use Service Effective 6/1/2026" Total
+      Rates Table, RESIDENTIAL PCIA RATE table, CCA column (retrieved 2026-09-07/08).
+      Applicability per note 2 of the same sheet. Vintage is the year the customer's load
+      departed bundled service; see Schedules DA-CRS / CCA-CRS.
+
 # The non-bypassable charge set, billed on GROSS imports under the Net Billing Tariff and
 # NOT reducible by any export credit except ACC Plus (Schedule NBT SC 2.f). These per-kWh
 # components are ALREADY inside the `energy` rates above (SDG&E's rate table folds them into

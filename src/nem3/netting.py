@@ -79,6 +79,11 @@ class NbtSettings:
     care: bool = False
     service: Service = Service.CCA
     territory: str | None = None
+    # PCIA vintage — the year the customer's load left bundled service. Required whenever
+    # the delivery spec carries a vintaged PCIA adder AND service is CCA; a bundled
+    # customer never pays it, so it stays optional. Like `territory`, it is a customer
+    # fact the biller refuses to guess.
+    vintage: str | None = None
     low_income: bool = False
     """Drives the ACC Plus tier. NBT's definition is broader than CARE — it also covers
     resident-owners in disadvantaged communities and customers in California Indian
@@ -302,6 +307,7 @@ def settle_period(
         care=settings.care,
         service=settings.service,
         territory=settings.territory,
+        vintage=settings.vintage,
         allow_before_effective=allow_before_effective,
     )
     d_bill = compute_layer(imports, delivery, period_start, period_end, **kw)

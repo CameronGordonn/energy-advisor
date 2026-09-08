@@ -29,6 +29,10 @@ def _settle(load, production, delivery, schedule, periods, **kw):
     settings = NbtSettings(
         service=kw.pop("service", Service.BUNDLED),
         territory="coastal_basic",
+        # The delivery spec carries a vintaged PCIA, which a CCA customer pays and a
+        # bundled one does not. Supplying it is mandatory for CCA service (the biller
+        # refuses to guess a vintage), and harmless for bundled.
+        vintage=kw.pop("vintage", "2018"),
         acc_plus_eligible=False,
         **kw,
     )

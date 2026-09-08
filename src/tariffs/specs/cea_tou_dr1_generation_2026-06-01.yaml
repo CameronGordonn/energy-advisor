@@ -1,0 +1,133 @@
+# Clean Energy Alliance (CEA) — GENERATION layer for SDG&E Schedule TOU-DR1.
+#
+# The first CCA overlay in this repo, and the layer a CCA customer swaps in for SDG&E's
+# bundled EECC. CEA serves the North County coastal cities (Carlsbad, Del Mar, Escondido,
+# Oceanside, San Marcos, Solana Beach, Vista and others). The alternative San Diego CCA is
+# San Diego Community Power; which one applies is a CUSTOMER fact determined by service
+# address, so both are authored rather than one being guessed.
+#
+# ---------------------------------------------------------------------------------------
+# HOW A CCA BILL COMPOSES. Per note 2 of SDG&E's Total Rates Table, an unbundled customer
+# pays UDC + WF-NBC + DWR-BC + PCIA to SDG&E, and their CCA's generation rate instead of
+# EECC. In this repo that is exactly:
+#
+#     sdge_tou_dr1_delivery_2026-06-01   (energy = UDC Total + WF-NBC/DWR-BC)
+#   + its `applies_to: cca` PCIA adder    (vintaged; supplied at bill time)
+#   + THIS SPEC                           (CEA generation, replacing EECC)
+#
+# so `compute_bill(..., service=Service.CCA, vintage="<year>")` prices a CEA customer, and
+# `service=Service.BUNDLED` with the EECC spec prices their SDG&E-supplied neighbour. No
+# "generation credit" line is needed the way PG&E's specs need one: SDG&E's rate table
+# already separates UDC from EECC, so the delivery layer is identical for both customers.
+#
+# ⭐ CEA IS NOT UNIFORMLY CHEAPER THAN SDG&E — IT IS SEASONALLY OPPOSITE. Against the
+# bundled EECC on the same 6/1/2026 vintage:
+#       summer on-peak       0.55397  vs SDG&E 0.34920   (+59%)
+#       summer off-peak      0.22298  vs        0.12853   (+73%)
+#       summer super-off     0.04914  vs        0.04121   (+19%)
+#       winter on-peak       0.19791  vs        0.27475   (-28%)
+#       winter off-peak      0.08433  vs        0.19304   (-56%)
+#       winter super-off     0.05138  vs        0.10228   (-50%)
+# and the CCA customer additionally pays the vintaged PCIA (0.01538 .. 0.05055 /kWh) that a
+# bundled customer does not, partly offset by the Rate Relief Credit below (-0.03871/kWh).
+# So whether CEA is cheaper is a function of the household's SEASONAL SHAPE and its PCIA
+# vintage — not a fact about the CCA. A summer-heavy air-conditioned load and a 2024-vintage
+# PCIA point one way; a winter-heavy all-electric load and a 2009 vintage point the other.
+# That is precisely the account-specific question this engine exists to settle, and exactly
+# what a headline "our rates are competitive with SDG&E's" cannot answer.
+#
+# ⚠ NO DOLLAR FIGURE MAY SHIP FROM THIS SPEC YET. Invariant 1 (reconciliation-gated) is not
+# met for SDG&E: no real SDG&E bill has ever been reproduced by this engine, CCA or bundled.
+# The rates below are transcribed from CEA's adopted schedule and are tariff-exact, but the
+# gate is about the ENGINE reproducing a bill, and that remains unproven on this utility.
+# ---------------------------------------------------------------------------------------
+#
+# PRODUCT: this is CEA's DEFAULT residential product, Clean Impact. The two opt-up products
+# are premiums on top of these rates and are deliberately NOT modeled (a customer must
+# actively elect them, and defaulting anyone into a premium would overstate their bill):
+#     Clean Impact Plus - 75% carbon free    + $0.00100 /kWh
+#     Green Impact      - 100% renewable     + $0.00750 /kWh
+# Also on the sheet and not modeled here: the Solar Plus and Battery Bonus programs, and
+# Net Surplus Compensation at $0.06/kWh for Personal Impact / Solar Impact customers (NEM
+# surplus is an M3 concern and is CCA-specific — see the NBT netting note in nem3/).
+#
+# CARE: CEA's own SDG&E-to-CEA mapping table maps "TOU-DR-1, TOU-DR-1-CARE, TOU-DR-1-MB"
+# all to the single CEA rate "TOU-DR-1", i.e. CEA bills the same generation rate regardless
+# of CARE status, and the CARE discount is applied by SDG&E on its own charges. `care` is
+# therefore set equal to `standard` here — read off CEA's mapping table, not assumed.
+# ⚠ UNVERIFIED CONSEQUENCE, flagged rather than buried: this implies a CARE customer on a
+# CCA receives a smaller total discount than a CARE customer on bundled service, because
+# the 35% is applied to a smaller base. That follows from the two published documents but
+# has NOT been confirmed against a real CCA CARE bill. Confirm before any CARE CCA dollar
+# figure ships.
+schedule_id: TOU-DR1
+name: Clean Energy Alliance generation (Clean Impact) matched to SDG&E TOU-DR1
+provider: CEA
+layer: generation
+effective_date: 2026-06-01
+citation: >-
+  Clean Energy Alliance "CEA Adopted Residential Rate Schedule, Effective June 1, 2026"
+  (corrected 2026-06-30), RESIDENTIAL table, CEA RATE "TOU-DR-1"
+  (thecleanenergyalliance.org/wp-content/uploads/2026/07/CEA-Adopted-Residential-Rate-
+  Schedule-Effective-2026_06_01-corrected-2026_06_30.pdf), retrieved 2026-09-08. Rates are
+  generation only and exclude SDG&E delivery, the General Municipal Surcharge and the PCIA,
+  per the sheet's own header. Schedule mapping (TOU-DR-1 / -CARE / -MB -> TOU-DR-1) from the
+  "SDG&E to CEA Rate Mapping" table on the same sheet. Seasons and TOU periods from the
+  "TIME-OF-USE PERIODS" table on the same sheet; holidays per SDG&E Electric Rule 1.
+
+seasons:
+  # Identical to SDG&E's: Summer June 1 - October 31, Winter November 1 - May 31. CEA's
+  # sheet states the same boundaries, which it must — it rides SDG&E's meter and schedule.
+  summer_months: [6, 7, 8, 9, 10]
+  winter_months: [11, 12, 1, 2, 3, 4, 5]
+
+# Must classify every hour identically to the SDG&E delivery layer it rides on, or the two
+# layers would price the same kWh into different buckets. A test asserts equality.
+#
+# ⭐ INDEPENDENT CORROBORATION OF THE 2026-05-01 WINDOW CHANGE. Open decision 1 recorded an
+# honest caveat: SDG&E's extension of the weekday 10:00-14:00 super-off-peak window from
+# March/April-only to year-round was sourced to SDG&E's customer-facing publications, and
+# the superseding advice letter and revised Cal. P.U.C. sheet were never located. CEA's
+# schedules now corroborate it from a THIRD PARTY that has to bill against the same periods:
+#   * CEA "Effective February 1, 2026" lists Off-Peak as "6am - 4pm Excluding 10am-2pm in
+#     March & April" and Super Off-Peak as "Midnight - 6am; 10am - 2pm in March & April".
+#   * CEA "Effective June 1, 2026" lists a single year-round table — Off-Peak "6am - 10am,
+#     2pm - 4pm, 9pm - midnight" and Super Off-Peak "Midnight - 6am, 10am - 2pm" — with no
+#     month restriction and no seasonal split of the window at all.
+# A CCA independently restructuring its published periods on the same date is strong
+# evidence the underlying tariff changed. The caveat stands (this is still not a P.U.C.
+# sheet) but it is materially better supported than it was.
+tou:
+  rules:
+    - {period: on_peak, hours: [[16, 21]]}
+    - {period: super_off_peak, hours: [[0, 6], [10, 14]], days: weekday}
+    - {period: super_off_peak, hours: [[0, 14]], days: weekend}
+  default_period: off_peak
+  holiday_calendar: sdge_residential
+  labels: {on_peak: On-Peak, off_peak: Off-Peak, super_off_peak: Super Off-Peak}
+
+# CEA generation $/kWh, read straight off the RESIDENTIAL table's TOU-DR-1 rows.
+# `care` == `standard` per the mapping table (see header).
+energy:
+  summer_on_peak:        {standard: 0.55397, care: 0.55397}
+  summer_off_peak:       {standard: 0.22298, care: 0.22298}
+  summer_super_off_peak: {standard: 0.04914, care: 0.04914}
+  winter_on_peak:        {standard: 0.19791, care: 0.19791}
+  winter_off_peak:       {standard: 0.08433, care: 0.08433}
+  winter_super_off_peak: {standard: 0.05138, care: 0.05138}
+
+# A standing per-kWh credit on the default Clean Impact product, printed as its own line on
+# the adopted schedule and applying in both seasons. At 3.871 c/kWh it MORE THAN OFFSETS the
+# 3.670 c/kWh PCIA that a 2018-vintage CCA customer pays, so omitting it would overstate a
+# CEA customer's cost by more than the exit fee that gets all the attention.
+# ⚠ The sheet states NO EXPIRY for it. "Rate Relief" names something a board can withdraw,
+# and CEA re-adopts rates at least annually, so this is modeled as current-vintage-only and
+# must be re-read from the next adopted schedule rather than carried forward.
+adders:
+  - name: Clean Impact Residential Rate Relief Credit
+    per_kwh: -0.03871
+    citation: >-
+      Clean Energy Alliance "CEA Adopted Residential Rate Schedule, Effective June 1, 2026"
+      (corrected 2026-06-30), line "CLEAN IMPACT RESIDENTIAL RATE RELIEF CREDIT (Per kWh)",
+      -$0.03871 in both the Summer and Winter columns; retrieved 2026-09-08. No expiry date
+      is printed on the sheet.
