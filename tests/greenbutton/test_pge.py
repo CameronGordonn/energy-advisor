@@ -61,7 +61,7 @@ def test_pii_is_stripped(tmp_path):
     assert "1 TEST ST" not in dumped
     assert "7355849999" not in dumped
     assert series.meta.account_tail == "9999"
-    assert series.meta.address_zip == "95060"
+    assert series.meta.address_zip == "90001"
     assert series.meta.service_id == "Service 1"
 
 

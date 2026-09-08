@@ -2,6 +2,77 @@
 
 Running log of decisions made and decisions pending. Newest first.
 
+## 2026-09-07 — Session 7 (M4: public methodology + case study; privacy decision)
+
+Committed `17d00dc` on `session-4-nperiod-tou-m2` (not pushed, not merged to main).
+
+**166 tests green, ruff clean, 11/11 PG&E golden bills still reconcile** (worst +$0.22 —
+unchanged; nothing in this session touches `tariffs/` or `nem3/`). Took the M4 milestone
+rather than HANDOFF next-action #1, on the reasoning below.
+
+### DECISION — M4 before the SDG&E rate vintages
+M4 is the only milestone whose DoD is reachable (M1 and M3 are data-gated, and no data is
+coming). Next-action #1 was deliberately NOT done first: none of M4's headline material
+depends on it. The byte-identical NBT finding comes from `src/nem3/acc_tables/`, the
+EV-TOU-5 non-bypassable finding is a structural fact off the 6/1/2026 table, and the
+reconciliation and M2 results are PG&E. #1 only matters if a calendar-year SDG&E cost table
+is wanted, and it stays the smallest well-defined unit of work for next session.
+
+### DECISION — the case study is SELF-ATTRIBUTED, not anonymized (asked and answered)
+Reframed the privacy question before starting: the subject of the case study is the repo's
+author, so this is a self-disclosure decision, not an anonymization one. Blurring buys little
+(the repo carries his name) and costs the property that makes the work worth reading — a
+third party being able to check the rates against the tariff sheets. Cameron chose, on both
+questions put to him:
+1. **Keep CARE visible.** README rows keep the `(CARE)` label; the writeup carries the full
+   `care = 0.65 x standard - 0.01038` derivation as a case-study result. The alternative
+   (bucketing the discount line) would have kept every dollar exact but cost the strongest
+   technical section, and CARE was already implicit in the published kWh and totals.
+2. **Scrub the session logs, then keep them public.** Removed from committed docs: the unit
+   number (`APT A`), the CARE renewal date, and the tenancy/lease dates (HANDOFF and
+   SESSION_NOTES now say the service ended in July 2026). The session-1 raw statement-total
+   list was replaced with a pointer to the README table — the reconciled electric-net figures
+   there are the canonical artifact, and publishing two overlapping sets of amounts served
+   nothing. `tests/greenbutton/conftest.py`'s synthetic address lost its city.
+Kept deliberately: city, schedule, rate vintages, exact bill dates and amounts, and the whole
+reasoning trail. ROADMAP's M4 line was amended from "anonymized" to "honest" with the
+rationale inline, so the DoD does not contradict what shipped.
+
+### DECISION — no M3 payback figure appears in the writeup
+Flagged rather than chosen silently. The M3 driver's payback numbers ($1,168/yr solar saving,
+7.3-9.0 yr) run on a **synthetic load**. Publishing a payback dollar figure computed on a
+fabricated load, in a document whose thesis is invariant 6, would be self-refuting, and it is
+exactly the number that survives being screenshotted out of context. M4 therefore presents M3
+as engine + structural findings only, and says plainly that no payback figure ships until a
+real household with export data exists. The rates, NBC set and ACC tables behind it are real
+and cited; the load is not, and the writeup says which is which.
+
+### DONE — `docs/METHODOLOGY.md` and `docs/index.html`
+Six sections: the gate (§1), engine design (§2), the household end to end (§3), five findings
+(§4), what is still assumed (§5), reproducing it (§6). `docs/index.html` is the same material
+as a standalone static page with a residual chart (11 bars, modeled-minus-billed, against the
+$2.00 gate) — the DoD's "small static demo of outputs". README now links both and its M4 row
+is marked done.
+
+**One honest observation surfaced by writing it up, not previously recorded: the residual is
+one-sided.** All eleven errors are positive (mean +$0.14, total +$1.55 on $1,084.26 = 0.14%
+high). A curve-fitted model would centre on zero. The bias is explained — the ~0.3 kWh
+meter-read boundary offset plus the 2025-vintage franchise-fee percent approximation — and
+stating it first is stronger than letting a reader find it. Worth keeping as the answer to
+"how do you know you didn't fit this?"
+
+Also refreshed against a live run rather than carried from HANDOFF: the E-1 sensitivity is
+**353% / 132%** (HANDOFF said 358% / 133%).
+
+### Still open after this session
+- **The writeup is not yet "live" in the published sense.** The Artifact publish was blocked
+  by the session's permission classifier; `docs/index.html` is committed and ready to serve
+  (GitHub Pages on `docs/`, or an Artifact publish once permitted). M4's DoD is otherwise met.
+- Next-action #1 (SDG&E 1/1/2026 and 4/1/2026 vintages, `months: [3, 4]` pre-2026-05-01)
+  remains the smallest unblocked unit of work.
+- M1 and M3 DoDs unchanged: data-gated, not code-gated.
+
+
 ## 2026-09-07 — Session 6 (SDG&E generation layer; open decision 1 closed)
 
 **166 tests green (was 133, +33), ruff clean, 11/11 PG&E golden bills still reconcile**
@@ -481,8 +552,8 @@ TOU-DR-P / EV-TOU-5 dad is actually on before treating any as the default.
 
 ### ADDENDUM — session 4b: CCA on/off, EV eligibility, SDG&E zones
 
-**Context change from Cameron: the Santa Cruz lease ends 2026-07-31, and he has no plug-in
-EV.** Told him to export the full Green Button interval data and every remaining bill PDF
+**Context change from Cameron: the Santa Cruz service address is being vacated at the end
+of July 2026, and he has no plug-in EV.** Told him to export the full Green Button interval data and every remaining bill PDF
 before the account closes — that data is the entire trust artifact and portal access
 usually dies with the account. Also: PG&E's Rate Plan Comparison returns *"This account has
 no service agreement eligible for rate enrollment"* for his account, so **the M2 DoD
@@ -515,7 +586,7 @@ Caveats now printed in the report: PG&E Rules 22.1/23.1 require **six months' ad
 notice** to elect bundled service, with **Transitional Bundled Service** (Schedule TBCC,
 short-term market prices) in the interim — a saving realised months later after an unpriced
 TBS window is not the annual figure above. 3Cprime/3Cflex products are also unmodeled.
-**Moot for Cameron personally** (lease ends in 8 days), but it validates the method.
+**Moot for Cameron personally** (the account is closing), but it validates the method.
 
 **EV eligibility is now FILTERED, not flagged.** Cameron has no EV, so EV2-A plans are
 excluded from the ranking entirely (`--ev` re-includes them). Flagging an ineligible plan
@@ -671,7 +742,7 @@ The account is **not a vanilla bundled-PG&E TOU account**. It is:
   schedule **MBRETCH1**. PG&E does delivery only. So M0 must model the
   delivery/generation split + PCIA + generation credit **now** — the CCA overlay the
   roadmap deferred to M1 is already required for Cameron's own bills.
-- **CARE enrolled** (low-income discount, renew 2027-11-02) — a large line item on
+- **CARE enrolled** (low-income discount) — a large line item on
   every bill (e.g. −$53.92). Must model to reconcile, but atypical for the eventual
   solar-shopper customer, so model as a **separable modifier**, not baked into rates.
 - Local tax: **City of Santa Cruz Utility Users' Tax 8.5%** on both delivery and
@@ -688,9 +759,10 @@ wrong — that was the CSV's bogus cost field. **Reconciliation targets must be 
 bill totals / line items, not the CSV COST.** kWh from the interval CSV still cross-
 checks fine (that part of the CSV is good).
 
-**Observed electric $ per statement (PDF monthly history; delivery+generation):**
-8/27=76.10, 9/26=114.44, 10/28=113.97, 11/26=87.63, 12/28=79.86, 1/29=163.46,
-3/01=176.22, 3/31=100.44, 4/29=96.54, 5/29=118.48, 6/28=86.18.
+**Observed electric $ per statement** (PDF monthly history, delivery+generation) were
+transcribed for all 11 statements and drive the reconciliation gate. The canonical figures
+are the reconciled electric-net amounts published in the README accuracy table; the raw
+statement totals are not duplicated here (they differ by the account-summary adjustments).
 
 **Two bills with full line-item detail (candidate first golden bills, no climate credit):**
 - Statement 2026-05-29, usage 04/28–05/27, 458.359 kWh: PG&E delivery $65.62 + 3CE gen
@@ -810,7 +882,7 @@ energy is misplaced per transition — **zero TOU impact** under current schedul
   Climate Credit in April and October**. The bill engine must model the climate
   credit as a line item or reconciliation will miss by ~$30–60 in exactly those two
   months. Logged as a billing-mechanic decision point for the tariff-spec work.
-- Account is an apartment (`APT A`), Santa Cruz — need to confirm the exact electric
+- Account is an apartment in Santa Cruz — need to confirm the exact electric
   schedule (E-1 tiered vs. E-TOU-C vs. E-TOU-D) from the bill PDF before writing the
   spec. **Pending: confirm schedule from PDF.**
 

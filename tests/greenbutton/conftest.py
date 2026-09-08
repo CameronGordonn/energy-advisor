@@ -12,7 +12,7 @@ BOM = "﻿"
 _META = [
     "",
     "Name,TEST CUSTOMER",
-    'Address,"1 TEST ST APT A, SANTA CRUZ CA 950601234"',
+    'Address,"1 TEST ST, ANYTOWN CA 900010000"',
     "Account Number,7355849999",
     "Service,Service 1",
     "",

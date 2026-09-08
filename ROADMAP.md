@@ -19,8 +19,10 @@ PVWatts hourly production by location/system spec. ACC export tables by vintage 
 **DoD:** for one real household, payback distributions (Monte Carlo over rate escalation, degradation, load drift) reported as ranges, plus the vintage-timing comparison (install this year vs next). Must be able to produce a defensible "don't buy" answer on at least one configuration and say why.
 
 ## M4 — Public methodology + case study (portfolio checkpoint)
-Write up the methodology: reconciliation accuracy, engine design, one honest anonymized case study end to end. Publish repo (minus data), writeup, and a small static demo of outputs.
+Write up the methodology: reconciliation accuracy, engine design, one honest case study end to end. Publish repo (minus data), writeup, and a small static demo of outputs.
 **DoD:** writeup live; repo README leads with the reconciliation accuracy table. This milestone alone justifies the project for the job search regardless of revenue.
+
+_Amended 2026-09-07 (session 7): "anonymized" was changed to "honest". The case study's subject is the repo's author, so anonymization is theatre — the repo carries his name — and blurring the dates or amounts would destroy the property that makes the reconciliation checkable by a third party against the tariff sheets. Decision recorded in SESSION_NOTES: self-attributed, CARE status disclosed, exact dates and amounts kept; unit number, CARE renewal date and tenancy dates scrubbed from all committed docs._
 
 ## M5 — First external users (sales checkpoint)
 Manual pipeline: 5 strangers (San Diego subreddit / Nextdoor) send Green Button CSVs, receive a report. Zero automation beyond what exists; the goal is learning what people ask, what confuses them, and whether anyone would pay.
