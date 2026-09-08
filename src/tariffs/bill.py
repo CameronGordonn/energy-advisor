@@ -201,6 +201,112 @@ def _usage(
     return {p: float(kwh[codes == i].sum()) for i, p in enumerate(periods)}
 
 
+def period_codes(tou: TouDef, index: pd.DatetimeIndex) -> np.ndarray:
+    """Period name for every timestamp in ``index``, by the schedule's own rule walk.
+
+    The billing path resolves TOU periods internally per sub-period; this exposes the same
+    classification for callers that need a *per-interval* price rather than a bill — the
+    NEM 3.0 battery dispatch, which has to know what an imported kWh costs at 2 p.m. in
+    March. Sharing ``_period_table`` is the point: a dispatch model that classified hours
+    differently from the biller would optimise against a schedule the customer isn't on.
+    """
+    tab = _period_table(tou)
+    periods = np.array(tou.periods, dtype=object)
+    if tou.day_type_sensitive:
+        years = {int(y) for y in np.unique(index.year.values)}
+        holidays = set().union(*(holiday_dates(tou.holiday_calendar, y) for y in years))
+        is_weekend = index.dayofweek.values >= 5
+        if holidays:
+            is_weekend = is_weekend | np.isin(index.date, list(holidays))
+        wd = (~is_weekend).astype(np.int8)
+    else:
+        wd = np.ones(len(index), dtype=np.int8)
+    return periods[tab[index.month.values - 1, wd, index.hour.values]]
+
+
+def _layer_price(versions: Sequence[TariffSpec], index: pd.DatetimeIndex, *, care: bool):
+    """(price per timestamp, period name per timestamp) for one layer, version-aware."""
+    ordered = sorted(versions, key=lambda s: s.effective_date)
+    dates = np.asarray(index.date)
+    starts = np.array([s.effective_date for s in ordered])
+    # Which version governs each timestamp: the newest one already in effect.
+    which = np.searchsorted(starts, dates, side="right") - 1
+    if (which < 0).any():
+        first = dates[which < 0].min()
+        raise ValueError(
+            f"no {ordered[0].layer} spec for {ordered[0].schedule_id!r} effective on "
+            f"{first} (earliest version starts {ordered[0].effective_date})"
+        )
+
+    out = np.zeros(len(index), dtype=float)
+    codes = np.empty(len(index), dtype=object)
+    months = index.month.values
+    for v, spec in enumerate(ordered):
+        active = which == v
+        if not active.any():
+            continue
+        codes[active] = period_codes(spec.tou, index[active])
+        for season in Season:
+            in_season = active & np.isin(months, getattr(spec.seasons, f"{season.value}_months"))
+            if not in_season.any():
+                continue
+            for period in spec.tou.periods:
+                mask = in_season & (codes == period)
+                if not mask.any():
+                    continue
+                out[mask] = spec.energy_rate(season, period).for_customer(
+                    care=care,
+                    what=f"{spec.schedule_id} {spec.layer} {season.value}/{period}",
+                )
+    return out, codes
+
+
+def marginal_energy_price(
+    layers: Sequence[Sequence[TariffSpec]],
+    index: pd.DatetimeIndex,
+    *,
+    care: bool = False,
+) -> np.ndarray:
+    """Retail $/kWh of the *next* imported kWh at each timestamp, summed over layers.
+
+    This is the price a battery or load-shift model should arbitrage against, and it is
+    deliberately built from the same specs the biller uses rather than from typed-in
+    constants — a dispatch model pricing hours differently from the settlement would
+    optimise against a schedule the customer is not on.
+
+    ``layers`` is one **version list** per layer, exactly as ``load_spec_versions``
+    returns them (``[delivery_versions, generation_versions]``), because a year of
+    intervals can straddle a rate change and each timestamp must be priced by the version
+    in effect that day — the same rule :func:`compute_bill` applies.
+
+    Marginal, not average: this excludes the fixed charge, the baseline credit and the
+    minimum bill. Those land in the settled bill, but none of them changes what one more
+    kWh at 6 p.m. costs, which is the only quantity a dispatch decision turns on.
+
+    Layers must classify every interval into the same TOU period — otherwise they would be
+    pricing different buckets of the same kWh — which is checked against the resolved
+    classification rather than assumed, so it holds across version boundaries too.
+    """
+    if not layers or not all(layers):
+        raise ValueError("marginal_energy_price needs a non-empty version list per layer")
+    total = np.zeros(len(index), dtype=float)
+    reference: np.ndarray | None = None
+    for versions in layers:
+        price, codes = _layer_price(versions, index, care=care)
+        if reference is None:
+            reference = codes
+        elif not np.array_equal(codes, reference):
+            bad = int(np.flatnonzero(codes != reference)[0])
+            spec = versions[0]
+            raise ValueError(
+                f"layer {spec.schedule_id}/{spec.layer} classifies {index[bad]} as "
+                f"{codes[bad]!r} where an earlier layer says {reference[bad]!r}; layers "
+                "of one schedule must define the same TOU periods"
+            )
+        total += price
+    return total
+
+
 # --- the billing function --------------------------------------------------
 
 

@@ -9,11 +9,16 @@
 #   + EECC                                        <- generation, the layer a CCA replaces
 #   = Total Electric Rate
 # This spec is the delivery half. The generation half is either SDG&E's EECC (bundled) or
-# a CCA's rate (San Diego Community Power / Clean Energy Alliance) plus PCIA — deliberately
-# NOT authored yet, because which CCA applies is unresolved (see HANDOFF).
-#   EECC for reference (6/1/2026, bundled): summer on 0.34920 / off 0.12853 / super-off
-#   0.04121; winter on 0.27475 / off 0.19304 / super-off 0.10228.
-#   Residential PCIA (CCA), 2018 vintage 0.03662, 2026 vintage 0.04977.
+# a CCA's rate (San Diego Community Power / Clean Energy Alliance) plus PCIA.
+#   The bundled EECC half is NOW AUTHORED: `sdge_tou_dr1_generation_2026-06-01.yaml`
+#   (summer on 0.34920 / off 0.12853 / super-off 0.04121; winter on 0.27475 / off 0.19304 /
+#   super-off 0.10228). The two layers re-sum to SDG&E's printed Total Electric Rate and
+#   Total Adjusted CARE Rate on all twelve cells — see tests/tariffs/test_sdge_layers.py.
+#   Still NOT authored: the CCA overlay (a CCA's own generation rate + the vintaged PCIA),
+#   because which CCA applies is unresolved. Residential PCIA per the 6/1/2026 sheet:
+#   2018 vintage 0.03670, 2026 vintage 0.04987 (an earlier retrieval recorded here read
+#   0.03662 / 0.04977; the printed sheet values supersede those). Full table is quoted in
+#   the generation spec's header.
 #
 # NON-BYPASSABLE CHARGES (differentiation invariant 4). Folded into the energy rates below,
 # but itemised here because the NBC set is what floors an import bill under NEM:
@@ -32,14 +37,23 @@
 #   They compose: a NEM customer pays NBCs on imports AND cannot fall below the daily
 #   minimum bill. Nothing to arbitrate.
 #
-# ⚠ OPEN CONFLICT — the super-off-peak window. SDG&E's tariff-book sheet for TOU-DR1 was
-#   last revised in 2018 (Advice 3167-E) and shows weekday super-off-peak 10:00-14:00 in
-#   MARCH AND APRIL ONLY. SDG&E's current customer-facing pricing page (showing pricing
-#   effective 6/1/2026, the same date as the rate table this spec uses) shows weekday
-#   super-off-peak 10:00-14:00 with NO month restriction. This spec follows the CURRENT
-#   published table (year-round) because it matches the rate vintage; the stale sheet is
-#   the only source for the Mar/Apr restriction. Confirm against a current tariff sheet
-#   before any dollar figure ships. This is material for ten months of the year.
+# ✔ SUPER-OFF-PEAK WINDOW — RESOLVED 2026-09-07 in favour of YEAR-ROUND. The apparent
+#   conflict was a real 2026 tariff change, not a documentation error: SDG&E extended the
+#   weekday 10:00-14:00 super-off-peak window from March-and-April-only to year-round
+#   **effective 2026-05-01**. Sources (both SDG&E's own, retrieved 2026-09-07): "New
+#   Daytime Super Off-Peak Hours Give Customers More Ways to Lower Electric Bills"
+#   (sdgetoday.com/NewSuperPeakHours) and sdge.com/super-off-peak-residential — "The
+#   weekday 10 a.m. to 2 p.m. super off-peak hours were previously only available in March
+#   and April. Now, you can take advantage of lower-priced energy during this time all year
+#   long" — naming TOU-DR-1, TOU-DR, TOU-DR-P, EV-TOU-5, DR-SES and TOU-ELEC. Corroborated
+#   by contemporaneous local coverage (KPBS 2026-05-01, NBC 7, CBS 8).
+#   So the Mar/Apr restriction on the tariff-book sheet (Advice 3167-E, last revised 2018)
+#   is SUPERSEDED for this 2026-06-01 vintage, and the year-round rules below are correct.
+#   HONEST CAVEAT: the superseding advice letter and revised Cal. P.U.C. sheet were not
+#   located; the evidence is SDG&E's customer-facing publications, not a tariff sheet.
+#   Any spec vintage effective BEFORE 2026-05-01 must restore `months: [3, 4]` on the
+#   weekday 10:00-14:00 rule. `tests/tariffs/test_sdge_layers.py` pins the year-round
+#   behaviour so a regression cannot silently reprice ten months of the year.
 # ---------------------------------------------------------------------------------------
 schedule_id: TOU-DR1
 name: Residential Time-of-Use (SDG&E default) - Delivery

@@ -86,3 +86,29 @@ minimum_bill:
     SDG&E Minimum Bill $0.329/day, 50% discount for CARE/FERA -> $0.164/day, per Schedule
     TOU-DR1 Cal. P.U.C. Sheet 29955-E (Advice 3167-E); the current Total Rates Table does
     not restate it. Confirm currency before relying on the floor binding.
+
+# The non-bypassable charge set, billed on GROSS imports under the Net Billing Tariff and
+# not reducible by any export credit except ACC Plus (Schedule NBT SC 2.f). Identical in
+# every component to TOU-DR1 — see that spec for the full rationale, the
+# `included_in_energy_rate` mechanic (these are ALREADY inside the `energy` rates above, so
+# netting CARVES them out of the offsettable subtotal rather than adding a line), and the
+# CARE treatment. Verified against this schedule's own 6/1/2026 table rather than copied on
+# faith: TOU-DR2's UDC total is period-differentiated in summer (0.33396 vs 0.32750) but
+# every NBC component is period- and season-INVARIANT, so the floor is one number.
+#   PPP 0.01515 + ND 0.00000 + CTC (0.00007) + WF-NBC/DWR-BC 0.00591 = 0.02099 (standard)
+#   CARE: 0.65 x (0.01515 + 0.00000 - 0.00007) = 0.00980, WF-NBC/DWR-BC exempt.
+non_bypassable:
+  included_in_energy_rate: true
+  components:
+    Public Purpose Programs:       {standard:  0.01515, care: 0.00985}
+    Nuclear Decommissioning:       {standard:  0.00000, care: 0.00000}
+    Competition Transition Charge: {standard: -0.00007, care: -0.00005}
+    Wildfire Fund / DWR Bond:      {standard:  0.00591, care: 0.00000}
+  citation: >-
+    SDG&E "Schedule TOU-DR2 - Residential Time of Use Service Effective 6/1/2026" Total
+    Rates Table, PPP / ND / CTC and WF-NBC + DWR-BC columns, and the matching TOU-DR2-CARE
+    table, both retrieved 2026-09-07. Classed non-bypassable per PG&E Schedule NBT Cal.
+    P.U.C. Sheet 57359-E SC 2.f (Public Purpose Program, Nuclear Decommissioning,
+    Competition Transition, Wildfire Fund). CARE WF-NBC exemption: Schedule TOU-DR1 Cal.
+    P.U.C. Sheet 29953-E note 3 — the CARE table's total is exactly 0.00591 below the
+    standard total. CARE values = 0.65 x standard per the printed "CARE Discount 35%".

@@ -33,20 +33,44 @@ and is regenerated from the golden-bill regression suite.
 
 ## Status
 
-**M0 — PG&E bill reconciliation (in progress).** Green Button interval parser →
-versioned tariff spec → itemized monthly bill, gated on reproducing the last 3 real
-PG&E bills within ±$2 each.
+Milestones are defined in [ROADMAP.md](ROADMAP.md); a milestone counts as done only when
+its definition of done is *demonstrated*, not merely implemented.
+
+| Milestone | State |
+|---|---|
+| **M0** — PG&E bill reconciliation | **Done.** All 11 real statements reproduced within ±$2 (worst +$0.22), from the household's own hourly interval data. The table above is the artifact. |
+| **M1** — SDG&E engine + CCA overlay | **Engine built, DoD blocked on data.** SDG&E TOU-DR1 / TOU-DR2 / EV-TOU-5 delivery specs, the TOU-DR1 bundled generation (EECC) layer, climate-zone baseline allowances and the non-bypassable-charge set all ship and are tariff-exact — the delivery and generation layers re-sum to SDG&E's own published Total Electric Rate and Total Adjusted CARE Rate on every cell. The DoD needs three real SDG&E bills, which no household can currently supply. The CCA generation overlay is deliberately un-authored until which CCA applies is known. |
+| **M2** — Rate optimizer | **Done on the PG&E household.** One command ranks every eligible schedule with CCA on/off, and reports the annual delta, a component-level explanation, a sensitivity note and an assumption audit. The utility's own free comparison tool was unavailable for cross-check, which is stated in the output. |
+| **M3** — NEM 3.0 solar + battery | **Engine complete, DoD blocked on data.** Real per-vintage ACC export tables with nine-year PTO lock-in, Net Billing Tariff settlement, the non-bypassable import floor, PVWatts production, greedy *and* LP battery dispatch, payback, and Monte Carlo ranges. The DoD needs one real household with solar/export interval data; none is available, and a synthetic load is not a substitute. |
+| **M4** — Public methodology + case study | Not started. |
+| **M5** — First external users | Not started. |
+
+Two findings the engine produced that generic calculators miss: on SDG&E the published
+2025, 2026 and current export-rate tables are byte-identical, so the nine-year vintage
+lock-in confers no dollar advantage there — the opposite of the pitch installers cite; and
+on Schedule EV-TOU-5 roughly 45% of the super-off-peak delivery charge is non-bypassable
+(against ~6.5% in other windows), because the schedule discounts distribution but not the
+non-bypassable charges.
 
 ## Development
 
 ```bash
 conda env create -f environment.yml   # first time
 conda activate energy-advisor
-pytest                                 # run the suite
+pytest                                 # run the suite (166 tests)
 ruff check . && ruff format --check .  # lint / format
+```
+
+Reports (each needs `PYTHONPATH=src`, since only pytest picks up `src/` automatically):
+
+```bash
+PYTHONPATH=src python scripts/reconcile_report.py   # the trust artifact: line-item bill comparison
+PYTHONPATH=src python scripts/rate_optimizer.py     # M2: rate ranking, sensitivity, assumption audit
+PYTHONPATH=src python scripts/nem3_report.py        # M3: solar + battery under the Net Billing Tariff
 ```
 
 Package layout lives under `src/` (`greenbutton`, `tariffs`, `nem3`, `scenarios`,
 `uncertainty`, `report`). Real Green Button exports and bills live in `data/` and
 `tests/golden_bills/raw/`, both git-ignored — nothing personally identifiable is ever
-committed.
+committed. Golden-bill tests skip cleanly when `data/` is absent, so the suite is green on
+a fresh clone.

@@ -2,6 +2,89 @@
 
 Running log of decisions made and decisions pending. Newest first.
 
+## 2026-09-07 — Session 6 (SDG&E generation layer; open decision 1 closed)
+
+**166 tests green (was 133, +33), ruff clean, 11/11 PG&E golden bills still reconcile**
+(worst +$0.22 — unchanged; all of this session's work is additive). Took HANDOFF
+next-actions #1, #2 and #3.
+
+### RESOLVED — open decision 1, the TOU-DR1 super-off-peak window
+The two SDG&E sources did not actually conflict; **the tariff changed**. SDG&E extended the
+weekday 10:00-14:00 super-off-peak window from March-and-April-only to **year-round,
+effective 2026-05-01**. Sources (SDG&E's own, retrieved 2026-09-07):
+sdgetoday.com/NewSuperPeakHours and sdge.com/super-off-peak-residential — "previously only
+available in March and April. Now ... all year long" — naming TOU-DR-1, TOU-DR, TOU-DR-P,
+EV-TOU-5, DR-SES and TOU-ELEC; corroborated by KPBS/NBC7/CBS8 coverage dated 2026-05-01.
+So the existing specs (which followed the current pricing page) were **already right**, and
+the 2018 tariff-book sheet is superseded, not contradictory.
+**Honest caveat recorded in-spec:** the superseding advice letter and revised Cal. P.U.C.
+sheet were NOT located — the evidence is SDG&E's customer-facing publications, not a tariff
+sheet. Any spec vintage effective before 2026-05-01 must restore `months: [3, 4]`.
+Pinned by `test_super_off_peak_is_year_round_on_weekdays_not_march_april_only`.
+**This unblocks every SDG&E dollar figure.**
+
+### DONE — `sdge_tou_dr1_generation_2026-06-01.yaml` (bundled EECC), next-action #1
+The missing half of SDG&E. Values read off the 6/1/2026 Total Rates Table EECC column:
+summer on 0.34920 / off 0.12853 / super-off 0.04121; winter 0.27475 / 0.19304 / 0.10228.
+CARE is **derived and then proved**, not assumed: SDG&E prints no CARE EECC rate, only
+`Total Adjusted CARE = (UDC + EECC - 0.00864) x 0.65`. Splitting that across layers gives
+generation CARE = 0.65 x EECC, and delivery + generation then rebuilds SDG&E's printed
+totals on **all twelve cells** (6 season x period, standard and CARE) — new gate file
+`tests/tariffs/test_sdge_layers.py`, 23 tests.
+**Structural finding worth keeping: on TOU-DR1 the UDC total is 0.32948 for every period
+and both seasons, so 100% of the schedule's TOU price signal lives in the generation layer**
+(summer on/super-off spread 0.30799/kWh; winter 0.17247). Every SDG&E load-shift, battery
+and export-timing conclusion rests on those six numbers — which is exactly why reusing
+delivery as a generation stand-in produced a *flat* price signal and understated arbitrage.
+Also corrected in passing: the delivery spec's comment quoted PCIA 2018/2026 as
+0.03662/0.04977; the 6/1/2026 sheet prints **0.03670 / 0.04987**. Full vintage table is now
+recorded in the generation spec header for whenever the CCA overlay is written.
+
+### DONE — NBC blocks on TOU-DR2 and EV-TOU-5, next-action #3
+Both verified against their own 6/1/2026 tables rather than copied from TOU-DR1: the
+component set is identical and **period- and season-invariant** (PPP 0.01515 + ND 0.00000 +
+CTC (0.00007) + WF-NBC/DWR-BC 0.00591 = 0.02099 std; 0.00980 CARE). Every SDG&E delivery
+spec can now be settled under NBT; a test asserts none may reach the NEM engine without a
+declared import floor.
+**⭐ FINDING — EV-TOU-5 is the interesting schedule for NEM.** It collapses its
+super-off-peak distribution charge (UDC 0.04114 vs 0.31711 elsewhere) but does NOT discount
+the NBCs, so in that window **~45% of the entire delivery charge is non-bypassable**
+(0.02099 of 0.04705 std; 0.00980 of 0.02113 CARE) versus ~6.5% in the other windows. A
+calculator netting exports against the headline delivery rate overstates the value of
+shifting imports into super-off-peak on this schedule by roughly 2x.
+Also fixed a wrong comparison in the EV-TOU-5 spec header that compared the CARE rate
+against the STANDARD NBC total and concluded "essentially the entire delivery charge";
+the like-for-like figures are above. Conclusion unchanged, magnitude corrected.
+
+### DONE — `marginal_energy_price` / `period_codes` in `tariffs/bill.py`
+`scripts/nem3_report.py` was arbitraging against a **hand-typed** price vector
+(0.62 / 0.40 / 0.22 on / off / super-off). With both layers real, the price now comes from
+the specs the biller uses. The typed vector was wrong in the direction that matters:
+**TOU-DR1's real super-off-peak total is 0.37660, not 0.22 — a 71% understatement of the
+cost of importing in exactly the window a battery charges in**, which biased arbitrage
+toward buying the battery. The helper is version-aware (picks the spec in effect on each
+day, as `compute_bill` does), excludes fixed charges / baseline credit / minimum bill
+(marginal, not average), and **raises rather than extrapolating** to a date no spec version
+covers, and rejects layers that classify an hour differently.
+
+### CONSEQUENCE — the M3 demo window moved to 2026-06-01 .. 2027-05-31
+Because the helper refuses to invent rates, the report can no longer run over calendar 2026:
+the only committed SDG&E vintage starts 2026-06-01. Rather than fake the first five months,
+the analysis window is now the twelve months the specs actually cover. Transcribing SDG&E's
+1/1/2026 and 4/1/2026 tables (with the pre-May Mar/Apr super-off-peak window) would restore
+a calendar-year run — recorded as an open item, not done.
+New report output (bundled, standard, coastal_basic, synthetic 6,264 kWh load, 5 kW array):
+baseline $3,022/yr; solar only $1,855 (save $1,168, 9.0 yr); solar+battery greedy $505
+(save $2,518, 7.5 yr); LP $427 (save $2,595, 7.3 yr); NBC floor $86/yr. Dollar totals are
+now REAL for a bundled SDG&E household — only the LOAD is still synthetic.
+
+### Still open after this session
+- CCA generation overlay (which CCA is unknown) — the one remaining SDG&E layer.
+- SDG&E ACC Plus unconfirmed; `acc_plus_eligible=False` remains the conservative path.
+- TOU-DR-P still deliberately unloadable (RYU Event Adder, open decision 2).
+- Earlier-2026 SDG&E rate vintages not transcribed (see the window note above).
+
+
 ## 2026-07-25 — Session 5 (M3 groundwork: NEM 3.0 solar + battery, all four items)
 
 **133 tests green (was 96, +37), ruff clean, 11/11 PG&E golden bills still reconcile**

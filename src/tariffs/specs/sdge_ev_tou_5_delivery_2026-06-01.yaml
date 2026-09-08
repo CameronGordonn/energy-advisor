@@ -61,9 +61,13 @@ fixed_per_day:
 #   on-peak / off-peak  UDC 0.31711 -> std 0.32302, care 0.65 x 0.30847 = 0.20051
 #   super-off-peak      UDC 0.04114 -> std 0.04705, care 0.65 x 0.03250 = 0.02113
 # (Derivation and its exact validation against the printed CARE totals: see TOU-DR1.)
-# Note the super-off-peak CARE delivery rate of 2.1c/kWh is BELOW the non-bypassable
-# charge set (2.099c) — i.e. on this schedule, in this window, essentially the entire
-# delivery charge is non-bypassable. Worth surfacing in any NEM/battery analysis.
+# Note how little of the super-off-peak delivery charge is bypassable: the NBC set is
+# period-invariant while the distribution charge collapses, so about HALF this window's
+# delivery charge is non-bypassable (0.02099 of 0.04705 standard; 0.00980 of 0.02113 CARE)
+# against ~6.5% in the other windows. See the `non_bypassable:` block at the end of this
+# file. (An earlier note here compared the CARE rate against the STANDARD NBC total and so
+# overstated this as "essentially the entire delivery charge"; the like-for-like figures
+# above are the correct ones. The conclusion for NEM/battery analysis is unchanged.)
 energy:
   summer_on_peak:        {standard: 0.32302, care: 0.20051}
   summer_off_peak:       {standard: 0.32302, care: 0.20051}
@@ -83,3 +87,34 @@ minimum_bill:
 
 # EECC (generation) for reference, 6/1/2026 bundled: summer 0.47019 / 0.17311 / 0.08147;
 # winter 0.19990 / 0.14337 / 0.07410 (on / off / super-off).
+
+# The non-bypassable charge set, billed on GROSS imports under the Net Billing Tariff and
+# not reducible by any export credit except ACC Plus (Schedule NBT SC 2.f). Component
+# values are identical to TOU-DR1 and TOU-DR2 — verified against EV-TOU-5's own 6/1/2026
+# table, not copied on faith. See the TOU-DR1 spec for the full rationale and the
+# `included_in_energy_rate` mechanic (these are ALREADY inside the `energy` rates above, so
+# netting CARVES them out of the offsettable subtotal rather than adding a line).
+#   PPP 0.01515 + ND 0.00000 + CTC (0.00007) + WF-NBC/DWR-BC 0.00591 = 0.02099 (standard)
+#   CARE: 0.65 x (0.01515 + 0.00000 - 0.00007) = 0.00980, WF-NBC/DWR-BC exempt.
+#
+# ⭐ WHY THIS SCHEDULE IS THE INTERESTING ONE FOR NEM. EV-TOU-5 collapses its super-off-peak
+# distribution charge (UDC 0.04114 vs 0.31711 in every other window) but does NOT discount
+# the NBCs, which are period- and season-invariant. So in super-off-peak the floor is
+# roughly HALF the entire delivery charge — 0.02099 of 0.04705 standard (45%), 0.00980 of
+# 0.02113 CARE (46%) — against ~6.5% in the on-peak and off-peak windows. A NEM analysis
+# that nets exports against a headline delivery rate will overstate the value of shifting
+# imports into super-off-peak on this schedule by about a factor of two.
+non_bypassable:
+  included_in_energy_rate: true
+  components:
+    Public Purpose Programs:       {standard:  0.01515, care: 0.00985}
+    Nuclear Decommissioning:       {standard:  0.00000, care: 0.00000}
+    Competition Transition Charge: {standard: -0.00007, care: -0.00005}
+    Wildfire Fund / DWR Bond:      {standard:  0.00591, care: 0.00000}
+  citation: >-
+    SDG&E "Schedule EV-TOU-5 - Domestic Time-of-Use for Households with Electric Vehicles,
+    Effective 6/1/2026" Total Rates Table, PPP / ND / CTC and WF-NBC + DWR-BC columns, and
+    the matching EV-TOU-5-CARE table, both retrieved 2026-09-07. Classed non-bypassable per
+    PG&E Schedule NBT Cal. P.U.C. Sheet 57359-E SC 2.f. CARE WF-NBC exemption: Schedule
+    TOU-DR1 Cal. P.U.C. Sheet 29953-E note 3. CARE values = 0.65 x standard per the printed
+    "CARE Discount 35%".

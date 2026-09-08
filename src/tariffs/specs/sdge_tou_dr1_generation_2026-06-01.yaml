@@ -1,0 +1,114 @@
+# SDG&E Schedule EECC matched to TOU-DR1 — GENERATION layer (bundled commodity).
+#
+# WHY THIS EXISTS. Until now every SDG&E dollar figure in this repo was structural only:
+# `scripts/nem3_report.py` reused the TOU-DR1 *delivery* spec as a stand-in for generation,
+# so the NBT netting, the NBC import floor and the ACC vintage logic were exact while the
+# TOTALS were illustrative. This layer is the missing half. With it, a bundled SDG&E
+# residential bill — and therefore every M3 solar/battery dollar figure computed on one —
+# is real end to end.
+#
+# HOW IT COMPOSES. SDG&E's own rate table splits the bill exactly the way this repo does:
+#     UDC Total (Transm + Distr + PPP + ND + CTC + LGC + RS + TRAC)  <- delivery spec
+#   + WF-NBC + DWR-BC                                                <- delivery spec (NBC)
+#   + EECC                                                           <- THIS SPEC
+#   = Total Electric Rate
+# So `sdge_tou_dr1_delivery_2026-06-01` + this spec = the printed Total Electric Rate, and
+# `tests/tariffs/test_sdge_layers.py` asserts that identity to 1e-10 on all twelve cells
+# (6 season x period, standard and CARE) rather than trusting the arithmetic here.
+#
+# THE CARE SPLIT IS DERIVED FROM THE TARIFF, NOT ASSUMED. SDG&E does not print a CARE EECC
+# rate; the CARE table prints the standard components and then two adjustment columns:
+#     Total Adjusted CARE Rate = (UDC + EECC - CARE surcharge exemption 0.00864) x 0.65
+# Splitting that across layers — delivery keeps the exemption, each layer takes the 35%
+# discount — gives generation CARE = 0.65 x EECC, and the two layers then re-sum to SDG&E's
+# printed Total Adjusted CARE Rate **exactly on all six cells** (verified in the test, max
+# residual 0.0; e.g. summer on-peak 0.208546 + 0.226980 = 0.435526 -> printed 0.43553).
+# That exact reconstruction is the evidence the split is right, not a convention.
+#
+# WHAT A CCA CUSTOMER DOES INSTEAD. Per note 2 of the rate table, unbundled (CCA/DA)
+# customers do not pay EECC at all: they pay UDC + WF-NBC + DWR-BC + their vintaged PCIA,
+# plus their CCA's own generation rate. So a CCA customer swaps THIS layer out for a
+# CCA generation spec carrying the PCIA. That overlay stays deliberately un-authored until
+# which CCA applies is known (San Diego Community Power vs Clean Energy Alliance vs SDG&E
+# bundled) — see HANDOFF. For when it is written, the residential PCIA table printed on
+# this same 6/1/2026 sheet is, by vintage ($/kWh): 2001 Legacy (0.00006), 2009 0.01538,
+# 2010 0.02010, 2011 0.03031, 2012 0.03637, 2013 0.03572, 2014 0.03572, 2015 0.03687,
+# 2016 0.03595, 2017 0.03576, 2018 0.03670, 2019 0.03450, 2020 0.03605, 2021 0.03564,
+# 2022 0.03005, 2023 0.02828, 2024 0.05055, 2025 0.04987, 2026 0.04987. (The TOU-DR1
+# delivery spec's comment quoted 0.03662 / 0.04977 for the 2018 / 2026 vintages from an
+# earlier retrieval; the values above are what the 6/1/2026 sheet prints and supersede it.)
+#
+# NOT MODELED HERE, deliberately:
+#  - The California Energy Commission surcharge ($0.0003/kWh on the PG&E specs) does NOT
+#    appear anywhere in SDG&E's Total Electric Rate table. It is not asserted here in
+#    either direction: adding it without an SDG&E source would fabricate a rate, and the
+#    layer identity test above would then fail against SDG&E's own printed total. If an
+#    SDG&E statement shows it as a separate line, add it then, with that citation.
+#  - Franchise Fee Differential 5.78% — City of San Diego only, a customer fact; see the
+#    delivery spec's closing note.
+#  - The minimum bill and the baseline adjustment credit are UDC-column items and live on
+#    the delivery layer; billing them here would double-count them.
+schedule_id: TOU-DR1
+name: SDG&E bundled generation (Schedule EECC) matched to TOU-DR1
+provider: SDG&E
+layer: generation
+effective_date: 2026-06-01
+citation: >-
+  SDG&E "Schedule TOU-DR1 - Residential Time of Use Service Effective 6/1/2026" Total Rates
+  Table, EECC Rate column (sdge.com/sites/default/files/regulatory/6-1-26 Schedule TOU-DR1
+  Total Rates Table.pdf), and the matching "6-1-26 Schedule TOU-DR1-CARE Total Rates Table"
+  for the CARE derivation, both retrieved 2026-09-07. Commodity component defined by
+  Schedule EECC (Electric Energy Commodity Cost); seasons per Schedule EECC "Seasonal
+  Periods ... Summer: June 1 - October 31, Winter: November 1 - May 31". Period definitions
+  per the TOU-DR1 delivery spec (see its citation and the super-off-peak note below).
+
+seasons:
+  # Schedule EECC seasons — NOT PG&E's Jun-Sep summer.
+  summer_months: [6, 7, 8, 9, 10]
+  winter_months: [11, 12, 1, 2, 3, 4, 5]
+
+# Identical to the delivery layer's periods — they must classify every hour the same way or
+# the two layers would price the same kWh in different buckets. The loader test asserts
+# the two specs' rules match exactly.
+#
+# ⚠ SUPER-OFF-PEAK WINDOW — the conflict flagged in HANDOFF open decision 1 is RESOLVED in
+# favour of YEAR-ROUND, and it turned out to be a genuine 2026 tariff change rather than a
+# documentation error. SDG&E extended the weekday 10:00-14:00 super-off-peak window from
+# March-and-April-only to year-round **effective 2026-05-01** ("New Daytime Super Off-Peak
+# Hours Give Customers More Ways to Lower Electric Bills", sdgetoday.com/NewSuperPeakHours;
+# sdge.com/super-off-peak-residential: "The weekday 10 a.m. to 2 p.m. super off-peak hours
+# were previously only available in March and April. Now, you can take advantage of
+# lower-priced energy during this time all year long", naming TOU-DR-1, TOU-DR, TOU-DR-P,
+# EV-TOU-5, DR-SES and TOU-ELEC; both retrieved 2026-09-07). The Mar/Apr restriction in
+# SDG&E's tariff-book sheet (Advice 3167-E, last revised 2018) is therefore SUPERSEDED for
+# this 2026-06-01 vintage, not contradictory. Caveat kept honest: the superseding advice
+# letter and revised Cal. P.U.C. sheet were NOT located — the sources are SDG&E's own
+# customer-facing publications, not a tariff sheet. A pre-2026-05-01 spec vintage must use
+# `months: [3, 4]` on the 10:00-14:00 weekday rule.
+tou:
+  rules:
+    - {period: on_peak, hours: [[16, 21]]}
+    - {period: super_off_peak, hours: [[0, 6], [10, 14]], days: weekday}
+    - {period: super_off_peak, hours: [[0, 14]], days: weekend}
+  default_period: off_peak
+  holiday_calendar: sdge_residential
+  labels: {on_peak: On-Peak, off_peak: Off-Peak, super_off_peak: Super Off-Peak}
+
+# EECC $/kWh. `standard` is the EECC Rate column read straight off the 6/1/2026 table.
+# `care` = 0.65 x standard, the 35% CARE discount applied to this layer's share (see the
+# header — the reconstruction of SDG&E's printed Total Adjusted CARE Rate is what verifies
+# it). Full precision is kept rather than rounding to 5 dp so the layer sum is exact.
+#
+# Note the shape of this table, which is the whole reason the delivery/generation split
+# matters on SDG&E: UDC Total is 0.32948 for EVERY period and BOTH seasons, so *all* of
+# TOU-DR1's time-of-use price signal lives in this layer. Summer on-peak EECC (0.34920) is
+# 8.5x super-off-peak (0.04121); the summer on/super-off spread is 0.30799/kWh, and the
+# winter spread 0.17247. Any load-shifting, battery-arbitrage or export-timing conclusion
+# on SDG&E is driven by these six numbers.
+energy:
+  summer_on_peak:        {standard: 0.34920, care: 0.2269800}
+  summer_off_peak:       {standard: 0.12853, care: 0.0835445}
+  summer_super_off_peak: {standard: 0.04121, care: 0.0267865}
+  winter_on_peak:        {standard: 0.27475, care: 0.1785875}
+  winter_off_peak:       {standard: 0.19304, care: 0.1254760}
+  winter_super_off_peak: {standard: 0.10228, care: 0.0664820}

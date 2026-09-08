@@ -34,6 +34,7 @@ from nem3.acc import ExportRateSchedule, Vintage
 from nem3.netting import NbtSettings
 from nem3.payback import InstallCosts, compare_vintage_timing, evaluate
 from nem3.pvwatts import ProductionResult, SystemSpec
+from tariffs.bill import marginal_energy_price
 from tariffs.loader import load_spec_versions
 from tariffs.schema import Layer, Service
 from uncertainty.montecarlo import simulate_payback
@@ -41,10 +42,32 @@ from uncertainty.montecarlo import simulate_payback
 YEAR = 2026
 TZ = "America/Los_Angeles"
 
+# The analysis window is the twelve months from 2026-06-01, NOT calendar 2026, because
+# that is the span the committed SDG&E specs actually cover: the TOU-DR1 delivery and
+# generation layers are both effective 2026-06-01, and SDG&E's earlier 2026 vintages
+# (1/1/2026 and 4/1/2026 rate tables, and the pre-2026-05-01 March/April-only super-off-peak
+# window) are not transcribed. `marginal_energy_price` refuses to price a date no spec
+# covers rather than extrapolating backwards, so this window is enforced, not just
+# documented. Transcribing the earlier vintages would let this run over calendar 2026.
+START = date(YEAR, 6, 1)
+END = date(YEAR + 1, 5, 31)  # inclusive
+
+
+def _window(idx: pd.DatetimeIndex) -> pd.DatetimeIndex:
+    lo = pd.Timestamp(START, tz=TZ)
+    hi = pd.Timestamp(END + timedelta(days=1), tz=TZ)
+    return idx[(idx >= lo) & (idx < hi)]
+
+
+def _analysis_index() -> pd.DatetimeIndex:
+    """Hourly local timestamps over [START, END], spanning two calendar years."""
+    full = pd.date_range(f"{YEAR}-01-01", f"{YEAR + 1}-12-31 23:00", freq="h", tz=TZ)
+    return _window(full)
+
 
 def illustrative_load() -> IntervalSeries:
     """A synthetic evening-peaked San Diego household, ~6,500 kWh/yr. NOT real meter data."""
-    idx = pd.date_range(f"{YEAR}-01-01", periods=8760, freq="h", tz=TZ)
+    idx = _analysis_index()
     h = idx.hour.values
     doy = idx.dayofyear.values
     base = 0.45 + 0.9 * np.exp(-((h - 20) ** 2) / 6) + 0.3 * np.exp(-((h - 7) ** 2) / 5)
@@ -60,7 +83,12 @@ def illustrative_load() -> IntervalSeries:
 
 
 def illustrative_production(system_kw: float) -> pd.Series:
-    """A synthetic clear-sky-ish daily bell for a south array. NOT a PVWatts fetch."""
+    """A synthetic clear-sky-ish daily bell for a south array. NOT a PVWatts fetch.
+
+    Built per calendar year and then sliced to the analysis window, because that is how a
+    real PVWatts result arrives (a generic 8760 mapped onto one year's wall clock) — see
+    ``ProductionResult.to_series``.
+    """
     idx = pd.date_range(f"{YEAR}-01-01", periods=8760, freq="h", tz=TZ)
     h = idx.hour.values
     doy = idx.dayofyear.values
@@ -74,30 +102,20 @@ def illustrative_production(system_kw: float) -> pd.Series:
         source="synthetic-illustrative",
         fetched_at="n/a",
     )
-    return result.to_series(YEAR)
+    both = pd.concat([result.to_series(YEAR), result.to_series(YEAR + 1)])
+    return both[_window(pd.DatetimeIndex(both.index))]
 
 
 def monthly_periods() -> list[tuple[date, date]]:
+    """Calendar-month billing periods over the analysis window."""
     out = []
-    d = date(YEAR, 1, 1)
-    while d <= date(YEAR, 12, 31):
-        e = date(YEAR, 12, 31) if d.month == 12 else date(YEAR, d.month + 1, 1) - timedelta(days=1)
+    d = START
+    while d <= END:
+        nxt = date(d.year + (d.month == 12), d.month % 12 + 1, 1)
+        e = min(nxt - timedelta(days=1), END)
         out.append((d, e))
         d = e + timedelta(days=1)
     return out
-
-
-def tou_dr1_prices(index: pd.DatetimeIndex) -> np.ndarray:
-    """Marginal retail import $/kWh by hour for battery dispatch (TOU-DR1 shape, standard).
-
-    On-peak 16-21, super-off-peak 0-6 and 10-14, off-peak otherwise — the delivery energy
-    rate is flat on TOU-DR1, so the arbitrage signal is dominated by the generation (EECC)
-    shape, approximated here from the schedule's own on/off/super-off ratio.
-    """
-    h = index.hour.values
-    return np.where(
-        (h >= 16) & (h < 21), 0.62, np.where((h < 6) | ((h >= 10) & (h < 14)), 0.22, 0.40)
-    )
 
 
 def main() -> None:
@@ -106,10 +124,13 @@ def main() -> None:
     production = illustrative_production(system_kw)
 
     delivery = load_spec_versions("TOU-DR1", Layer.DELIVERY)
-    # Generation layer is not yet authored for SDG&E (the CCA/EECC overlay is deferred), so
-    # delivery is reused as a stand-in for the generation layer here. Dollar totals are
-    # therefore illustrative; the STRUCTURE — netting, NBC floor, lock-in — is exact.
-    generation = delivery
+    # Both halves of the schedule are now real: SDG&E's UDC + WF-NBC/DWR-BC (delivery) and
+    # Schedule EECC (generation, bundled). The two re-sum to SDG&E's own printed Total
+    # Electric Rate — see tests/tariffs/test_sdge_layers.py — so the dollar totals below are
+    # no longer illustrative for a BUNDLED SDG&E household. (A CCA customer pays their CCA's
+    # generation rate plus the vintaged PCIA instead of EECC; that overlay is still
+    # un-authored, so this run is bundled-only. The LOAD remains synthetic — see below.)
+    generation = load_spec_versions("TOU-DR1", Layer.GENERATION)
 
     settings = NbtSettings(
         care=False,
@@ -123,7 +144,13 @@ def main() -> None:
     )
     periods = monthly_periods()
     idx = load.frame.index
-    imp_price = tou_dr1_prices(idx)
+    # Marginal retail import $/kWh, read off the same two specs the biller uses, so the
+    # dispatch model and the settlement cannot disagree about what an imported kWh costs.
+    # This replaces a hand-typed vector (0.62 / 0.40 / 0.22 on / off / super-off) that was
+    # wrong in the direction that matters: TOU-DR1's real super-off-peak total is 0.37660,
+    # not 0.22 — a 71% understatement of the cost of importing in exactly the window a
+    # battery is most likely to charge in, which biased arbitrage toward the battery.
+    imp_price = marginal_energy_price([delivery, generation], idx, care=settings.care)
     exp_price = (schedule.rates(idx)["delivery"] + schedule.rates(idx)["generation"]).to_numpy()
 
     print("=" * 78)
@@ -150,13 +177,13 @@ def main() -> None:
         costs=InstallCosts(),
     )
 
-    print(f"{'Scenario':<48}{'bill/yr':>10}{'save/yr':>10}{'payback':>10}")
-    print("-" * 78)
+    print(f"{'Scenario':<56}{'bill/yr':>10}{'save/yr':>10}{'payback':>10}")
+    print("-" * 86)
     baseline = scenarios[0].annual_bill + scenarios[0].annual_savings
-    print(f"{'No solar (baseline)':<48}{baseline:>10,.0f}{'—':>10}{'—':>10}")
+    print(f"{'No solar (baseline)':<56}{baseline:>10,.0f}{'—':>10}{'—':>10}")
     for s in scenarios:
         pb = "never" if not s.pays_back else f"{s.simple_payback_years:.1f} yr"
-        print(f"{s.name:<48}{s.annual_bill:>10,.0f}{s.annual_savings:>10,.0f}{pb:>10}")
+        print(f"{s.name:<56}{s.annual_bill:>10,.0f}{s.annual_savings:>10,.0f}{pb:>10}")
 
     solar = scenarios[0]
     detail = solar.detail
