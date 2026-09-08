@@ -42,11 +42,16 @@ _(2026-09-07, session 8)_
   `MinimumBill`, per-kWh surcharges, `NonBypassable`, `period_codes`, and
   **`marginal_energy_price`** (version-aware per-interval retail price; refuses dates no spec
   covers; rejects layers that classify an hour differently).
-- **Specs (27 files, 13 schedule-layers)**: PG&E E-TOU-C (4 vintages) / E-TOU-D / EV2-A / E-1
+- **Specs (28 files, 14 schedule-layers)**: PG&E E-TOU-C (4 vintages) / E-TOU-D / EV2-A / E-1
   delivery, each with matched 3CE and PG&E-bundled generation; **SDG&E TOU-DR1 delivery +
   generation in four vintages (2026-01-01, -04-01, -05-01, -06-01)**; TOU-DR2, EV-TOU-5,
   TOU-DR-P (deliberately unloadable). Every SDG&E delivery spec carries a `non_bypassable`
-  block and is covered by the NBT-settleability test.
+  block and is covered by the NBT-settleability test. **CCA overlay: Clean Energy Alliance
+  generation (`cea_tou_dr1_generation_2026-06-01.yaml`)**, and every SDG&E TOU-DR1 delivery
+  vintage carries the **vintaged PCIA** as an `applies_to: cca` adder whose vintage is
+  supplied at bill time (`compute_bill(..., vintage="2018")`) and raises if omitted.
+  **`load_specs`/`load_spec_versions` now take `provider`** and raise when several suppliers
+  match — bundled EECC and a CCA are both "TOU-DR1 generation".
 - **M2 optimizer**: `scripts/rate_optimizer.py` — ranking, verdict, component-level *why*,
   sensitivity, assumption audit.
 - **M3 NEM 3.0 engine** (`src/nem3/`): `acc.py`, `netting.py`, `solar.py`, `pvwatts.py`,
@@ -143,10 +148,16 @@ the artifact URL is a preview.
    and any export register before anything tries to price it. If it refuses the file, that is
    the SDG&E parser meeting reality for the first time; fix the parser, do not fix the file.
 1. **DONE — repo and site are live.** See the Publishing section above.
-2. **CCA generation overlay** — a CCA's own generation rate + the vintaged PCIA, replacing
-   EECC. The PCIA vintage tables for **all four** 2026 SDG&E vintages are now recorded in the
-   generation spec headers, so only *which CCA* is missing (San Diego Community Power vs Clean
-   Energy Alliance). This is now the largest unblocked SDG&E gap.
+2. **San Diego Community Power overlay — needs ONE manual download.** Clean Energy Alliance
+   is done (session 9). SDCP's *current* schedule is effective **2026-05-01** and cannot be
+   fetched here: sdcommunitypower.org returns HTTP 403 to scripted requests and the PDF links
+   do not survive markdown conversion. **Ask Cameron to download it from
+   https://sdcommunitypower.org/residential-rates/ into `data/`** — there are TWO, pick by
+   jurisdiction: *San Diego / Chula Vista / Encinitas / Imperial Beach / La Mesa* (2021
+   cohort) vs *National City / unincorporated county* (2022 cohort). The 1/1/2026 figures are
+   already transcribed in SESSION_NOTES §Session 9; a January-only spec was deliberately NOT
+   authored, because `load_specs` takes the newest version on or before the bill date and
+   would silently price today at January rates. Default product is **PowerOn**.
 3. **Confirm SDG&E ACC Plus** from an SDG&E NBT sheet. `acc.acc_plus_table` raises for SDG&E;
    `acc_plus_eligible=False` is the conservative path.
 4. **Other SDG&E schedules' earlier 2026 vintages** — TOU-DR2 and EV-TOU-5 still exist only at

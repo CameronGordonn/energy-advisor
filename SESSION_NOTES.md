@@ -2,6 +2,95 @@
 
 Running log of decisions made and decisions pending. Newest first.
 
+## 2026-09-08 — Session 9 (CCA overlay: vintaged PCIA + Clean Energy Alliance)
+
+Commit `dd96f12`. **384 tests green (was 357), ruff clean, 11/11 PG&E golden bills reconcile
+with identical residuals, M2 verdict unchanged.** Dad's SDG&E data had NOT arrived (checked:
+`data/` unchanged since July, nothing SDG&E-shaped on disk), so next-action #0 stayed blocked
+and this took next-action #2.
+
+### DECISION — author the CCAs rather than wait to learn which one dad is on
+HANDOFF had the overlay blocked on "which CCA". That is only a blocker if you author one.
+Both San Diego CCAs publish their residential rates, so doing both dissolves the dependency
+and means whichever one he is on, his bill goes straight to reconciliation instead of
+waiting a further session. CLAUDE.md invariant 4 names this work explicitly.
+
+### DONE — the PCIA is now VINTAGED, and the vintage is never guessed
+`PerKwhAdder` gained `per_kwh_by_vintage` + `vintage_pin`, selected by a `vintage` argument
+threaded through `compute_layer` / `compute_bill` / `NbtSettings` — deliberately the same
+shape as `Baseline.allowances` + `territory`, and raising the same way rather than
+defaulting. All four SDG&E TOU-DR1 delivery vintages now carry the CCA column of their own
+sheet's PCIA table (the 1/1/2026 sheet prints a different table from 4/1 onward, so each
+carries its own; the 2001 Legacy vintage is absent because it is Direct-Access-only).
+**Why it earns the complexity:** the CCA column spans 0.01538..0.05055 $/kWh. That 0.035
+spread is ~$211/yr on a 6,000 kWh household — more than the entire annual saving the PG&E
+case study found from switching supplier. Pinning one vintage would have been the largest
+single error a CCA bill could carry.
+
+### DONE — Clean Energy Alliance generation layer (`cea_tou_dr1_generation_2026-06-01.yaml`)
+From CEA's adopted schedule effective 6/1/2026 — the same vintage as our SDG&E delivery
+spec. Carries the **Clean Impact Residential Rate Relief Credit, -$0.03871/kWh**, a standing
+line that MORE THAN OFFSETS the 0.03670 PCIA a 2018-vintage customer pays; omitting it would
+overstate a CEA customer's cost by more than the exit fee that gets all the attention. No
+expiry is printed, so it is modeled as current-vintage-only and must be re-read next time.
+CARE: CEA's own mapping table sends TOU-DR-1 / -CARE / -MB to one CEA rate, so `care` ==
+`standard` here, read off the sheet. ⚠ That implies a CARE CCA customer gets a smaller total
+discount than a CARE bundled one — follows from the two published documents, NOT confirmed
+against a real bill, flagged in-spec.
+
+### ⭐ FINDING — CEA is not uniformly cheaper than SDG&E, it is seasonally OPPOSITE
+Against bundled EECC on the same 6/1/2026 vintage, CEA is dearer in every summer period
+(summer on-peak 0.55397 vs 0.34920, +59%) and cheaper in every winter one (winter off-peak
+0.08433 vs 0.19304, -56%). So whether a CCA wins depends on the household's seasonal shape
+and its PCIA vintage — not on the CCA. That is exactly what a board's "rates competitive
+with SDG&E's" cannot tell any individual, and exactly the question this engine settles.
+Pinned by test.
+
+### ⭐ BUG THE NEW SPEC EXPOSED — the loader had no notion of *provider*
+Bundled EECC and CEA are both legitimately `TOU-DR1` / `generation`. `_matching_specs`
+filtered on schedule_id + layer only, so adding CEA made `load_specs` pick by effective date
+across two different suppliers — a wrong answer that looks entirely right, off by up to
+20 c/kWh in a single period. `load_specs` / `load_spec_versions` now take `provider` and
+raise `AmbiguousProviderError` when several match and none was named. **Caught by two
+pre-existing tests, not by inspection** (test_sdge_vintages' version count, and the nem3
+netting test) — the argument for asserting counts rather than just properties.
+
+### CORRECTED — two claims of mine that the new tests falsified
+Both had already been written into citation-bearing spec headers, which is exactly where an
+overstatement does damage:
+1. "the vintage spread is wider than the schedule's entire super-off-peak generation rate" —
+   FALSE (0.03517 vs 0.04121). Replaced with the $211/yr framing, which is true and checkable.
+2. "the rate relief credit is larger than CEA's whole winter super-off-peak rate" — FALSE
+   (0.03871 vs 0.05138). Replaced with "more than offsets a 2018-vintage PCIA", which is true.
+
+### RESEARCH CAPTURED — San Diego Community Power, NOT yet authored (and why)
+SDCP's **current** schedule is effective **2026-05-01** and could not be retrieved: the site
+returns HTTP 403 to scripted requests, the page's PDF links do not survive markdown
+conversion, and the URL is not indexed. Only the **1/1/2026** sheet is reachable
+(`sdcommunitypower.org/wp-content/uploads/2026/01/Res_2021V_2026.pdf`).
+**Deliberately NOT authored from the January sheet alone:** `load_specs` picks the newest
+version effective on or before the bill date, so a January-only SDCP spec would silently
+price a September 2026 bill at January rates. Shipping a stale-only spec for a utility whose
+reconciliation gate is unmet is a worse failure than shipping none.
+Transcribed here so it is not re-researched — SDCP **TOU-DR-1, effective 1/1/2026**,
+PowerOn / PowerBase $/kWh:
+    summer on 0.29626 / 0.27528   off 0.08656 / 0.07884   super-off 0.01000 / 0.01000
+    winter on 0.22551 / 0.20901   off 0.14787 / 0.13627   super-off 0.06163 / 0.05548
+Products: **PowerOn is the standard plan** (53% renewable); PowerBase 45% (cheapest);
+Power100 = PowerOn + $0.01/kWh (100% renewable). Two enrollment cohorts with separate rate
+documents: **2021V** (San Diego, Chula Vista, Encinitas, Imperial Beach, La Mesa) and
+**2022V** (National City, unincorporated county) — a jurisdiction fact, like climate zone.
+**Structural contrast worth keeping:** on the matched 1/1/2026 vintage SDCP is cheaper than
+bundled EECC in *every* period (summer super-off 0.01000 vs 0.04126, -76%) — the opposite
+shape to CEA. But adding a 2018-vintage PCIA (0.03662) flips the cheapest periods: summer
+super-off becomes 0.04662 vs SDG&E's 0.04126, i.e. **the exit fee can invert the comparison
+in exactly the low-price hours a battery or EV charges in**. Worth a test once authored.
+
+### Next
+Dad's SDG&E export + bills (next-action #0) still outranks everything. After that, SDCP —
+which needs one manual PDF download, see HANDOFF.
+
+
 ## 2026-09-08 — Session 8d (the site became a tool; Green Button inspector)
 
 Cameron: "I don't want the site to just be a glorified readme — I want anyone including a
