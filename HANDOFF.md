@@ -3,30 +3,33 @@
 _Rewrite this whole file whenever you finish a milestone or pause. Keep it short and
 current: state, how to run, open decisions, exact next action._
 
-## Status: **M0, M2, M4 done. M1 and M3 have complete engines, DoDs blocked on data.**
-_(2026-09-07, session 7)_
+## Status: **M0, M2, M4 done (M4 now actually published). M1 and M3 have complete engines, DoDs blocked on data.**
+_(2026-09-07, session 8)_
 
-> **Session 7 shipped M4 — the public methodology writeup and case study.** (commit `b0df750`)
-> 166 tests green, ruff clean, **11/11 PG&E golden bills still reconcile** (worst +$0.22).
-> Nothing this session touched `tariffs/` or `nem3/`; the change is docs, README, ROADMAP
-> and a privacy scrub. Full detail in SESSION_NOTES §Session 7 — do not re-derive.
+> **Session 8 closed M4's last open step and took HANDOFF next-action #2.** (commit `8f45746`)
+> **331 tests green** (was 166), ruff clean, **11/11 PG&E golden bills reconcile with
+> byte-identical residuals** (worst +$0.22). Full detail in SESSION_NOTES §Session 8.
 >
-> - **`docs/METHODOLOGY.md`** (six sections) and **`docs/index.html`** (the same material as a
->   standalone static page with a residual chart) are the deliverables. README leads with the
->   reconciliation table and links both; its M4 row is marked done.
-> - **The case study is SELF-ATTRIBUTED by decision, not anonymized.** Cameron chose to keep
->   CARE visible and to scrub-then-publish the session logs. ROADMAP's M4 line was amended
->   from "anonymized" to "honest" with the rationale inline so the DoD does not contradict
->   what shipped. Scrubbed from all committed docs: unit number, CARE renewal date, tenancy
->   dates, the duplicate raw statement-total list. Kept: city, schedule, exact dates and
->   amounts, the whole reasoning trail.
-> - **No M3 payback figure appears in the writeup** — those numbers run on a synthetic load,
->   and publishing them would contradict invariant 6. M3 is presented as engine + structural
->   findings, with the data gate stated.
-> - **New observation, worth keeping:** the reconciliation residual is **one-sided** — all
->   eleven errors positive, mean +$0.14, +0.14% across $1,084.26. Explained (0.3 kWh
->   meter-read boundary + the 2025 franchise-fee approximation). It is the answer to "how do
->   you know you didn't curve-fit this?", and stating it first is stronger than being caught.
+> - **The writeup is published:** https://claude.ai/code/artifact/26900439-4401-4b57-a57a-5bc3dfa43fb2
+>   — **private until Cameron shares it from the page's share menu.** That is the one
+>   remaining human step on M4. GitHub Pages was not used: the repo has **no git remote**,
+>   so that route means creating and pushing a GitHub repo — an outward-facing decision left
+>   to Cameron. Page numbers were re-verified against a live run before publishing.
+> - **SDG&E TOU-DR1 now has four 2026 vintages, both layers**, from the published Total Rates
+>   Tables (1/1 and 4/1, standard + CARE). All 24 new cells reconstruct SDG&E's printed Total
+>   Electric Rate and Total Adjusted CARE Rate exactly.
+> - **Why four vintages and not three** — rates changed 1/1, 4/1, 6/1, but the weekday
+>   10:00-14:00 super-off-peak window went year-round **2026-05-01**, inside the 4/1 rate
+>   vintage, and SDG&E published **no 5/1 table** (that URL 404s). The 4/1 rates are therefore
+>   committed twice: with the March/April window (governs April) and with the year-round
+>   window (governs May). Options and dollar impact recorded in SESSION_NOTES and in
+>   `sdge_tou_dr1_delivery_2026-05-01.yaml`'s header. Do not "simplify" this away.
+> - **⭐ Delivery and generation change on different dates.** EECC moved 4/1 then held; the
+>   6/1 filing moved delivery only (UDC 0.34061 -> 0.32948). A tool treating "the rate changed
+>   on 6/1" as one event misprices a layer on every bill spanning it. Pinned by test.
+> - **Correction:** the PCIA values the 6/1 headers called a superseded bad retrieval
+>   (2018 `0.03662` / 2026 `0.04977`) are the **1/1/2026 sheet's**, correct for that vintage.
+>   Both headers fixed; the full 1/1 table is in the new generation spec.
 
 > **⚠ CONTEXT: the Santa Cruz PG&E service ended in July 2026** and the last export in `data/`
 > runs to 2026-07-18. The final statement and any post-move interval data are probably
@@ -39,21 +42,22 @@ _(2026-09-07, session 7)_
   `MinimumBill`, per-kWh surcharges, `NonBypassable`, `period_codes`, and
   **`marginal_energy_price`** (version-aware per-interval retail price; refuses dates no spec
   covers; rejects layers that classify an hour differently).
-- **Specs (21 files, 13 schedule-layers)**: PG&E E-TOU-C (4 vintages) / E-TOU-D / EV2-A / E-1
-  delivery, each with matched 3CE and PG&E-bundled generation; SDG&E TOU-DR1 delivery +
-  generation (EECC), TOU-DR2, EV-TOU-5, TOU-DR-P (deliberately unloadable). Every SDG&E
-  delivery spec carries a `non_bypassable` block.
+- **Specs (27 files, 13 schedule-layers)**: PG&E E-TOU-C (4 vintages) / E-TOU-D / EV2-A / E-1
+  delivery, each with matched 3CE and PG&E-bundled generation; **SDG&E TOU-DR1 delivery +
+  generation in four vintages (2026-01-01, -04-01, -05-01, -06-01)**; TOU-DR2, EV-TOU-5,
+  TOU-DR-P (deliberately unloadable). Every SDG&E delivery spec carries a `non_bypassable`
+  block and is covered by the NBT-settleability test.
 - **M2 optimizer**: `scripts/rate_optimizer.py` — ranking, verdict, component-level *why*,
   sensitivity, assumption audit.
 - **M3 NEM 3.0 engine** (`src/nem3/`): `acc.py`, `netting.py`, `solar.py`, `pvwatts.py`,
   `battery.py` (greedy + cvxpy LP, both always returned), `payback.py`;
-  `uncertainty/montecarlo.py`. Driver: `scripts/nem3_report.py`.
-- **M4 writeup**: `docs/METHODOLOGY.md` + `docs/index.html`.
+  `uncertainty/montecarlo.py`. Driver: `scripts/nem3_report.py`, **now calendar 2026**.
+- **M4 writeup**: `docs/METHODOLOGY.md` + `docs/index.html` (published, see above).
 
 ## How to run
 ```bash
 conda activate energy-advisor    # env prefix: /home/cameron/miniforge3/envs/energy-advisor
-pytest -q                                                   # 166 tests; golden tests skip if data/ absent
+pytest -q                                                   # 331 tests; golden tests skip if data/ absent
 ruff check . && ruff format --check .
 PYTHONPATH=src python scripts/reconcile_report.py           # 11 line-item comparisons (the trust artifact)
 PYTHONPATH=src python scripts/reconcile_report.py --write-readme
@@ -62,52 +66,52 @@ PYTHONPATH=src python scripts/nem3_report.py                # M3 solar+battery (
 PYTHONPATH=src python scripts/build_acc_tables.py --utility 'SDG&E' --vintage 2026 --source FILE.csv --citation '...'
 ```
 
-## Headline results (unchanged; both are in the writeup)
+## Headline results
 **M0/M4 reconciliation** — 11/11 within ±$2, worst **+$0.22** (0.43% of that bill), all
-positive, total +$1.55 on $1,084.26 billed.
+positive, total +$1.55 on $1,084.26 billed. (The one-sided residual is explained in the
+writeup: ~0.3 kWh meter-read boundary + the 2025 franchise-fee approximation.)
 
 **M2, PG&E household (4345 kWh / 328 days)** — **SWITCH to E-TOU-C + PG&E bundled generation,
 $170.72/yr cheaper.** The saving is **leaving the CCA, not changing schedule**: PCIA
 +$159.88/yr, UUT on it +$13.59, franchise fee +$2.54, while 3CE generation is only $4.85/yr
-cheaper. A 2018-vintage CCA customer pays PCIA 0.03679/kWh where the 2026 *bundled* PCIA is
-−0.01011. Caveat printed in the report: PG&E Rules 22.1/23.1 require six months' notice, with
-Schedule TBCC in between. Sensitivity (live run): E-1 overtakes only if evening usage grew
-353%, or 132% load-neutral.
+cheaper. Caveat printed in the report: PG&E Rules 22.1/23.1 require six months' notice, with
+Schedule TBCC in between. Sensitivity: E-1 overtakes only if evening usage grew 353%, or 132%
+load-neutral.
 
-**M3 demo** (bundled SDG&E TOU-DR1, coastal_basic, **synthetic** 6,264 kWh load, 5 kW, window
-2026-06-01 .. 2027-05-31): baseline $3,022/yr; solar only $1,855; +battery greedy $505; LP
-$427; NBC import floor $86/yr. **Dollar totals are real, the LOAD is not — these figures are
-deliberately absent from the public writeup.**
+**M3 demo** (bundled SDG&E TOU-DR1, coastal_basic, **synthetic** 6,264 kWh load, 5 kW, now
+**calendar 2026**, four rate versions per layer): baseline $3,052/yr; solar only $1,867;
++battery greedy $514; LP $436; NBC import floor $86/yr. **Dollar totals are real, the LOAD is
+not — these figures are deliberately absent from the public writeup.**
 
 ## EXACT NEXT ACTION
 
-1. **Publish the writeup.** `docs/index.html` is ready to serve. The Artifact publish was
-   blocked by session 7's permission classifier; the remaining paths are GitHub Pages on
-   `docs/` or an Artifact publish once permitted. This is the last piece of M4's "writeup
-   live" and takes minutes.
-2. **Transcribe SDG&E's earlier 2026 rate vintages** (1/1/2026 and 4/1/2026 Total Rates
-   Tables, delivery + generation), with **`months: [3, 4]` on the weekday 10:00-14:00
-   super-off-peak rule** for any vintage before 2026-05-01. Restores a calendar-year SDG&E run
-   and exercises version-switching end to end. Smallest well-defined unit of code work.
-3. **CCA generation overlay** — a CCA's own generation rate + the vintaged PCIA, replacing
-   EECC. PCIA vintage table already in the generation spec header. Blocked only on *which* CCA
-   (San Diego Community Power vs Clean Energy Alliance).
-4. **Confirm SDG&E ACC Plus** from an SDG&E NBT sheet. `acc.acc_plus_table` raises for SDG&E;
+1. **Ask Cameron to share the published artifact** (share menu on the page) if he wants it
+   publicly readable — it is live but private. One click, not a code task. If he'd rather
+   self-host, GitHub Pages on `docs/` needs a remote created and pushed first.
+2. **CCA generation overlay** — a CCA's own generation rate + the vintaged PCIA, replacing
+   EECC. The PCIA vintage tables for **all four** 2026 SDG&E vintages are now recorded in the
+   generation spec headers, so only *which CCA* is missing (San Diego Community Power vs Clean
+   Energy Alliance). This is now the largest unblocked SDG&E gap.
+3. **Confirm SDG&E ACC Plus** from an SDG&E NBT sheet. `acc.acc_plus_table` raises for SDG&E;
    `acc_plus_eligible=False` is the conservative path.
+4. **Other SDG&E schedules' earlier 2026 vintages** — TOU-DR2 and EV-TOU-5 still exist only at
+   6/1/2026. Same method as session 8 (fetch `N-1-26 Schedule <ID> Total Rates Table.pdf` and
+   its `-CARE` twin, `pdftotext -layout`, mirror the vintage split), only needed if those
+   schedules are to be ranked over a calendar year.
 5. **PG&E ACC tables** — per-vintage PDFs (pge.com/energyexportcredit), not MIDAS CSVs; needs
    a different parser. Low priority.
 6. **TOU-DR-P** — needs an events model before it can be ranked (open decision 2).
 
 **M5 is the next milestone** (5 strangers send Green Button CSVs, receive a report, written
-go/no-go on charging). It needs no new engine work — it needs the writeup published and
-somewhere to post. Do not start it while M4's publish step is open.
+go/no-go on charging). It needs no new engine work.
 
 > **⚠ READ THIS BEFORE STARTING M5 — the two milestones are coupled.** M5 targets San Diego
 > (SDG&E) users, and **the engine has never been validated against a single real SDG&E bill or
 > a real SDG&E Green Button export.** `src/greenbutton/sdge.py` was written to the documented
-> format and never run on a real file; no SDG&E golden bill exists. Sending dollar figures to
-> five strangers on that basis would violate invariant 1 (reconciliation-gated), which is the
-> product's whole trust claim.
+> format and never run on a real file; no SDG&E golden bill exists. The rate specs are now
+> tariff-exact across four 2026 vintages, which is necessary but **not** sufficient: sending
+> dollar figures to five strangers without a reconciled SDG&E bill would violate invariant 1
+> (reconciliation-gated), which is the product's whole trust claim.
 > **The consequence is a sequencing rule, and it is good news:** the FIRST recruit who supplies
 > an SDG&E export *plus* three bills closes **M1's DoD**, and only then does the SDG&E path
 > earn the right to produce dollar figures for the other four. So recruit for data before
@@ -116,25 +120,32 @@ somewhere to post. Do not start it while M4's publish step is open.
 > reconciled 11/11.
 
 ## Open decisions
-1. **SDG&E TOU-DR1 super-off-peak window — RESOLVED.** Year-round, effective 2026-05-01.
-   Residual caveat: the superseding advice letter / revised P.U.C. sheet were not located; the
-   evidence is SDG&E's customer-facing publications. Pre-2026-05-01 vintages need `months: [3,4]`.
+1. **SDG&E TOU-DR1 super-off-peak window — RESOLVED, and now modeled per-vintage.**
+   Year-round effective 2026-05-01; vintages before that date carry `months: [3, 4]` on the
+   weekday 10:00-14:00 rule, and both forms are pinned by `tests/tariffs/test_sdge_vintages.py`.
+   Residual caveat unchanged: the superseding advice letter / revised P.U.C. sheet were not
+   located; the evidence is SDG&E's customer-facing publications.
 2. **TOU-DR-P is deliberately unloadable.** Period windows unsourced, and the **RYU Event
    Adder ($1.16/kWh, 4-9 p.m. on event days)** is event-contingent with no engine concept. Do
    **not** default it to zero events. Preferred: caller-supplied event days, report as a
    range, or exclude and say why.
-3. **SDG&E baseline allowances — RESOLVED.** Full climate-zone table (Sheet 29294-E) in-spec;
-   `territory` supplied **at bill time**. Omitting it raises rather than defaulting.
+3. **SDG&E baseline allowances — RESOLVED.** Full climate-zone table (Sheet 29294-E) in every
+   TOU-DR1 vintage; `territory` supplied **at bill time**. Omitting it raises rather than
+   defaulting.
 4. **CARE rates on PG&E counterfactual schedules are DERIVED, not printed**
    (`care = 0.65 x standard - 0.01038`). Validated to ≤1e-5 on E-TOU-C, cross-checked against
    E-1's printed tier pair, corroborated by SDG&E's printed "CARE Discount 35%". `--no-care`
-   is the tariff-only ranking.
+   is the tariff-only ranking. (On SDG&E the split is not merely consistent but exact, now on
+   **all four** vintages.)
 5. **Santa Cruz UUT Adjustment — RESOLVED as a modeling assumption**, mechanism still
    UNVERIFIED. Adopted **$0.21649/day**. Schedule-independent, so it cannot reorder the
    ranking; the optimizer re-ranks under all three mechanisms to prove it.
 6. **Which CCA and which SDG&E schedule dad is on** — still unresolvable without a bill.
 7. **Privacy posture — RESOLVED session 7.** Self-attributed case study, CARE disclosed,
-   exact dates and amounts kept, personal-tenancy detail scrubbed. See SESSION_NOTES §Session 7.
+   exact dates and amounts kept, personal-tenancy detail scrubbed.
+8. **Rate-date vs window-date splitting — RESOLVED session 8.** When a period-definition
+   change lands inside a rate vintage, split the vintage and duplicate the rates rather than
+   backdating the new window onto a citation-bearing spec. See SESSION_NOTES §Session 8.
 
 ## Blocked on data (not on work)
 - **M1 DoD** (dad's last 3 SDG&E bills within ±$2) and the README SDG&E rows. Dad's data is
@@ -147,14 +158,18 @@ somewhere to post. Do not start it while M4's publish step is open.
 
 ## Flagged approximations still open (all sub-$0.05, non-blocking)
 - **2025 franchise fee**: 2026 specs use the exact E-FFS per-kWh rate ($0.00059); the
-  2025-vintage specs still carry the percent-of-energy approximation. (This is one of the two
+  2025-vintage specs still carry the percent-of-energy approximation. (One of the two
   documented causes of the one-sided residual.)
 - **2025 summer generation credit** still bill-fitted (the 2026 one is tariff-exact).
 - **California Climate Credit** modeled as an observed per-bill line (−$58.23 on 10/28). PG&E
   files $(36.18), Aug/Sep cycles; SDG&E files $(33.50) semi-annual per Schedule GHG-ARR.
   Generalise to a versioned semiannual credit.
 - **California Energy Commission surcharge on SDG&E**: PG&E specs carry $0.0003/kWh; SDG&E's
-  Total Rates Table shows no such column, so it is deliberately NOT asserted either way.
+  Total Rates Tables show no such column on any of the four 2026 vintages, so it is
+  deliberately NOT asserted either way.
+- **SDG&E minimum bill** ($0.329/day, CARE $0.164) comes from the 2018 sheet; none of the
+  2026 Total Rates Tables restate it. Confirm before shipping a figure that depends on the
+  floor binding.
 
 ## M3 open items (recorded, none blocking)
 - SDG&E ACC Plus unconfirmed; settle with `acc_plus_eligible=False`.
@@ -167,7 +182,8 @@ somewhere to post. Do not start it while M4's publish step is open.
 ## Schema gaps (recorded, none blocking today)
 - `PerKwhAdder` has no CARE variant (worked around on SDG&E by folding WF-NBC/DWR-BC into the
   energy `Rate`).
-- **FERA / DRAH** (0.39688/day on both IOUs) unmodelable — `Rate` has only `standard`/`care`.
+- **FERA / DRAH** (0.39688/day on both IOUs, printed on every SDG&E 2026 sheet) unmodelable —
+  `Rate` has only `standard`/`care`.
 - No `tiers` concept. Correct for E-1 today (exact identity via the baseline credit); required
   if a third distinct tier price appears.
 

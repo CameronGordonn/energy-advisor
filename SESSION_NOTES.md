@@ -2,6 +2,94 @@
 
 Running log of decisions made and decisions pending. Newest first.
 
+## 2026-09-07 — Session 8 (M4 published; SDG&E's earlier 2026 rate vintages)
+
+Committed `8f45746` on `session-4-nperiod-tou-m2` (not pushed, not merged to main).
+
+**331 tests green (was 166, +165 — mostly parametrization across four vintages), ruff
+clean, 11/11 PG&E golden bills still reconcile with byte-identical residuals** (worst
++$0.22). Took HANDOFF next-actions #1 and #2.
+
+### DONE — next-action #1: the M4 writeup is published, closing M4's DoD
+`docs/index.html` is live at
+https://claude.ai/code/artifact/26900439-4401-4b57-a57a-5bc3dfa43fb2 — **private until
+Cameron shares it from the page's share menu.** Publishing was allowed this session; the
+session-7 permission block did not recur. GitHub Pages was NOT used and remains available
+as a second rail: the repo has **no git remote configured**, so that path would mean
+creating and pushing a GitHub repo, which is a separate outward-facing decision and was
+not taken unasked.
+Before publishing, the page's numbers were re-verified against a live run rather than
+trusted: all eleven rows, the +$0.22 worst case and the $1,084.26 / $1,085.81 totals match
+`reconcile_report.py` exactly. Test count refreshed 166 -> 331 in `docs/index.html`,
+`docs/METHODOLOGY.md` and README, and the artifact republished to the same URL.
+
+### DONE — next-action #2: SDG&E TOU-DR1 1/1/2026 and 4/1/2026, both layers
+Sources: SDG&E's published "Total Rates Table" and matching "-CARE Total Rates Table"
+PDFs for each date (retrieved 2026-09-07), text-extracted locally with poppler rather
+than paraphrased. Every one of the 24 new cells reconstructs SDG&E's **printed** Total
+Electric Rate and Total Adjusted CARE Rate, on the same layer-identity gate the 6/1
+vintage passes — e.g. 1/1 summer on-peak `0.65 x (0.34101 - 0.00864) + 0.65 x 0.34962 =
+0.44329`, the printed figure. New gate file `tests/tariffs/test_sdge_vintages.py`; the
+NBC list in `test_sdge_layers.py` was extended to cover the new delivery specs.
+
+### DECISION — FOUR vintages, not three: rate dates and window dates are different things
+Surfaced rather than chosen silently, per CLAUDE.md. Rates changed 1/1, 4/1 and 6/1, but
+the weekday 10:00-14:00 super-off-peak window went **year-round on 2026-05-01** — and
+**SDG&E published no 5/1/2026 rate table** (verified: that URL in the series returns HTTP
+404). So a *period-definition* change lands in the middle of a *rate* vintage. Options:
+  (a) **CHOSEN** — split the 4/1 rate vintage into two spec versions: 4/1 with the
+      pre-change March/April window (governs April) and 5/1 with the year-round window
+      and the same rates (governs May). Costs one duplicated rate block, made explicit.
+  (b) Put the year-round window on the 4/1 spec. Numerically this happens to be right for
+      every day that spec governs (April: the two rules agree; May: year-round is correct)
+      — but a citation-bearing file would then assert a period definition that was not in
+      force on its own effective date, and any later-inserted vintage would silently break.
+  (c) Let the 4/1 spec's March/April window govern May too. Simply wrong: it prices
+      weekday 10:00-14:00 in May 2026 as OFF-PEAK.
+Dollar impact of (c): four hours a day across ~21 May weekdays at the off-peak/super-off-peak
+EECC spread of `0.12853 - 0.04121 = 0.08732/kWh` — on the order of $7/month for a 1 kW
+daytime draw, and materially more for anything deliberately charging a battery there.
+(a) was taken because specs in this repo are transcriptions of a *dated tariff state*.
+
+### ⭐ FINDING — delivery and generation change on DIFFERENT dates
+EECC moved on 4/1 and then held: the 4/1 and 6/1 generation tables are identical. The
+6/1/2026 filing moved **delivery only** (UDC Total 0.34061 -> 0.32948, baseline credit
+(0.10892) -> (0.10663)). A tool that models "the SDG&E rate changed on 6/1" as a single
+event misprices one layer or the other for every bill spanning that date. The engine
+already versions layers independently — this is the first case that actually exercises it,
+and it is pinned by `test_generation_held_across_the_june_delivery_change`.
+
+### CORRECTED — the "superseded" PCIA values were not an error
+The 6/1 spec headers recorded that an earlier retrieval read PCIA 2018 `0.03662` / 2026
+`0.04977` and treated those as superseded by the 6/1 sheet's `0.03670` / `0.04987`. They
+are in fact **the 1/1/2026 sheet's values**, correct for that vintage, and are now
+committed in `sdge_tou_dr1_generation_2026-01-01.yaml` with the full table. Both 6/1 spec
+headers were corrected to say so. Nothing was mispriced (PCIA is CCA-only and unbilled by
+these bundled specs), but the note had recorded a transcription error that never happened.
+Also confirmed: the NBC component set (PPP 0.01515 / ND 0.00000 / CTC (0.00007) /
+WF-NBC 0.00591 = 0.02099) and the Base Services Charge (0.79343 / CARE 0.19713) are
+unchanged across all four vintages, and the UDC total stays period- and season-flat on
+every one of them — so 100% of TOU-DR1's TOU price signal remains in generation.
+
+### CONSEQUENCE — `scripts/nem3_report.py` now runs CALENDAR 2026
+Session 6 had to use 2026-06-01 .. 2027-05-31 because that was the only committed vintage
+and `marginal_energy_price` refuses to price a date no spec covers. The window is now
+2026-01-01 .. 2026-12-31 and crosses four rate versions per layer. Jan-April are priced by
+vintages where weekday 10:00-14:00 is *not* super-off-peak, so the battery sees the real
+changing daytime price instead of one year's rule projected backwards.
+New output (bundled, standard, coastal_basic, **synthetic** 6,264 kWh load, 5 kW):
+baseline $3,052/yr; solar only $1,867 (save $1,186, 8.9 yr); +battery greedy $514 (save
+$2,539, 7.4 yr); LP $436 (save $2,617, 7.2 yr); NBC floor $86/yr. **The load is still
+synthetic, so these figures stay out of every public document** — unchanged from session 7.
+
+### Still open after this session
+- **The published artifact is private.** Cameron must share it from the page's share menu
+  for it to be publicly readable. Until then M4's writeup is live but not public.
+- Next-actions #3-#6 unchanged (CCA overlay, SDG&E ACC Plus, PG&E ACC tables, TOU-DR-P).
+- M1 and M3 DoDs unchanged: data-gated, not code-gated. M5 still sequenced behind an
+  SDG&E validation recruit — see HANDOFF's warning block.
+
+
 ## 2026-09-07 — Session 7 (M4: public methodology + case study; privacy decision)
 
 Committed `b0df750` on `session-4-nperiod-tou-m2` (not pushed, not merged to main).
