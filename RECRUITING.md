@@ -308,9 +308,10 @@ guess and export something different.
 
 **What the file should look like.** SDG&E emits at least one shape whose header block begins
 with `Name,` / `Title,CSV Export Electric Meter(s)` / `Resource,Electric` and whose data rows
-are `Meter Number,Date,Start Time,Duration,Consumption,Generation,Net`. A different shape is
-not a problem — it is *information*, since the parser has only ever been tested against
-documentation and one public sample. Send it as-is and say what you got.
+are `Meter Number,Date,Start Time,Duration,Consumption,Generation,Net`. It also emits a
+PG&E-shaped range table. **A different shape again is not a problem — it is *information*,**
+since the parser has been tested against documentation and one public 60-minute sample and
+nothing else. Send it as-is and say what you got; do not reshape it to match this.
 
 **If you have solar**, the export must include the generation/export register — that column is
 the part the NEM 3.0 module has never seen. Also say whether you're on **NEM 2.0 or the Net
@@ -405,10 +406,15 @@ don't infer it.
 1. `PYTHONPATH=src python scripts/inspect_export.py FILE.csv` **before anything tries to price
    it.** It auto-detects the utility and reports interval length, coverage, gaps, DST handling
    and any export register.
-2. **Expect the parser to be wrong.** `src/greenbutton/sdge.py` was written to the documented
-   format and session 13 confirmed it rejects the one real SDG&E file we've seen. Budget a
-   session for parser reality-checking *before* trusting any reconciliation number. If it
-   refuses the file, **fix the parser, not the file.**
+2. **Expect the parser to need work anyway.** `src/greenbutton/sdge.py` was written to the
+   documented format, and session 13 found it rejected the one real SDG&E file we had seen.
+   That is being fixed — the parser now sniffs the meter-keyed shape as well as the
+   PG&E-shaped range table — but **the fix is validated against a single public 60-minute
+   non-solar export.** Still unseen, and still capable of costing a session: the **15-minute
+   variant**, and whether the `Net` column is per-interval netted on a **solar** account
+   (hence whether `Consumption` is gross). Run `inspect_export.py` and read its output before
+   trusting any reconciliation number. If it refuses the file, **fix the parser, not the
+   file.**
 3. If the household is **CARE and on a CCA**, work open decision 9 first — that bill is the
    tiebreak between two conflicting SDG&E sources and the most valuable thing in the file.
 4. Reconcile, then update the README table and M1's DoD. Only after it passes ±$2 may any
