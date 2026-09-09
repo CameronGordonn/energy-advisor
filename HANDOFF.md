@@ -3,22 +3,18 @@
 _Rewrite this whole file whenever you finish a milestone or pause. Keep it current: state,
 how to run, open decisions, exact next action._
 
-## Status _(2026-09-09, end of session 23)_
+## Status _(2026-09-09, end of session 24)_
 
 **M0, M2 and M4 are done. M1 and M3 have complete, tested engines whose DoDs are blocked on
 data that does not exist yet. Do not fabricate a load or a bill to "finish" either.**
 
-**1,530 tests green · ruff clean · 11/11 PG&E golden bills within ±$2 (worst +$0.22) · working
+**1,582 tests green · ruff clean · 11/11 PG&E golden bills within ±$2 (worst +$0.22) · working
 tree clean · both CI jobs green.**
 
-> **⚠ `main` is 2 commits ahead of `origin/main`** (`e32c4f0`) as of 2026-09-09, end of
-> session 23 — session 23's own two commits. **Sessions 13-22 are all pushed.**
->
-> **This line has now been wrong three times running, in both directions**, because each
-> session copies it forward instead of measuring. It is not documentation; it is a cached
-> value with no invalidation. **Run `git fetch -q origin && git rev-list --count
-> origin/main..main` and believe that, not this sentence.** Session 22 said "8 commits ahead,
-> origin at `6f571b6`" and had pushed by the time session 23 read it.
+> **⚠ Do not read a commit count here.** Measure it: `git fetch -q origin && git rev-list
+> --count origin/main..main`. Every session that copied this line forward published a wrong
+> number — three times running, in both directions — because it is a cached value with no
+> invalidation. It was 4 when session 24 started. Nothing is uncommitted.
 
 | Milestone | State | What is missing |
 |---|---|---|
@@ -43,7 +39,13 @@ tree clean · both CI jobs green.**
 
 **This project is data-starved, not code-starved.** Every engine on the SDG&E side is written
 and tested; none of it has ever met a real SDG&E bill. Almost all remaining *code* work is
-low-value polish. The one input that changes the project's state is **a real SDG&E Green
+low-value polish — **but check that claim against the harness before believing it of a given
+path.** Session 24 found the reconciliation harness still PG&E-hardcoded while this file
+asserted the opposite, i.e. the "just add data" story was true of the specs and false of the
+code that would have consumed them. That gap is closed; the lesson is that "ready" should be
+demonstrated by a test, not by a sentence.
+
+The one input that changes the project's state is **a real SDG&E Green
 Button export plus three itemised bills**, and it unlocks M1, the SDG&E half of M2, and the
 right to show any San Diego user a dollar figure.
 
@@ -84,8 +86,19 @@ has landed it outranks everything below.
     *and* its bills.
   - **What the bills must tell us:** schedule, climate zone, CARE status, bundled vs CCA — and
     if a CCA, which one, which SDCP cohort, and the **PCIA vintage** (which moves more money
-    than the choice of CCA does). Both San Diego CCAs are authored, so **no overlay work stands
-    between his bill and a reconciliation run.**
+    than the choice of CCA does).
+  - ⭐ **The harness is now utility-general, so the answer to "what stands between his bill and
+    a reconciliation run" is: nothing but transcription.** _(Session 24. The old wording here —
+    "no overlay work stands between his bill and a reconciliation run" — was **wrong**: the
+    SPECS were ready, the HARNESS was not. It globbed PG&E's filename, called PG&E's parser
+    regardless of the fixture's `utility:` field, and called `compute_bill` with no territory,
+    no vintage and no event days, so an SDG&E fixture could not have been priced at all.)
+    **Copy `tests/golden_bills/sdge_TEMPLATE.yaml.example` to `sdge_<MM-DD-YYYY>.yaml`, fill
+    in the `customer:` block and the printed dollars, drop the export in `data/`, run
+    `PYTHONPATH=src python scripts/reconcile_report.py`.** The harness picks the SDG&E parser
+    off the fixture's `utility:`, finds the export by SDG&E's own filename patterns, and
+    refuses the fixture BY NAME if the climate zone, PCIA vintage, supplier or event days are
+    missing. See session 24 in SESSION_NOTES.md.
   - **If he is CARE *and* on a CCA**, check open decision 9 first, before anything else.
 
 **1. Recruit one SDG&E validation user.** The unblock that does not depend on dad. Ask for a
@@ -187,6 +200,20 @@ table since then.
     adder whose vintage is supplied at bill time (`compute_bill(..., vintage="2018")`) and
     **raises if omitted**. `load_specs`/`load_spec_versions` take `provider` and raise when
     several suppliers match — bundled EECC and a CCA are both "TOU-DR1 generation".
+- **Reconciliation harness** (`src/report/reconcile.py`, `tests/golden_bills/`): **utility-general
+  since session 24.** A fixture's `utility:` field selects the interval export in `data/` (by
+  each utility's own filename patterns, PG&E's `pge_electric_usage_interval_data*` and SDG&E's
+  `[PV_]Electric_{15,60}_Minute_*` / `sdge*`) **and** the parser that reads it — no sniffing,
+  so a mislabeled fixture fails instead of being quietly re-detected. Two exports for one
+  utility raise rather than being resolved alphabetically.
+  Per-household facts ride in the fixture's `customer:` block — `service`, `territory`,
+  `vintage`, `event_days` — and the harness asks the **loaded specs** which of them they need,
+  then refuses the fixture by name if one is missing. Derived per run, so a spec that gains a
+  climate-zone table or a vintaged adder immediately starts failing the fixtures that do not
+  declare it. `service` used to default to `Service.CCA` inside `compute_bill`, which would
+  have billed a bundled SDG&E household a PCIA it does not pay; all 11 PG&E fixtures now say
+  `service: cca` explicitly. **`tests/golden_bills/sdge_TEMPLATE.yaml.example` is the fill-in
+  form**, and a test asserts it still declares everything the SDG&E specs demand.
 - **M2 optimizer**: `scripts/rate_optimizer.py` — ranking, verdict, component-level *why*,
   sensitivity, assumption audit.
 - **M3 NEM 3.0 engine** (`src/nem3/`): `acc.py`, `netting.py`, `solar.py`, `pvwatts.py`,
@@ -297,7 +324,7 @@ Four pages in `docs/`, served by GitHub Pages: `index.html` (the tool), `methodo
 
 ```bash
 conda activate energy-advisor    # env prefix: /home/cameron/miniforge3/envs/energy-advisor
-pytest -q                                                   # 1,530 tests; golden tests skip if data/ absent
+pytest -q                                                   # 1,582 tests; golden tests skip if data/ absent
 ruff check . && ruff format --check .
 PYTHONPATH=src python scripts/reconcile_report.py           # 11 line-item comparisons (the trust artifact)
 PYTHONPATH=src python scripts/reconcile_report.py --write-readme
@@ -478,7 +505,9 @@ cell for cell.
 ## Blocked on data (not on work)
 
 - **M1 DoD** — dad's last 3 SDG&E bills within ±$2, plus the README SDG&E rows. The single
-  highest-leverage input in the project; everything SDG&E-facing sits behind it.
+  highest-leverage input in the project; everything SDG&E-facing sits behind it. **As of
+  session 24 the only remaining step is transcription**: the harness dispatches, threads and
+  gates; nothing in `src/` or `tests/` has to change to price an SDG&E statement.
 - **M3 DoD** — one real household with solar/export interval data.
 - **Full validation of `src/greenbutton/sdge.py`** — session 13 fixed it against one real
   export (60-min, November). A 15-minute file, and any file spanning March, are still unseen.

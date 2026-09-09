@@ -2,6 +2,105 @@
 
 Running log of decisions made and decisions pending. Newest first.
 
+## 2026-09-09 — Session 24 (the harness was PG&E-shaped; HANDOFF said it was ready)
+
+Made the golden-bill reconciliation harness utility-general, so an SDG&E export plus itemised
+bills can be reconciled the day they land instead of needing harness work under time pressure.
+**1,582 tests green (+52), ruff clean, 11/11 PG&E golden bills within ±$2, worst +$0.22 —
+unchanged, and the README table regenerates byte-identical.**
+
+### ⭐ THE CORRECTION — "no overlay work stands between his bill and a reconciliation run"
+That HANDOFF line was **wrong**, and it had been wrong for several sessions. It was true of the
+SPECS and false of the code that consumes them. Three concrete holes, all now closed:
+
+| What was broken | Consequence for an SDG&E fixture |
+|---|---|
+| `_interval_file()` globbed only `data/pge_electric_usage_interval_data*.csv` | no SDG&E export would ever be found |
+| the test called `parse_pge_interval_csv` directly; the fixture's `utility:` field was loaded and never read | an SDG&E file would be parsed as PG&E and refused |
+| `compute_bill(...)` was called with no `territory`, no `vintage`, no `event_days`, and `service` left to default to `Service.CCA` | the SDG&E specs **raise** on the first two; TOU-DR-P raises on the third; and a bundled household would have been billed a PCIA it does not pay |
+
+**Generalise, and it is the same shape as session 22's four test counts:** a claim in prose
+about readiness has no invalidation. The specs got a `test_every_sdge_delivery_vintage_has_a_
+matching_generation_vintage`-style gate; the harness got a sentence. Only one of those two
+noticed when it stopped being true. **Anything HANDOFF asserts is "ready" should be
+demonstrated by a test that fails when it stops being ready.**
+
+### What the harness does now
+- **Dispatch on `utility:`.** `INTERVAL_GLOBS` maps each utility to its own filename patterns —
+  PG&E's single `pge_electric_usage_interval_data*`, SDG&E's `[PV_]Electric_{15,60}_Minute_*`
+  (the four real Home Energy Analytics exports) plus `sdge*` for the documented range shape —
+  and `_PARSERS` maps it to its parser. All four observed SDG&E filenames are pinned by test.
+- **Deliberately NOT a bare `*.csv` and deliberately NO sniffing.** `data/` also holds gas
+  interval and billing-summary exports; a wide glob would price the wrong file. And
+  `report.inspect._detect_and_parse` sniffs *because* it is handed a file by someone who may
+  not know what it is — here the fixture asserts the utility, so sniffing would let a
+  mislabeled fixture reconcile and hide the mislabeling. Pinned both ways.
+- **Two exports for one utility RAISE** (`AmbiguousIntervalExportError`) instead of taking
+  `sorted()[0]`. Two SDG&E exports usually differ in date range or meter, so the alphabetical
+  pick is a confident wrong dollar, not a missing one. The old code took the first silently.
+- **Customer facts ride in the fixture's `customer:` block** — `service`, `territory`,
+  `vintage`, `event_days`, the same four names `compute_bill` uses — and are threaded through.
+
+### ⭐ THE FACT GATE IS DERIVED FROM THE SPECS, NOT LISTED PER UTILITY
+`required_customer_facts(specs, service=...)` walks the **loaded** specs and reports which of
+the four they cannot resolve alone: an `allowances` table with no pinned zone demands
+`territory`; a `per_kwh_by_vintage` adder with no `vintage_pin` demands `vintage`; any
+`applies_to != all` element demands `service`; an `event_adder` demands `event_days`. Missing
+ones raise `MissingCustomerFactError` naming the fixture, each missing key, and the spec that
+demanded it.
+
+Two properties worth keeping:
+- **It has invalidation.** A spec that *gains* a climate-zone table or a vintaged adder starts
+  failing every fixture that does not declare it, on the next run. That is the property the
+  prose claim lacked.
+- **Service is resolved FIRST, then the rest.** A line the customer does not pay demands
+  nothing: a **bundled** SDG&E household never pays the PCIA, so it is never asked for a PCIA
+  vintage. Mirrors `compute_layer`'s own `applies_to.covers(service)` skip. Getting this
+  backwards would have turned a required field into a guessed one.
+
+### The PG&E path, and the one behaviour change to it
+Byte-identical dollars: 11/11, worst +$0.22, and `--write-readme` produces a zero-diff README.
+The one deliberate change is that all 11 fixtures now carry `customer: {service: cca}`
+explicitly. Previously `service` came from `compute_bill`'s default, which happened to be right
+for this household and would have been silently wrong for a bundled one. The README's
+`| PG&E | E-TOU-C + 3CE (CARE) |` label is now derived (delivery `schedule_id` + the
+parenthetical short form of the generation provider + CARE) rather than hardcoded, and
+reproduces the existing string exactly.
+
+### NO SDG&E DOLLAR WAS INVENTED, and here is exactly what is proven instead
+Invariant 1 is reconciliation-gated and no real SDG&E bill exists. So the new tests prove
+**plumbing**, never a figure:
+- the right parser is dispatched, and the wrong one refuses (both directions);
+- every real SDG&E filename is matched and no gas/billing file is;
+- an SDG&E fixture missing `service` / `territory` / `vintage` fails **by name**, and TOU-DR-P
+  additionally demands `event_days` (`[]` prices the explicit zero-event case);
+- a complete SDG&E fixture gets past the gate inside `reconcile()` and drives `compute_bill`
+  to a full itemised bill on a **synthetic** month without raising — the substantive claim,
+  since the delivery spec raises on a missing zone and the PCIA on a missing vintage. The only
+  thing that then fails is the absent `expected:` block. **When a real bill arrives, that
+  `KeyError` is the only line that stops.**
+- `tests/golden_bills/sdge_TEMPLATE.yaml.example` is the fill-in form. `.yaml.example`, so the
+  `*.yaml` fixture glob cannot mistake it for evidence; tests assert it carries **no** dollar
+  figures and that it still declares everything the SDG&E specs demand, so it fails rather
+  than going stale.
+
+⚠ **A committed SDG&E fixture with an `expected:` block would be the single easiest way to
+destroy this project's trust artifact.** The template exists so the temptation never has to
+come up: there is a place to put real numbers the moment they exist.
+
+### Worth knowing before writing that fixture
+The synthetic check that the zone matters is not decorative: on one month of flat 36 kWh/day,
+`coastal_basic` and `desert_all_electric` differ by **more than $20 of Baseline Credit** on a
+single statement. On a light load they barely differ, because both allowances exceed usage and
+the credit caps at usage — so **a wrong climate zone can look harmless on a small bill and
+misprice a large one.** Do not sanity-check the zone against a low month.
+
+### Housekeeping
+`docs/engine.js` rebuilt (`src/report/__init__.py` changed). The published test count was
+1,530 in five files and is now **1,582** in all five — the fourth session in a row to touch
+this. Session 22's suggestion stands unimplemented: stamp it from `build_web_engine.py` or
+stop printing a number.
+
 ## 2026-09-09 — Session 23b (the spec "disagreement" audited: it was the wrong schedule)
 
 Audited the disagreement session 23 flagged between `ookla-ariel-ride/SDGE-Analysis`'s printed
