@@ -46,10 +46,16 @@ session 17 removed and warned about, back within two sessions. Actions renumbere
 push warning was also wrong in both directions at different times; it now states the measured
 count and, more usefully, that **nothing is left uncommitted**.
 
-### Still not pushed
-`main` is **9 commits ahead of `origin/main`** and has been for six sessions. Everything above
-is local. This is now the single largest operational risk in the project: nine commits of
-cited, tested tariff work exist on one machine. **Push.**
+### Still not pushed — and the warning about it was itself wrong
+`main` is **8 commits ahead of `origin/main`**, which sits at `6f571b6`. So sessions **13-17
+were pushed** and only **18-21** are local — the HANDOFF warning inherited this morning said
+"6 commits ahead, sessions 13-16 landed locally" and was wrong on both halves. It had been
+copied forward across sessions without anyone running
+`git rev-list --count origin/main..main`.
+
+Corrected in HANDOFF, with the instruction to measure rather than trust the line. The
+substance still stands: **four sessions of cited, tested tariff work exist on one machine.
+Push.**
 
 ## 2026-09-09 — Session 21 (TOU-DR-P: both gaps closed, and an events model in the engine)
 

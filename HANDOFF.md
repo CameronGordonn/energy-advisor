@@ -11,10 +11,16 @@ data that does not exist yet. Do not fabricate a load or a bill to "finish" eith
 **1,519 tests green · ruff clean · 11/11 PG&E golden bills within ±$2 (worst +$0.22) · working
 tree clean · both CI jobs green.**
 
-> **⚠ `main` is 9 commits AHEAD of `origin/main` and has not been pushed.** Sessions 13-21 all
-> landed locally. **Push before starting anything**, or the next instance re-derives work that
-> exists. (Nothing is left uncommitted: sessions 18-21 were reconciled and committed in
-> lane-scoped commits on 2026-09-09 — see SESSION_NOTES for the two that had drifted.)
+> **⚠ `main` is 8 commits AHEAD of `origin/main`.** `origin/main` is at `6f571b6`
+> ("Reconcile the docs after four parallel sessions"), so **sessions 13-17 ARE pushed** and
+> only **sessions 18-21 are local**. Push before starting anything, or the next instance
+> re-derives work that exists.
+>
+> Two corrections worth carrying, because this warning has been wrong in both directions:
+> the version of it inherited on 2026-09-09 claimed "6 commits ahead, sessions 13-16 landed
+> locally" when those commits had in fact been pushed — **verify with
+> `git rev-list --count origin/main..main` rather than trusting this line.** And nothing is
+> left uncommitted: sessions 18-21 were reconciled into lane-scoped commits on 2026-09-09.
 
 | Milestone | State | What is missing |
 |---|---|---|
