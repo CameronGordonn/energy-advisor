@@ -3,12 +3,12 @@
 _Rewrite this whole file whenever you finish a milestone or pause. Keep it current: state,
 how to run, open decisions, exact next action._
 
-## Status _(2026-09-09, end of session 21)_
+## Status _(2026-09-09, end of session 23)_
 
 **M0, M2 and M4 are done. M1 and M3 have complete, tested engines whose DoDs are blocked on
 data that does not exist yet. Do not fabricate a load or a bill to "finish" either.**
 
-**1,519 tests green · ruff clean · 11/11 PG&E golden bills within ±$2 (worst +$0.22) · working
+**1,525 tests green · ruff clean · 11/11 PG&E golden bills within ±$2 (worst +$0.22) · working
 tree clean · both CI jobs green.**
 
 > **⚠ `main` is 8 commits AHEAD of `origin/main`.** `origin/main` is at `6f571b6`
@@ -55,6 +55,12 @@ recruit for data before sales — so the highest-leverage action available witho
 **recruit one SDG&E household as a validation user**. That closes M1's DoD and starts M5 at
 the same time.
 
+**Session 23 searched the public internet for a substitute and there is none.** The public
+corpus is now six real exports across two repos (up from one), plus one MIT-licensed corpus of
+26 itemised SDG&E bills — but **the exports and the bills belong to different households**, so
+nothing public can reconcile a dollar. The search is done; do not re-run it. What it bought is
+a much harder-tested parser, not a milestone. See `notes/sdge_public_exports_2026-09.md`.
+
 ---
 
 ## EXACT NEXT ACTION
@@ -65,15 +71,19 @@ has landed it outranks everything below.
   - **First command:** `PYTHONPATH=src python scripts/inspect_export.py FILE.csv`. It
     auto-detects the utility and reports interval length, coverage, gaps, DST handling and any
     export register **before anything tries to price it**.
-  - **The parser has now met one real SDG&E export — and it is still not validated.**
-    Session 13 found a real anonymised export in a public repo and the parser *rejected* it
-    two ways: SDG&E's real "meter" shape uses `Duration` instead of `END TIME`, 12-hour times,
-    and `Consumption`/`Generation` columns; and SDG&E writes a **true 25-hour DST fall-back
-    day** (`1:00 AM` twice) where PG&E sums both hours into one reading. Both are fixed and
-    tested, and the file's declared `Total Usage` now cross-checks the summed readings.
-    **But: one file, 60-minute, November only.** Still unseen — the 15-minute meter-shape
-    variant, spring-forward on either shape, and whether `Net` is netted for a NEM account.
-    Budget the session anyway. If it refuses the file, fix the parser, not the file.
+  - **The parser has now met FIVE real SDG&E exports, and refused three of the five on first
+    contact.** Sessions 13 and 23. Every refusal was a stated fact about "the" SDG&E format
+    being wrong: `Duration` instead of `END TIME` and 12-hour times (13); a **true 25-hour DST
+    fall-back day** where PG&E sums both hours (13); a **two-digit year** `3/1/24` against a
+    hardcoded `%m/%d/%Y` (23). All fixed and tested. **Expect a sixth file to break it a fourth
+    way; budget the session. If it refuses the file, fix the parser, not the file.**
+  - **What session 23's corpus survey settled, so it is not re-hunted** — full detail in
+    `notes/sdge_public_exports_2026-09.md`. **15-minute, spring-forward and a populated export
+    register are now all exercised** against real files: a full year of 15-minute NEM data
+    spanning both 2024 DST transitions, Apache-2.0, from `steevschmidt/NEC-220.87-Methods`.
+    `Net` **is** pre-netted, and `Total Usage` on a solar account is the **NET** sum, not the
+    consumption sum. **None of that closes M1** — no public household publishes an export
+    *and* its bills.
   - **What the bills must tell us:** schedule, climate zone, CARE status, bundled vs CCA — and
     if a CCA, which one, which SDCP cohort, and the **PCIA vintage** (which moves more money
     than the choice of CCA does). Both San Diego CCAs are authored, so **no overlay work stands
@@ -84,7 +94,20 @@ has landed it outranks everything below.
 13-month interval export plus three itemised bills; be explicit that they are validating an
 engine, not buying a verdict. See the M5 warning for why this ordering is not optional.
 
-**2. Wire TOU-DR-P into a ranking — but decide the day-selection rule first.** The engine
+**2. Resolve the first external disagreement with an SDG&E spec.** Session 23 found 26
+itemised SDG&E bills, MIT-licensed, in `ookla-ariel-ride/SDGE-Analysis` (`data/bill_tou_detail.csv`,
+216 rows of per-period kWh *and* printed $/kWh; `data/bill_periods_electric.csv` for the totals).
+A CEA household on NEM 2, 5/2024-6/2026. **Their 5/29/26-6/26/26 statement prints delivery at
+0.30203 on/off-peak and 0.02606 super-off-peak; our `sdge_tou_dr1_delivery_2026-06-01.yaml`
+says the UDC total is period-flat at 0.32948.** Either their extraction is NEM-2-netted rather
+than tariff rates, or our flat-UDC reading — which HANDOFF lists as a ⭐ fact and on which
+"100% of the TOU signal lives in generation" depends — is wrong. It is a third party's
+unaudited extraction (the PDFs are not published), so it is a lead, not a fixture; but it is
+the first outside evidence ever to bump against an SDG&E spec, and invariant 1 says find out.
+Cheapest resolution: read their `analysis/parse_bills.py` to learn what `rate_per_kwh` means on
+a NEM 2 statement before touching any spec.
+
+**3. Wire TOU-DR-P into a ranking — but decide the day-selection rule first.** The engine
 half is done (session 21: it loads, bills, and refuses to price without an explicit event
 assumption). What is missing is (b), the reporting band, and it is blocked on a modeling
 decision rather than on code: a forecast has to choose WHICH days to assume, and "hottest N
@@ -93,7 +116,7 @@ different answers. Surface it as a decision. Note this is gated behind the SDG&E
 set anyway — `ALL_PGE_CANDIDATES` is still the only one — which is itself gated on a real
 household. See open decision 2.
 
-**3. The 2027 ACC vintage, when either utility publishes it.** 2027 is the last application
+**4. The 2027 ACC vintage, when either utility publishes it.** 2027 is the last application
 year that earns a nine-year lock-in, so it is the last vintage the "when to install" question
 can ever turn on — and neither utility's 2027 table exists yet. Until it does,
 `Vintage(application_year=2027, ...)` raises `MissingAccTableError`, which is the correct
@@ -122,7 +145,14 @@ table since then.
   documented `TYPE,DATE,START TIME,END TIME,...` table and the real `Meter Number,Date,Start
   Time,Duration,Consumption,Generation,Net` one. The table is located by header *signature*,
   not a literal. DST folds are resolved from **file order**, so PG&E's summed 24-label day and
-  SDG&E's true 25-hour day are both correct without branching on utility.
+  SDG&E's true 25-hour day are both correct without branching on utility — and the same logic
+  handled **spring-forward** correctly on first contact with a real file (session 23).
+  The **date format is elected per file** from `("%m/%d/%Y", "%m/%d/%y")` because SDG&E emits
+  both year widths; the first candidate that parses *every* row wins, and a file mixing both is
+  refused rather than guessed (`3/1/2024` under `%m/%d/%y` is year 24). On a solar account the
+  preamble's `Total Usage` is the **NET** sum, so a mismatch equal to the export register is
+  reported as the netting convention, not as "rows may be missing" — that note was a false
+  alarm on every NEM export.
 - **Engine** (`src/tariffs/`): N-period first-match-wins TOU rules with weekday/weekend/holiday
   day types, month-conditional windows, cited holiday calendars, `Baseline.allowance_multiplier`,
   `MinimumBill`, per-kWh surcharges, `NonBypassable`, `period_codes`, and **`marginal_energy_price`**
@@ -265,7 +295,7 @@ Four pages in `docs/`, served by GitHub Pages: `index.html` (the tool), `methodo
 
 ```bash
 conda activate energy-advisor    # env prefix: /home/cameron/miniforge3/envs/energy-advisor
-pytest -q                                                   # 1,519 tests; golden tests skip if data/ absent
+pytest -q                                                   # 1,525 tests; golden tests skip if data/ absent
 ruff check . && ruff format --check .
 PYTHONPATH=src python scripts/reconcile_report.py           # 11 line-item comparisons (the trust artifact)
 PYTHONPATH=src python scripts/reconcile_report.py --write-readme

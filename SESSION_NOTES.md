@@ -2,6 +2,95 @@
 
 Running log of decisions made and decisions pending. Newest first.
 
+## 2026-09-09 — Session 23 (the public SDG&E corpus is six files, not one)
+
+Hunted the public internet for real SDG&E Green Button exports, because M1's DoD is blocked
+on SDG&E data and dad is a single point of failure. **Session 13's "the corpus is one file"
+is retired.** Full survey in `notes/sdge_public_exports_2026-09.md`; the parser fix and its
+7 tests are the code half.
+
+### ⭐ THE FIND — steevschmidt/NEC-220.87-Methods, Apache-2.0, four real exports
+Home Energy Analytics publishes SDG&E test data for its NEC 220.87 panel-sizing tools.
+**Apache-2.0, so unlike corruptbear's file the bytes MAY be vendored** (with attribution, and
+after scrubbing — the publisher removed name/account/street but left the meter numbers and
+the 92122 ZIP). One repo closes **three of the four never-seen items**:
+
+| File | Shape | Range | Export register |
+|---|---|---|---|
+| `PV_Electric_15_Minute_3-1-2024_2-28-2025` | **15-min**, 35,040 rows | **full year** | **2,944.9 kWh** |
+| `Electric_60_Minute_3-1-2024_2-28-2025` | 60-min, 8,760 rows | full year | none |
+| `PV_Electric_15_Minute_2-1-2025_3-4-2025` | 15-min, 3,072 | Feb 2025 | 238.5 kWh |
+| `Electric_60_Minute_2-1-2025_3-4-2025` | 60-min, 768 | Feb 2025 | none |
+
+- **15-minute** — only 60-minute had ever been seen.
+- **Spring-forward** — the year files span 2024-03-10 *and* 2024-11-03, so both DST
+  transitions are now exercised on both shapes. `inspect_export.py` reports
+  `DST handled  fall-back ['2024-11-03']  spring-forward ['2024-03-10']`, 100.0000% coverage,
+  0 gaps. The fold logic session 13 built from file order handled spring-forward first try.
+- **A populated Generation register** — 12,484 non-zero rows, 10,282 negative `Net` rows.
+
+### FINDING — the parser refused all four, on a two-digit year
+`_SDGE_DATE_FORMAT` was hardcoded `"%m/%d/%Y"`. These files write `3/1/24`. Same portal, same
+meter shape, different year width — so **this is the third time a stated fact about "the"
+SDG&E format has been wrong**, after the END TIME/Duration shape and the 25-hour DST day.
+Fixed by electing the format **per file** from `("%m/%d/%Y", "%m/%d/%y")`: the first candidate
+that parses *every* row wins. Four-digit is tried first deliberately — `3/1/2024` under `%m/%d/%y`
+is year 24, and a silent century slip is worse than a rejection. A file mixing both widths
+parses under neither and is refused rather than guessed. Three tests pin exactly that.
+
+### ⭐ ANSWERED — `Total Usage` on a solar account is the NET sum
+Session 13 left this explicitly open ("consumption sum or net sum?"). The year file settles it:
+Consumption sums to **7318.845**, declared `Total Usage` is **4373.935**, and the difference is
+**exactly** the 2944.910 kWh Generation register. So `_declared_total_note` now recognises a
+mismatch that equals the export total and reports it as the netted-total convention instead of
+"rows may be missing" — which was a **false alarm on every NEM export**, i.e. precisely on the
+solar households M3 exists for. An unexplained mismatch still warns; both cases are tested.
+
+### ⭐ THE FIRST SDG&E-PRINTED NUMBER REPRODUCED FROM A REAL SDG&E EXPORT
+The repo also ships a dashboard screenshot: *"Highest Usage Hour (Demand) this month:
+**6.8 kW on February 16, 2025 from 3:00am to 4:00am**"*. From the 15-minute file, February's
+maximum 15-minute interval is **1.7050 kWh at 3:45 AM on 2/16/25 → 6.82 kW**. Exact.
+
+**So SDG&E's printed "demand" is the peak 15-MINUTE interval scaled to an hourly rate
+(kWh x 4), labelled with the clock hour containing it — NOT the energy used in that hour.**
+Both wrong readings are recorded so nobody re-derives them: the clock-hour sum is 6.545 and
+the rolling-hour max is 6.580. Neither rounds to 6.8. A tool reporting "your peak hour" as
+hourly energy understates SDG&E's own printed figure by ~4% here, and the gap grows with
+peakier loads.
+
+**This is NOT a dollar reconciliation and does NOT close M1's DoD** (invariant 1 needs
+itemised bills within $2). It is the first independent confirmation that the parser reads
+SDG&E timestamps and magnitudes correctly against SDG&E's own arithmetic.
+
+### The second find — 26 itemised bills, no intervals (ookla-ariel-ride/SDGE-Analysis, MIT)
+Raw CSV gitignored, but the **de-identified bill extractions are committed**: 26 statements
+(5/2024 → 6/2026) with delivery $, CCA generation $ and totals, plus **216 rows of
+per-statement, per-season, per-segment, per-TOU-period kWh AND printed $/kWh**. CEA household
+on **NEM 2**, straddling the bundled→CCA switch and the Oct-2025 fixed-charge change, with
+**five two-segment statements** — real printed proof of the mid-period vintage split our specs
+model. **Unverified third-party extraction; the PDFs are not published, so it cannot be audited.**
+
+⚠ **It disagrees with our spec, and this is the top follow-up.**
+`sdge_tou_dr1_delivery_2026-06-01.yaml` says UDC total is period-flat at **0.32948**; their
+5/29/26-6/26/26 statement prints delivery **0.30203** on/off-peak and **0.02606**
+super-off-peak. Either their figures are NEM-2-netted rather than tariff rates, or our
+flat-UDC reading is wrong. **Unresolved.** Exactly the class of error the reconciliation gate
+exists to catch, and the first external evidence that has ever bumped against an SDG&E spec.
+
+### Rejected, and one of them is a disclosure
+`j1fuller/{youpower,youpower-Billing,reallocation}` hold three real 15-minute SDG&E exports
+with **no licence and no anonymisation** — real company names, street addresses, account and
+meter numbers, in public repos. Not used; local copies deleted. Also checked and empty:
+Green Button Alliance samples (synthetic XML, as session 13 found), HuggingFace EnergyBench /
+EDS-lab, Kaggle, IEEE DataPort's San Diego residential set (research instrumentation, gated,
+no bills), and SDG&E itself — **SDG&E publishes no sample export; every path is a portal login.**
+
+### What this does NOT unblock — read before celebrating
+**Item 1, one household's export paired with its own itemised bills, is still unfound**, and
+it is still the only thing that closes M1. The public corpus now validates the parser hard —
+15-minute, both DST transitions, a real export register — but it cannot earn the right to show
+anyone a dollar figure. **The recruit-a-validation-user action does not move.**
+
 ## 2026-09-09 — Session 22 (committing what four parallel lanes left in the tree)
 
 No engine change. **1,519 tests green, ruff clean, wasm parity and both render checks pass.**
