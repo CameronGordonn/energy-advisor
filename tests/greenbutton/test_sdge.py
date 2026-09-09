@@ -51,6 +51,12 @@ def _mdY(iso: str) -> str:
     return f"{d.month}/{d.day}/{d.year}"
 
 
+def _mdy(iso: str) -> str:
+    """'2024-03-01' -> '3/1/24' (the two-digit-year meter-shape variant)."""
+    d = _date.fromisoformat(iso)
+    return f"{d.month}/{d.day}/{d.year % 100}"
+
+
 def sdge_interval_csv(
     rows: list[tuple],
     *,
@@ -331,6 +337,7 @@ def sdge_meter_csv(
     total_usage: float | None = None,
     columns: tuple[str, ...] = ("Consumption", "Generation", "Net"),
     meter: str = "00000000",
+    two_digit_year: bool = False,
 ) -> str:
     """Build a meter-shape CSV.
 
@@ -346,7 +353,8 @@ def sdge_meter_csv(
     for row in rows:
         iso, start_min, duration = row[0], row[1], row[2]
         values = row[3 : 3 + len(columns)]
-        cells = [meter, _mdY(iso), ampm(start_min), str(duration), *(str(v) for v in values)]
+        stamp = _mdy(iso) if two_digit_year else _mdY(iso)
+        cells = [meter, stamp, ampm(start_min), str(duration), *(str(v) for v in values)]
         out.append(",".join(f'"{c}"' for c in cells))
     return "\n".join(out) + "\n"
 
@@ -497,6 +505,91 @@ def test_no_declared_total_is_not_an_error(tmp_path):
     text = sdge_meter_csv(meter_hourly_day("2022-11-01"), total_usage=None)
     _, report = parse_sdge_interval_csv(write(tmp_path, text))
     assert not any("Total Usage" in n for n in report.notes)
+
+
+def test_declared_total_on_a_solar_account_is_the_NET_sum(tmp_path):
+    """SDG&E's ``Total Usage`` nets the export register on a NEM account.
+
+    Session 13 left this open ("consumption sum or net sum?"). A real 15-minute NEM
+    export answers it: Consumption summed to 7318.845 kWh against a declared 4373.935,
+    short by exactly the 2944.910 kWh Generation register. Warning about "missing rows"
+    there is a false alarm on every solar export.
+    """
+    rows = meter_hourly_day("2024-07-15", usage=1.0, generation="0.4")
+    # 24 h: import 24.0, export 9.6, so the netted declared total is 14.4.
+    text = sdge_meter_csv(rows, total_usage=14.4)
+    series, report = parse_sdge_interval_csv(write(tmp_path, text))
+
+    assert series.total_kwh == pytest.approx(24.0)  # billed import, not the net
+    assert any("is the NET sum" in n for n in report.notes)
+    assert not any("does NOT match" in n for n in report.notes)
+
+
+def test_an_unexplained_total_mismatch_still_warns_on_a_solar_file(tmp_path):
+    # The netted-total reading must not become a blanket excuse for any mismatch.
+    rows = meter_hourly_day("2024-07-15", usage=1.0, generation="0.4")
+    text = sdge_meter_csv(rows, total_usage=999.0)
+    _, report = parse_sdge_interval_csv(write(tmp_path, text))
+    assert any("does NOT match" in n for n in report.notes)
+
+
+# --- the two-digit-year variant --------------------------------------------
+
+
+def test_meter_shape_two_digit_year(tmp_path):
+    """The same portal emits '3/1/24' as well as '11/1/2022'.
+
+    Four real SDG&E files published under Apache-2.0 by steevschmidt/NEC-220.87-Methods
+    use the two-digit form; the parser refused all four until the format was elected per
+    file instead of hardcoded.
+    """
+    rows = meter_hourly_day("2024-03-01", usage=0.25)
+    text = sdge_meter_csv(rows, two_digit_year=True)
+    assert '"3/1/24"' in text
+
+    series, report = parse_sdge_interval_csv(write(tmp_path, text))
+    assert report.n_intervals == 24
+    assert series.frame.index[0] == pd.Timestamp("2024-03-01 00:00", tz=LOCAL_TZ)
+
+
+def test_four_digit_year_is_not_read_as_a_two_digit_one(tmp_path):
+    # '3/1/2024' under %m/%d/%y would be year 24. Four-digit is tried first for this.
+    rows = meter_hourly_day("2024-03-01", usage=0.25)
+    series, _ = parse_sdge_interval_csv(write(tmp_path, sdge_meter_csv(rows)))
+    assert series.frame.index[0].year == 2024
+
+
+def test_mixed_year_widths_are_refused_rather_than_guessed(tmp_path):
+    # Neither format parses every row, so no century is silently invented.
+    text = sdge_meter_csv(meter_hourly_day("2024-03-01", usage=0.25))
+    lines = text.splitlines()
+    lines[-1] = lines[-1].replace('"3/1/2024"', '"3/1/24"')
+    with pytest.raises(GreenButtonParseError, match="unparseable DATE"):
+        parse_sdge_interval_csv(write(tmp_path, "\n".join(lines) + "\n"))
+
+
+def test_meter_shape_writes_a_23_hour_spring_forward_day(tmp_path):
+    """Spring-forward had never been tested on either shape before this fixture.
+
+    SDG&E writes a true 23-hour day: 2 a.m. does not exist and no row is printed for it.
+    The fall-back counterpart (a true 25-hour day) is covered above.
+    """
+    rows = [
+        (iso, h * 60, 60, 0.25, "", 0.25)
+        for iso, hours in (
+            ("2024-03-09", range(24)),
+            ("2024-03-10", [h for h in range(24) if h != 2]),
+            ("2024-03-11", range(24)),
+        )
+        for h in hours
+    ]
+    series, report = parse_sdge_interval_csv(write(tmp_path, sdge_meter_csv(rows)))
+
+    assert report.n_intervals == 71  # 24 + 23 + 24
+    assert report.n_gaps == 0
+    hours = [t.strftime("%H") for t in series.frame.index if t.date().day == 10]
+    assert "02" not in hours
+    assert hours[:4] == ["00", "01", "03", "04"]
 
 
 # --- malformed meter-shape input -------------------------------------------

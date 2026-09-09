@@ -77,8 +77,13 @@ from .models import IntervalSeries, ParseReport, Utility
 
 __all__ = ["parse_sdge_interval_csv"]
 
-# SDG&E writes M/D/YYYY (unpadded) in both shapes; %m/%d accepts 1-2 digits.
-_SDGE_DATE_FORMAT = "%m/%d/%Y"
+# SDG&E writes M/D unpadded (%m/%d accepts 1-2 digits) but is NOT consistent about the
+# YEAR: the same portal emits four-digit ('11/1/2022') and two-digit ('3/1/24') years in
+# otherwise identical meter-shape files. Both are tried, four-digit first, and the format
+# is elected per FILE rather than per row: the first candidate that parses every row wins.
+# A file mixing the two parses under neither and is refused, which is correct — '3/1/24'
+# read as %m/%d/%Y is year 24, and a silent century slip is worse than a rejection.
+_SDGE_DATE_FORMATS = ("%m/%d/%Y", "%m/%d/%y")
 
 # The declared-total cross-check tolerates per-row printing at 4 decimal places.
 _TOTAL_USAGE_ATOL = 0.05
@@ -106,18 +111,27 @@ def _find_export_col(columns: list[str]) -> str | None:
     return None
 
 
-def _declared_total_note(meta: dict[str, str], billed_kwh: float) -> str | None:
+def _declared_total_note(
+    meta: dict[str, str], billed_kwh: float, export_kwh: float = 0.0
+) -> str | None:
     """Cross-check the summed readings against the preamble's ``Total Usage``, if present.
 
     This is free validation that every row was read: the meter shape prints its own
     total, and on the one real export seen it matched the summed ``Consumption`` column
     to the digit (817.415 kWh).
 
-    Deliberately a **note, never a rejection**. The semantics of ``Total Usage`` on a
-    solar account are unverified (consumption sum or net sum?), and a file whose delivered
-    rows have gaps could legitimately undershoot a total computed over the requested
-    range. Turning one observation into a rejection rule is how a valid export gets
-    refused, which is the failure mode HANDOFF.md warns against.
+    On a SOLAR account the declared total is the NET sum, not the consumption sum.
+    Established on a real 15-minute NEM export whose Consumption summed to 7318.845 kWh
+    against a declared 4373.935 — a shortfall of exactly the 2944.910 kWh Generation
+    register. So a mismatch that equals the export total is the netted-total convention
+    and is benign; only an unexplained one is worth a warning. Saying "rows may be
+    missing" to a solar customer whose file is complete is a false alarm on every NEM
+    export, which is the class of defect this parser is meant not to have.
+
+    Deliberately a **note, never a rejection**. A file whose delivered rows have gaps
+    could legitimately undershoot a total computed over the requested range. Turning one
+    observation into a rejection rule is how a valid export gets refused, which is the
+    failure mode HANDOFF.md warns against.
     """
     raw = meta.get("Total Usage")
     if not raw:
@@ -127,9 +141,15 @@ def _declared_total_note(meta: dict[str, str], billed_kwh: float) -> str | None:
     except ValueError:
         return f"declared 'Total Usage' {raw!r} is not numeric; skipped the total cross-check"
 
+    tol = max(_TOTAL_USAGE_ATOL, abs(declared) * 1e-6)
     diff = billed_kwh - declared
-    if abs(diff) <= max(_TOTAL_USAGE_ATOL, abs(declared) * 1e-6):
+    if abs(diff) <= tol:
         return f"declared Total Usage {declared:g} kWh reconciles with the summed readings"
+    if export_kwh > 0 and abs(diff - export_kwh) <= tol:
+        return (
+            f"declared Total Usage {declared:g} kWh is the NET sum (import {billed_kwh:.3f} "
+            f"- export {export_kwh:.3f}); the summed import readings reconcile with it"
+        )
     return (
         f"declared Total Usage {declared:g} kWh does NOT match the summed readings "
         f"({billed_kwh:.3f} kWh, difference {diff:+.3f}); rows may be missing or the "
@@ -193,14 +213,19 @@ def parse_sdge_interval_csv(
     # time parser serves both the 24-hour and the 12-hour shape.
     start_time = df[cols["START TIME"]].str.strip()
     start_min = to_minutes(start_time)
-    naive_date = pd.to_datetime(
-        df[cols["DATE"]].str.strip(), format=_SDGE_DATE_FORMAT, errors="coerce"
-    )
-    if naive_date.isna().any():
-        bad = df[cols["DATE"]][naive_date.isna()].iloc[0]
+    raw_date = df[cols["DATE"]].str.strip()
+    naive_date = None
+    for fmt in _SDGE_DATE_FORMATS:
+        parsed = pd.to_datetime(raw_date, format=fmt, errors="coerce")
+        if not parsed.isna().any():
+            naive_date = parsed
+            break
+    if naive_date is None:
+        first = pd.to_datetime(raw_date, format=_SDGE_DATE_FORMATS[0], errors="coerce")
+        bad = raw_date[first.isna()].iloc[0] if first.isna().any() else raw_date.iloc[0]
         raise GreenButtonParseError(
             f"{path.name}: unparseable DATE {bad!r} "
-            f"(expected SDG&E {_SDGE_DATE_FORMAT!r}, e.g. '9/1/2025')"
+            f"(expected SDG&E {' or '.join(_SDGE_DATE_FORMATS)}, e.g. '9/1/2025' or '9/1/25')"
         )
     naive_start = naive_date + pd.to_timedelta(start_min, unit="m")
 
@@ -229,6 +254,7 @@ def parse_sdge_interval_csv(
     # solar account isn't silently treated as import-only without a trace. Blanks are
     # legitimate on the meter shape — a non-solar account leaves Generation empty.
     export_col = _find_export_col(list(df.columns))
+    total_export = 0.0
     if export_col is not None:
         total_export = float(_numeric(export_col, allow_blank=True).sum())
         if total_export > 0:
@@ -237,7 +263,7 @@ def parse_sdge_interval_csv(
                 "M1 bills grid import only — NEM export netting is M3"
             )
 
-    total_note = _declared_total_note(meta, float(kwh.sum()))
+    total_note = _declared_total_note(meta, float(kwh.sum()), total_export)
     if total_note:
         extra_notes.append(total_note)
 
