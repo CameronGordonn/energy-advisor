@@ -47,7 +47,24 @@ the 1.5:1 a hairline colour gives. `--mark` is 3.39 / 3.25; `--ox` on the sulphu
 4.58 / 3.62. **A border colour is not a data colour.**
 
 **Heading order is unbroken** on `index.html`: `h1 → h2 → h3`, finding cards `h4` under the
-"What stands out" `h3`.
+"What stands out" `h3`. And on `methodology.html` since session 20: 27 headings, one `h1`,
+zero skips. Its `.plate-head` titles are `<p>`, **not headings** — a plate is a figure, not a
+section, and making them `h4` under an `h2` is what broke the order in the first place. Each
+table carries a visually-hidden `<caption>` instead.
+
+**Every `th` on `methodology.html` has a `scope`**, including row headers (billing period,
+plan name, component). The pass column is `✓<span class="vh"> within tolerance</span>` — a
+bare glyph is not a status.
+
+**The reconciliation chart's tooltip is not a live region.** It was `role="status"` and set
+its text on `mouseenter`, which announced eleven statements on mouse-over. It is `aria-hidden`;
+the table below is the text equivalent. Same rule as the index charts: `aria-labelledby`
+points at the visible caption so the description cannot drift from the words beside it.
+
+**Reflow at 200% and 400% holds on both pages**, and two of the three defects found were
+structural rather than cosmetic — see the design-system skill for `.row>*{min-width:0}` and
+why an `overflow-x:auto` box containing a `.vh` caption needs `position:relative`. Re-check
+with the audit below after any layout change; jsdom cannot see any of it.
 
 **Label collisions.** Fixed twice now on the hour chart. jsdom does no layout and will never
 catch this — run `scripts/screenshot_site.py` and look.
@@ -56,14 +73,12 @@ catch this — run `scripts/screenshot_site.py` and look.
 
 ### 3. Unverified, check when auditing
 
-- Heading order on `docs/methodology.html` (index.html is done; one `h1` each).
+Both remaining items are on `index.html`; `methodology.html`'s list was closed in session 20.
+
 - `#status` updates during parsing — confirm they reach a live region rather than only
   changing text silently.
 - The results region is revealed by toggling `hidden`; confirm focus or an announcement
   moves there, so a keyboard user knows the analysis arrived.
-- `docs/methodology.html` tables: confirm `<th scope>` and captions.
-- Zoom to 200% and 400% reflow; the charts have `viewBox` so they scale, but check captions
-  and the stats grid do not clip.
 
 ## Method
 
@@ -74,6 +89,13 @@ conda activate energy-advisor
 node tools/test_tool_render.mjs        # jsdom render; pins the DOM contract
 pytest -q tests/report/                # findings prose, no-dollars, bundle staleness
 ```
+
+**Reflow and heading order need a real browser.** Drive Playwright at 1280 / 640 / 320 CSS px
+and assert `document.documentElement.scrollWidth <= clientWidth` on every page — 640 and 320
+are 200% and 400% zoom of a 1280 viewport, and a page that scrolls sideways there fails WCAG
+1.4.10. In the same pass, walk `h1..h6` for level skips and every `th` for a missing `scope`.
+This found three failures in session 20 that both the jsdom test and the screenshot pass had
+missed, one of them on `index.html`.
 
 Contrast is arithmetic — compute it rather than eyeballing, using the relative-luminance
 formula against the token values in `:root`. Report ratios to two decimals with the pass

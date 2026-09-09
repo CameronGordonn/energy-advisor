@@ -50,6 +50,11 @@ strong{font-weight:700}
 .display{font-family:var(--display);font-stretch:125%;font-weight:700;text-transform:uppercase;
   line-height:.9;letter-spacing:-.005em;margin:0}
 
+/* Section heading inside a .row — the display voice one step below the page's h1.
+   Shared by index.html and methodology.html; do not re-declare it inline. */
+h2.sec{font-family:var(--display);font-stretch:115%;font-weight:700;text-transform:uppercase;
+  font-size:clamp(1.3rem,2.6vw,1.9rem);line-height:1;margin:0 0 .9rem}
+
 /* Ledger voice: everything numeric, every label, every stamp. */
 .mono{font-family:var(--mono)}
 .tag{font-family:var(--mono);font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;
@@ -62,6 +67,12 @@ strong{font-weight:700}
 .row{display:grid;grid-template-columns:8.5rem 1fr;gap:2rem;
   border-top:1px solid var(--rule);padding:2.6rem 0}
 .row.heavy{border-top:3px solid var(--ink)}
+/* A grid item's min-width is auto, i.e. min-content, so one unbreakable child — a <pre>,
+   a wide table — drags the whole column past the viewport and the PAGE scrolls sideways
+   instead of the block. Caught at 200% and 400% zoom by scripts/screenshot_site.py's
+   sibling audit; jsdom cannot see it. Keep this: it is what makes overflow-x:auto on
+   .scroll and <pre> actually contain anything (WCAG 1.4.10 reflow). */
+.row>*{min-width:0}
 .rail{font-family:var(--mono);font-size:.7rem;line-height:1.5;letter-spacing:.04em;
   text-transform:uppercase;color:var(--ink-3);position:sticky;top:3.6rem;align-self:start}
 .rail b{display:block;color:var(--ox);font-weight:700;font-size:.78rem}
@@ -76,6 +87,8 @@ strong{font-weight:700}
 .masthead nav{display:flex;gap:1.1rem}
 .masthead a{color:var(--ink-3);text-decoration:none}
 .masthead a:hover{color:var(--ox);text-decoration:underline}
+.masthead a[aria-current="page"]{color:var(--ink);text-decoration:underline;
+  text-decoration-thickness:2px;text-underline-offset:4px}
 
 /* ---- the stamp: the signature device. A tool that deliberately prices nothing should
    say so the way a document would. ---- */
@@ -96,7 +109,7 @@ strong{font-weight:700}
 
 /* ---- plates: bordered blocks for charts. A border, not a card: no radius, no shadow. ---- */
 .plate{border:1px solid var(--rule-2);background:var(--paper-2);padding:1.4rem}
-.plate-head{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;
+.plate-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:.4rem 1rem;
   border-bottom:1px solid var(--rule-2);padding-bottom:.6rem;margin-bottom:1.2rem;
   font-family:var(--mono);font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;
   color:var(--ink-3)}

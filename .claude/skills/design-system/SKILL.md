@@ -13,11 +13,10 @@ Four published pages, served from `docs/` on GitHub Pages:
 - **`docs/privacy.html`**, **`docs/terms.html`** — the legal pages, prose only.
 
 **`docs/site.css` is the shared stylesheet** and the single source of truth for the palette.
-`index.html`, `privacy.html` and `terms.html` link it and keep only page-specific rules
-inline. ⚠ `methodology.html` does NOT yet link it — it still carries its own copy of the
-token block (values are now in sync, but it will drift again). Migrating it is the next
-tidy-up, and the only reason it was not done alongside the others is that its inline nav and
-footer rules would need reconciling with the shared ones first.
+**All four pages link it** and keep only page-specific rules inline. No page defines a palette
+token of its own; if you find one, that is the bug. `methodology.html` was migrated in session
+20 — it had carried a fourth hue (`--warn`) for caveats, which was deleted rather than aliased,
+because the system is two-colour.
 
 Pages is the canonical home. `docs/index.html` carries its own `<!doctype html>`, `<html
 lang>`, and `<head>`, so it is **not** an Artifact — do not route it through the Artifact
@@ -32,13 +31,19 @@ adding one is a regression, not a refinement. A left rail of mono margin-annotat
 (`.rail`, section numbers `00`-`05`) carries each block, which is what stops the page being
 a stack of centred cards.
 
+**Reflow is part of the system, not an afterthought.** `.row>*{min-width:0}` in `site.css` is
+load-bearing: a grid item's `min-width` is `auto` = min-content, so without it one `<pre>` or
+wide table drags its column past the viewport and the *page* scrolls sideways instead of the
+block. Anything that must scroll horizontally does so inside its own `overflow-x:auto` box,
+and that box needs `position:relative` if it contains a visually-hidden (`position:absolute`)
+caption. Both pages are checked at 1280 / 640 / 320 CSS px.
+
 The signature device is the **stamp** (`.stamp`): `NOT A BILL / NO AMOUNT DUE`. The tool
 deliberately prices nothing, and a document says that the way a document would. Keep it.
 
 ## The tokens
 
-Defined once in `docs/site.css`. `methodology.html` still holds its own copy of the values
-(in sync; migrating it needs its nav/footer rules reconciled with the shared chrome first).
+Defined once in `docs/site.css`, and only there.
 
 ```
 --paper --paper-2                   the manila grounds
@@ -125,8 +130,12 @@ touching either, **load the `dataviz` skill**.
 Conventions to preserve:
 - **Square bar ends.** No `rx`. Printed, not drawn.
 - **`--ox` means one thing: the expensive hours.** Peak bars are `--accent` (= `--ox`) on a
-  `--band` block; every other bar in both charts is `--mark`. Month bars are deliberately
-  `--mark`, not oxblood — reusing the accent for "just data" would drain it of meaning.
+  `--band` block; every other bar in every chart is `--mark`. Month bars are deliberately
+  `--mark`, not oxblood — reusing the accent for "just data" would drain it of meaning. This
+  is a rule about **chart data colours**: `--ox` stays the document accent for links, rail
+  numbers, `h3`, the stamp and pass marks, which is how `site.css` itself uses it. The
+  methodology page's eleven reconciliation-error bars were oxblood until session 20 and are
+  now `--mark` (3.02 light / 3.01 dark on the plate).
 - One series, so no legend; the plate header names it.
 - Axis and label text in `--ink-3` or `--ink`, never `--sul`.
 - Exactly one direct label (the busiest hour); never a number on every bar.
