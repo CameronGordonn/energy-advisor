@@ -653,13 +653,14 @@ def test_every_sdge_delivery_vintage_has_a_matching_generation_vintage():
     because every test named its files explicitly. A half-authored schedule is invisible
     until someone tries to bill it, so pair completeness is asserted structurally here.
 
-    TOU-DR-P is excluded on purpose: it is deliberately unloadable (open decision 2), so
-    it has no generation layer by design. If it ever becomes loadable, drop the filter.
+    TOU-DR-P was excluded here until 2026-09-09, when it stopped being unloadable and got
+    its generation layer (Schedule EECC-TOU-DR-P, carrying the RYU event adder). It is now
+    inside the gate, which means an 8/1/2026 TOU-DR-P delivery vintage cannot land without
+    its generation twin either.
     """
     delivery = {
         (p.name.split("_delivery_")[0], p.name.split("_delivery_")[1])
         for p in SPECS_DIR.glob("sdge_*_delivery_*.yaml")
-        if "tou_dr_p" not in p.name
     }
     generation = {
         (p.name.split("_generation_")[0], p.name.split("_generation_")[1])
