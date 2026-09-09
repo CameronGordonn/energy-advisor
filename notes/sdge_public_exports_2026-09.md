@@ -56,12 +56,44 @@ mid-period vintage split our specs model.
 ⚠ **Unverified third-party extraction.** The bill PDFs are not published, so the extraction
 cannot be audited. Treat as a lead, not as a golden fixture.
 
-⚠ **It does not agree with our spec.** Our `sdge_tou_dr1_delivery_2026-06-01.yaml` says the
-UDC total is period-flat at **0.32948**; their 5/29/26-6/26/26 statement prints delivery at
-**0.30203** on/off-peak and **0.02606** super-off-peak. Either their extraction is
-NEM-2-netted rather than tariff rates, or our flat-UDC reading is wrong. **Resolving this is
-the single highest-value follow-up in this note** — it is exactly the class of error the
-reconciliation gate exists to catch, and it is unresolved.
+⭐ **AUDITED, AND IT CORROBORATES OUR SPECS.** The first draft of this note recorded a
+disagreement with `sdge_tou_dr1_delivery_2026-06-01.yaml`. That was a schedule mismatch on
+our side: **the household is on EV-TOU-5, not TOU-DR1.** The bill's own structure says so —
+on-peak and off-peak delivery print at the *same* rate and super-off-peak is collapsed to a
+twentieth of it, which is EV-TOU-5's signature and something TOU-DR1 (period-flat UDC) never
+does. Their own plan table ranks EV-TOU-5 first for this household.
+
+Against the right spec the agreement is exact, and it is not a coincidence:
+
+| Vintage | Our delivery rate (on/off) | Printed | Our super-off | Printed |
+|---|---|---|---|---|
+| 1/1/2026 | 0.32913 | 0.30814 | 0.04267 | 0.02168 |
+| 4/1/2026 | 0.33273 | 0.31174 | 0.04705 | 0.02606 |
+| 6/1/2026 | 0.32302 | 0.30203 | 0.04705 | 0.02606 |
+
+**Every cell differs by exactly 0.02099** — six cells, three vintages, two TOU periods. That
+is precisely the bundle our own specs itemise: `PPP 0.01515 + ND 0.00000 + CTC (0.00007) +
+WF-NBC/DWR-BC 0.00591 = 0.02099`.
+
+**So SDG&E prints the delivery Rate/kWh EXCLUDING the non-bypassable and public-purpose
+charges**, itemising them elsewhere on the statement, while its Total Rates Table — which our
+specs transcribe — folds them in. Both are right; they are different presentations of the
+same tariff. The identity `our rate - NBC floor == the printed rate` is now a regression gate
+(`test_our_delivery_rate_less_the_import_floor_is_what_sdge_printed`), which checks the rates
+and the NBC decomposition at once.
+
+Two further things fall out:
+- **Invariant 4's numbers are confirmed from a real bill.** The import floor is 0.02099/kWh,
+  which is **44.6%** of EV-TOU-5's super-off-peak delivery charge and **6.5%** elsewhere —
+  the ⭐ HANDOFF fact, previously derived only from our own transcription.
+- **Open decision 1 gains outside corroboration.** A statement spanning 5/29-6/26/2026 prints
+  one winter rate, 0.31174, either side of 5/31 with no segment split. A 5/1 filing that moved
+  *rates* would have forced one. The 5/1 vintage really is a window change alone.
+
+⚠ **This is corroboration, not reconciliation.** The bill PDFs are unpublished, so the
+extraction is unaudited; the TOU kWh are NEM-2 netted, so the household cannot be billed
+end to end; and it is EV-TOU-5, so **TOU-DR1's period-flat UDC remains unvalidated by any
+bill.** It does not go in `tests/golden_bills/` and it does not satisfy invariant 1.
 
 ## 3. Rejected candidates
 

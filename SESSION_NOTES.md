@@ -2,6 +2,68 @@
 
 Running log of decisions made and decisions pending. Newest first.
 
+## 2026-09-09 — Session 23b (the spec "disagreement" audited: it was the wrong schedule)
+
+Audited the disagreement session 23 flagged between `ookla-ariel-ride/SDGE-Analysis`'s printed
+bill rates and our SDG&E specs. **Our specs are right. The flag was a schedule mismatch on our
+side, and correcting it turns the corpus from a contradiction into the first external
+validation any SDG&E spec has ever had.**
+
+### ⭐ THE HOUSEHOLD IS ON EV-TOU-5, NOT TOU-DR1
+The bill says so structurally, before any rate is compared: **on-peak and off-peak delivery
+print at the same rate**, and **super-off-peak is collapsed to about a twentieth of it**. That
+is EV-TOU-5's signature. TOU-DR1's UDC is period- and season-FLAT — it cannot produce that
+shape at all. Their own plan-comparison table also ranks EV-TOU-5 first for this household.
+
+**Generalise:** the flag was raised by matching on utility and era and assuming the schedule.
+A rate table's *shape* identifies the schedule faster than its levels do, and it should be the
+first check, not the last. Session 21's lesson ("work out which SCHEDULE actually governs the
+line") in a new costume — this time it was our own comparison that named the wrong one.
+
+### ⭐ THE AGREEMENT IS EXACT, AND IT NAMES ITS OWN OFFSET
+| Vintage | Ours (on/off) | Printed | Ours (super-off) | Printed |
+|---|---|---|---|---|
+| 1/1/2026 | 0.32913 | 0.30814 | 0.04267 | 0.02168 |
+| 4/1/2026 | 0.33273 | 0.31174 | 0.04705 | 0.02606 |
+| 6/1/2026 | 0.32302 | 0.30203 | 0.04705 | 0.02606 |
+
+**All six cells differ by exactly 0.02099** — three vintages, two TOU periods, five decimal
+places. That is the bundle our own spec headers itemise:
+`PPP 0.01515 + ND 0.00000 + CTC (0.00007) + WF-NBC/DWR-BC 0.00591 = 0.02099`.
+
+**SDG&E prints the delivery Rate/kWh EXCLUDING the non-bypassable and public-purpose charges**,
+itemising them elsewhere on the statement, while the Total Rates Table our specs transcribe
+folds them in. Both presentations are correct. `included_in_energy_rate: true` is right and
+stays. New gate: `test_our_delivery_rate_less_the_import_floor_is_what_sdge_printed` asserts
+`our rate - NBC floor == printed rate` over all four 2026 EV-TOU-5 vintages — it checks the
+rates and the NBC decomposition simultaneously, and it was verified to fail on a 0.001 rate
+perturbation before being committed.
+
+⚠ **This matters for what we would ever SHOW a user.** A household reading "your delivery rate
+is $0.32302/kWh" against a bill that prints $0.30203 will conclude the tool is wrong, on a
+product whose entire pitch is numbers they can verify against their own bill. Any per-kWh rate
+we display has to say which of the two presentations it is. Not a bug today — the tool prices
+nothing — but it is a live constraint on the report milestone.
+
+### Two facts promoted from "our transcription says so" to "a real bill says so"
+- **Invariant 4's import floor.** 0.02099/kWh, and it is **44.6%** of EV-TOU-5's super-off-peak
+  delivery charge against **6.5%** elsewhere. Those were HANDOFF ⭐ facts derived only from our
+  own reading of the rate tables; a third party's statements now reproduce them.
+- **Open decision 1's 5/1 vintage.** A statement spanning 5/29-6/26/2026 prints ONE winter
+  rate, 0.31174, either side of 5/31, with **no segment split**. Their extractor splits a
+  period into segments whenever a filing lands mid-cycle — five statements in the corpus do —
+  so a 5/1 filing that moved rates would have forced one here and did not. The 5/1 vintage
+  really is a window change alone. Pinned by `test_the_5_1_filing_moved_the_window_and_not_the_rates`.
+
+### What this does NOT do, stated plainly
+- Not a golden bill, not in `tests/golden_bills/`, does not satisfy invariant 1. The PDFs are
+  unpublished so the extraction is unaudited, and the TOU kWh are NEM-2 netted so the household
+  cannot be billed end to end.
+- **TOU-DR1's period-flat UDC remains unvalidated by any bill** — and that is the schedule
+  nearly every SDG&E household is on, and the one M1 needs.
+- The only externally validated SDG&E schedule is now **EV-TOU-5**, which rankings filter out
+  by default because Cameron has no EV. Worth remembering before quoting the validation.
+
 ## 2026-09-09 — Session 23 (the public SDG&E corpus is six files, not one)
 
 Hunted the public internet for real SDG&E Green Button exports, because M1's DoD is blocked

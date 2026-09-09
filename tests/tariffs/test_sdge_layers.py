@@ -183,3 +183,64 @@ def test_ev_tou_5_super_off_peak_is_about_half_non_bypassable():
     on = spec.energy_rate(Season.SUMMER, "on_peak").for_customer(care=False)
     assert floor / sop == pytest.approx(0.446, abs=0.005)
     assert floor / on == pytest.approx(0.065, abs=0.005)
+
+
+# --- external corroboration: what SDG&E actually printed on a real bill ----------
+#
+# Session 23. Every number above is transcribed from SDG&E's own rate TABLES; nothing in
+# this repo had ever been checked against an SDG&E BILL. These are, from a real EV-TOU-5
+# household's statements: `data/bill_tou_detail.csv` in
+# https://github.com/ookla-ariel-ride/SDGE-Analysis (MIT), whose extractor cross-foots each
+# printed Rate/kWh against the statement's own independently printed charge line.
+#
+# ⚠ THIRD-PARTY AND UNAUDITED — the bill PDFs are not published. This is corroboration, not
+# a golden bill, and it is deliberately NOT in `tests/golden_bills/`. It cannot satisfy
+# invariant 1's reconciliation gate; only itemised bills from a household that also supplies
+# its interval data can do that.
+#
+# WHAT IT ESTABLISHES: SDG&E prints the delivery Rate/kWh **excluding** the non-bypassable
+# and public-purpose bundle, which it itemises elsewhere on the statement. Our specs fold
+# that bundle IN (`included_in_energy_rate: true`, matching the Total Rates Table). So the
+# identity that must hold is `our energy rate - NBC floor == the printed rate`, and it holds
+# to the fifth decimal in all eight cells below, across four vintages. That is simultaneously
+# a check on the rates and on the NBC decomposition: an error in either breaks it.
+PRINTED_ON_A_REAL_EV_TOU_5_BILL = {
+    # vintage file -> (on_peak == off_peak, super_off_peak), standard (non-CARE)
+    "sdge_ev_tou_5_delivery_2026-01-01.yaml": (0.30814, 0.02168),
+    "sdge_ev_tou_5_delivery_2026-04-01.yaml": (0.31174, 0.02606),
+    "sdge_ev_tou_5_delivery_2026-05-01.yaml": (0.31174, 0.02606),
+    "sdge_ev_tou_5_delivery_2026-06-01.yaml": (0.30203, 0.02606),
+}
+
+
+@pytest.mark.parametrize("filename,printed", sorted(PRINTED_ON_A_REAL_EV_TOU_5_BILL.items()))
+def test_our_delivery_rate_less_the_import_floor_is_what_sdge_printed(filename, printed):
+    spec = load_spec_file(SPECS_DIR / filename)
+    floor = spec.non_bypassable.per_kwh(care=False)
+    printed_on, printed_sop = printed
+
+    for season in (Season.SUMMER, Season.WINTER):
+        for period in ("on_peak", "off_peak"):
+            ours = spec.energy_rate(season, period).for_customer(care=False)
+            assert ours - floor == pytest.approx(printed_on, abs=1e-9), (
+                f"{filename} {season}/{period}: ours {ours} - floor {floor} != printed {printed_on}"
+            )
+        sop = spec.energy_rate(season, "super_off_peak").for_customer(care=False)
+        assert sop - floor == pytest.approx(printed_sop, abs=1e-9)
+
+
+def test_the_5_1_filing_moved_the_window_and_not_the_rates():
+    """Open decision 1, corroborated from outside for the first time.
+
+    The 5/1/2026 vintage exists because the super-off-peak window went year-round with no
+    SDG&E rate table published for that date, so the 4/1 rates are committed twice. A real
+    statement spanning 5/29-6/26/2026 prints ONE winter rate, 0.31174, either side of 5/31 —
+    i.e. the rates did not move on 5/1, exactly as the two-file split assumes. A filing that
+    had changed rates on 5/1 would have forced a segment split on that bill, and none appears.
+    """
+    april = load_spec_file(SPECS_DIR / "sdge_ev_tou_5_delivery_2026-04-01.yaml")
+    may = load_spec_file(SPECS_DIR / "sdge_ev_tou_5_delivery_2026-05-01.yaml")
+    for season in (Season.SUMMER, Season.WINTER):
+        for period in april.tou.periods:
+            assert april.energy_rate(season, period) == may.energy_rate(season, period)
+    assert april.tou.rules != may.tou.rules  # the window is the only thing that moved

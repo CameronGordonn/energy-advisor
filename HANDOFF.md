@@ -8,7 +8,7 @@ how to run, open decisions, exact next action._
 **M0, M2 and M4 are done. M1 and M3 have complete, tested engines whose DoDs are blocked on
 data that does not exist yet. Do not fabricate a load or a bill to "finish" either.**
 
-**1,525 tests green · ruff clean · 11/11 PG&E golden bills within ±$2 (worst +$0.22) · working
+**1,530 tests green · ruff clean · 11/11 PG&E golden bills within ±$2 (worst +$0.22) · working
 tree clean · both CI jobs green.**
 
 > **⚠ `main` is 2 commits ahead of `origin/main`** (`e32c4f0`) as of 2026-09-09, end of
@@ -92,18 +92,22 @@ has landed it outranks everything below.
 13-month interval export plus three itemised bills; be explicit that they are validating an
 engine, not buying a verdict. See the M5 warning for why this ordering is not optional.
 
-**2. Resolve the first external disagreement with an SDG&E spec.** Session 23 found 26
-itemised SDG&E bills, MIT-licensed, in `ookla-ariel-ride/SDGE-Analysis` (`data/bill_tou_detail.csv`,
-216 rows of per-period kWh *and* printed $/kWh; `data/bill_periods_electric.csv` for the totals).
-A CEA household on NEM 2, 5/2024-6/2026. **Their 5/29/26-6/26/26 statement prints delivery at
-0.30203 on/off-peak and 0.02606 super-off-peak; our `sdge_tou_dr1_delivery_2026-06-01.yaml`
-says the UDC total is period-flat at 0.32948.** Either their extraction is NEM-2-netted rather
-than tariff rates, or our flat-UDC reading — which HANDOFF lists as a ⭐ fact and on which
-"100% of the TOU signal lives in generation" depends — is wrong. It is a third party's
-unaudited extraction (the PDFs are not published), so it is a lead, not a fixture; but it is
-the first outside evidence ever to bump against an SDG&E spec, and invariant 1 says find out.
-Cheapest resolution: read their `analysis/parse_bills.py` to learn what `rate_per_kwh` means on
-a NEM 2 statement before touching any spec.
+**2. Get an SDG&E bill in front of the TOU-DR1 specs.** Session 23 audited the one piece of
+outside evidence and it came back clean — but for the wrong schedule. 26 itemised bills in
+`ookla-ariel-ride/SDGE-Analysis` (MIT) turn out to be an **EV-TOU-5** household, and against
+EV-TOU-5 our rates reproduce the printed ones **exactly**: six cells across three vintages
+all differ by precisely 0.02099, which is the NBC/PPP bundle our specs itemise and SDG&E
+prints as separate line items rather than inside the Rate/kWh row. Pinned by
+`test_our_delivery_rate_less_the_import_floor_is_what_sdge_printed`.
+  - **What that buys:** invariant 4's import floor (0.02099/kWh; 44.6% of EV-TOU-5's
+    super-off-peak delivery charge, 6.5% elsewhere) is confirmed against a real bill, and
+    open decision 1's 5/1 window-only filing gains outside corroboration.
+  - **What it does NOT buy:** it is corroboration, not reconciliation — unaudited extraction,
+    NEM-2-netted kWh, no interval data. And **TOU-DR1's period-flat UDC — the ⭐ fact that
+    100% of its TOU signal lives in generation — is still unvalidated by any bill.** That is
+    the schedule almost every SDG&E household is actually on, and the one M1 needs. Note the
+    irony worth carrying: the only externally validated SDG&E schedule is EV-TOU-5, which is
+    filtered out of rankings by default because Cameron has no EV.
 
 **3. Wire TOU-DR-P into a ranking — but decide the day-selection rule first.** The engine
 half is done (session 21: it loads, bills, and refuses to price without an explicit event
@@ -293,7 +297,7 @@ Four pages in `docs/`, served by GitHub Pages: `index.html` (the tool), `methodo
 
 ```bash
 conda activate energy-advisor    # env prefix: /home/cameron/miniforge3/envs/energy-advisor
-pytest -q                                                   # 1,525 tests; golden tests skip if data/ absent
+pytest -q                                                   # 1,530 tests; golden tests skip if data/ absent
 ruff check . && ruff format --check .
 PYTHONPATH=src python scripts/reconcile_report.py           # 11 line-item comparisons (the trust artifact)
 PYTHONPATH=src python scripts/reconcile_report.py --write-readme
