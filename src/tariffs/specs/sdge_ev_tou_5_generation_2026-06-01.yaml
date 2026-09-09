@@ -1,0 +1,46 @@
+# SDG&E Schedule EECC matched to EV-TOU-5 — GENERATION layer, 6/1/2026 vintage.
+#
+# ⚠ THIS FILE COMPLETES A LAYER PAIR THAT WAS HALF-AUTHORED. `sdge_ev_tou_5_delivery_
+# 2026-06-01.yaml` shipped in session 6 without its matching generation layer — it even
+# recorded these six EECC values in a comment "for reference" — so a BUNDLED customer
+# could not be priced on EV-TOU-5 at all, only the delivery half of their bill. Nothing
+# committed was wrong; half of it was missing, which is why the layer-sum gate never
+# covered this schedule. It does now.
+#
+# Composition and CARE derivation: see the 2026-01-01 spec's header.
+#
+# ⭐ RATES IDENTICAL TO THE 4/1/2026 SHEET'S. The 6/1 filing moved EV-TOU-5's delivery
+# layer only (on/off-peak UDC 0.32682 -> 0.31711; super-off-peak UDC held at 0.04114).
+schedule_id: EV-TOU-5
+name: SDG&E bundled generation (Schedule EECC) matched to EV-TOU-5
+provider: SDG&E
+layer: generation
+effective_date: 2026-06-01
+citation: >-
+  SDG&E "Schedule EV-TOU-5 - DOMESTIC TIME-OF-USE FOR HOUSEHOLDS WITH ELECTRIC VEHICLES
+  ... Effective 6/1/2026" Total Rates Table, Schedule EECC Rate column
+  (sdge.com/sites/default/files/regulatory/6-1-26 Schedule EV-TOU-5 Total Rates
+  Table.pdf), and the matching "6-1-26 Schedule EV-TOU-5-CARE Total Rates Table.pdf" for
+  the CARE derivation, both retrieved 2026-09-08. Commodity component defined by Schedule
+  EECC; seasons per Schedule EECC. Period definitions per the matching delivery spec.
+
+seasons:
+  summer_months: [6, 7, 8, 9, 10]
+  winter_months: [11, 12, 1, 2, 3, 4, 5]
+
+tou:
+  rules:
+    - {period: on_peak, hours: [[16, 21]]}
+    - {period: super_off_peak, hours: [[0, 6], [10, 14]], days: weekday}
+    - {period: super_off_peak, hours: [[0, 14]], days: weekend}
+  default_period: off_peak
+  holiday_calendar: sdge_residential
+  labels: {on_peak: On-Peak, off_peak: Off-Peak, super_off_peak: Super Off-Peak}
+
+energy:
+  summer_on_peak:        {standard: 0.47019, care: 0.3056235}
+  summer_off_peak:       {standard: 0.17311, care: 0.1125215}
+  summer_super_off_peak: {standard: 0.08147, care: 0.0529555}
+  winter_on_peak:        {standard: 0.19990, care: 0.1299350}
+  winter_off_peak:       {standard: 0.14337, care: 0.0931905}
+  winter_super_off_peak: {standard: 0.07410, care: 0.0481650}

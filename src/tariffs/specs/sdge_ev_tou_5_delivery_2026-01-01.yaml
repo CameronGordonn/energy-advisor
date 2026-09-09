@@ -1,0 +1,110 @@
+# SDG&E Schedule EV-TOU-5 — DELIVERY layer (UDC + non-bypassable charges), 1/1/2026 vintage.
+#
+# The EARLIEST of the four 2026 EV-TOU-5 vintages now committed:
+#     2026-01-01  this file        UDC on/off 0.32322, super-off-peak 0.03676  window Mar/Apr
+#     2026-04-01  ..._2026-04-01   UDC on/off 0.32682, super-off-peak 0.04114  window Mar/Apr
+#     2026-05-01  ..._2026-05-01   UDC on/off 0.32682, super-off-peak 0.04114  window YEAR-ROUND
+#     2026-06-01  ..._2026-06-01   UDC on/off 0.31711, super-off-peak 0.04114  window year-round
+# Four vintages, not three, for exactly the reason TOU-DR1 has four — see the 2026-05-01
+# spec's header and HANDOFF open decision 8. RATES changed 1/1, 4/1 and 6/1; the weekday
+# 10:00-14:00 SUPER-OFF-PEAK WINDOW went year-round on 2026-05-01, inside the 4/1 rate
+# vintage, and SDG&E published no 5/1/2026 table (that URL returns HTTP 404 — verified
+# again for this schedule, not assumed from TOU-DR1).
+#
+# ⚠ SUPER-OFF-PEAK 10:00-14:00 IS MARCH/APRIL ONLY ON THIS VINTAGE. Sourcing is DIRECT
+# rather than inherited from TOU-DR1: SDG&E's own Electric Vehicle Pricing Plans page, in
+# its 2025-11-07 capture (prices effective 2025-11-01, i.e. the table in force when this
+# vintage took effect), prints EV-TOU-5's Super Off-Peak column as
+#     "Midnight - 6:00 a.m. / 10:00 a.m. - 2:00 p.m. in March and April (Weekdays) /
+#      Midnight - 2:00 p.m. (Weekends & Holidays)"
+# and its Off-Peak column as "All other hours excluding 10:00 a.m. to 2:00 p.m. on
+# weekdays in March and April". In this vintage's own span (Jan 1 - Mar 31) that means
+# only March is affected; January and February price 10:00-14:00 as OFF-PEAK.
+#
+# LAYER MODEL, NBC SET, EV ELIGIBILITY, THE ABSENT BASELINE CREDIT: identical in structure
+# to the 2026-06-01 spec — see that file's header. Only the numbers and the window differ.
+#
+#     delivery standard = UDC Total + WF-NBC/DWR-BC 0.00591
+#     delivery care     = 0.65 x (UDC Total - CARE surcharge exemption 0.00864)
+#       on-peak / off-peak  UDC 0.32322 -> std 0.32913, care 0.65 x 0.31458 = 0.20448
+#       super-off-peak      UDC 0.03676 -> std 0.04267, care 0.65 x 0.02812 = 0.01828
+schedule_id: EV-TOU-5
+name: Residential Time-of-Use for Electric Vehicle Customers - Delivery
+provider: SDG&E
+layer: delivery
+effective_date: 2026-01-01
+citation: >-
+  SDG&E "Schedule EV-TOU-5 - DOMESTIC TIME-OF-USE FOR HOUSEHOLDS WITH ELECTRIC VEHICLES
+  ... Effective 1/1/2026" Total Rates Table (sdge.com/sites/default/files/regulatory/
+  1-1-26 Schedule EV-TOU-5 Total Rates Table.pdf) and the matching "1-1-26 Schedule
+  EV-TOU-5-CARE Total Rates Table.pdf", both retrieved 2026-09-08. PERIOD DEFINITIONS,
+  including the March/April-only weekday 10:00-14:00 super-off-peak window, from SDG&E's
+  Electric Vehicle Pricing Plans page
+  (sdge.com/residential/pricing-plans/about-our-pricing-plans/electric-vehicle-plans),
+  EV-TOU-5 table, as published with prices effective 2025-11-01 (Internet Archive capture
+  20251107125517, retrieved 2026-09-08; SDG&E returns 403 to the archive crawler for all
+  2026 captures, and the schedule's own tariff-book PDF URL now 404s). Seasons from
+  Schedule EECC; holidays from SDG&E Electric Rule 1.
+
+seasons:
+  summer_months: [6, 7, 8, 9, 10]      # Schedule EECC: Summer Jun 1 - Oct 31
+  winter_months: [11, 12, 1, 2, 3, 4, 5]
+
+# Weekday super-off-peak is midnight-6 a.m. year-round PLUS 10 a.m.-2 p.m. in March and
+# April only; weekends and holidays are midnight-2 p.m.; on-peak is 4-9 p.m. every day.
+# No seasonal difference in the windows (only in the rates).
+tou:
+  rules:
+    - {period: on_peak, hours: [[16, 21]]}
+    - {period: super_off_peak, hours: [[0, 6]], days: weekday}
+    - {period: super_off_peak, hours: [[10, 14]], days: weekday, months: [3, 4]}
+    - {period: super_off_peak, hours: [[0, 14]], days: weekend}
+  default_period: off_peak
+  holiday_calendar: sdge_residential
+  labels: {on_peak: On-Peak, off_peak: Off-Peak, super_off_peak: Super Off-Peak}
+
+fixed_name: Base Services Charge
+fixed_per_day:
+  standard: 0.79343
+  care: 0.19713
+
+energy:
+  summer_on_peak:        {standard: 0.32913, care: 0.20448}
+  summer_off_peak:       {standard: 0.32913, care: 0.20448}
+  summer_super_off_peak: {standard: 0.04267, care: 0.01828}
+  winter_on_peak:        {standard: 0.32913, care: 0.20448}
+  winter_off_peak:       {standard: 0.32913, care: 0.20448}
+  winter_super_off_peak: {standard: 0.04267, care: 0.01828}
+
+# No `baseline:` block — EV-TOU-5 has no baseline adjustment credit. Deliberately absent,
+# not UNVERIFIED: no 2026 EV-TOU-5 rate table prints an "Up to 130% of Baseline" row.
+
+minimum_bill:
+  per_day: {standard: 0.329, care: 0.164}
+  citation: >-
+    SDG&E Minimum Bill $0.329/day, 50% discount for CARE/FERA -> $0.164/day, per Schedule
+    TOU-DR1 Cal. P.U.C. Sheet 29955-E (Advice 3167-E); the Total Rates Tables do not
+    restate it. Confirm currency before relying on the floor binding.
+
+# ⭐ THE SUPER-OFF-PEAK NBC SHARE IS EVEN STARKER ON THIS VINTAGE than on 6/1. The NBC set
+# is period-invariant (0.02099 standard) while super-off-peak delivery is only 0.04267, so
+# 49% of that window's delivery charge is non-bypassable — against ~6.4% on-peak. On 6/1
+# the same figures are 45% and 6.5%. A NEM analysis netting exports against a headline
+# delivery rate overstates the value of shifting imports into super-off-peak here by
+# roughly a factor of two. See the 2026-06-01 spec for the full rationale and the
+# `included_in_energy_rate` mechanic.
+#   PPP 0.01515 + ND 0.00000 + CTC (0.00007) + WF-NBC/DWR-BC 0.00591 = 0.02099 (standard)
+#   CARE: 0.65 x (0.01515 + 0.00000 - 0.00007) = 0.00980, WF-NBC/DWR-BC exempt.
+non_bypassable:
+  included_in_energy_rate: true
+  components:
+    Public Purpose Programs:       {standard:  0.01515, care: 0.00985}
+    Nuclear Decommissioning:       {standard:  0.00000, care: 0.00000}
+    Competition Transition Charge: {standard: -0.00007, care: -0.00005}
+    Wildfire Fund / DWR Bond:      {standard:  0.00591, care: 0.00000}
+  citation: >-
+    SDG&E "Schedule EV-TOU-5 ... Effective 1/1/2026" Total Rates Table, PPP / ND / CTC and
+    WF-NBC + DWR-BC columns, and the matching EV-TOU-5-CARE table, both retrieved
+    2026-09-08. Classed non-bypassable per PG&E Schedule NBT Cal. P.U.C. Sheet 57359-E
+    SC 2.f. CARE WF-NBC exemption: Schedule TOU-DR1 Cal. P.U.C. Sheet 29953-E note 3.
+    CARE values = 0.65 x standard per the printed "CARE Discount 35%".

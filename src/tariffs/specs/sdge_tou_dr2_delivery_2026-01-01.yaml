@@ -1,0 +1,112 @@
+# SDG&E Schedule TOU-DR2 — DELIVERY layer (UDC + non-bypassable charges), 1/1/2026 vintage.
+#
+# The EARLIEST of the three 2026 TOU-DR2 vintages:
+#     2026-01-01  this file        UDC Total summer 0.34550 / 0.33903, winter 0.34101
+#     2026-04-01  ..._2026-04-01   UDC Total summer 0.34510 / 0.33863, winter 0.34061
+#     2026-06-01  ..._2026-06-01   UDC Total summer 0.33396 / 0.32750, winter 0.32948
+#
+# ⭐ THERE IS NO 2026-05-01 TOU-DR2 VINTAGE, AND THAT IS NOT AN OVERSIGHT. TOU-DR1 and
+# EV-TOU-5 each carry a fourth 2026 vintage because the weekday 10:00-14:00 super-off-peak
+# window went year-round on 2026-05-01, inside the 4/1 rate vintage (HANDOFF open decision
+# 8). TOU-DR2 HAS NO SUPER-OFF-PEAK PERIOD AT ALL — two periods, On-Peak 4-9 p.m. and
+# Off-Peak everything else — so that filing cannot touch it. Confirmed three ways: no 2026
+# TOU-DR2 Total Rates Table prints a Super Off-Peak row; SDG&E's own super-off-peak page
+# lists the affected plans as "TOU-DR-1, TOU-DR, TOU-DR-P, EV-TOU-5, DR-SES and TOU-ELEC"
+# and does NOT name TOU-DR2; and SDG&E's Time-of-Use Plans page prints TOU-DR2's table as
+# "Every Day / 12 a.m. - 4 p.m., 9 p.m. - 12 a.m. Off Peak / 4 p.m. - 9 p.m. On-Peak" with
+# no seasonal carve-out. (One secondary source, a solar-installer blog, does list TOU-DR2
+# among the affected schedules; it is wrong, and the rate tables outrank it.)
+#
+# LAYER MODEL, CARE DERIVATION, NBC SET, MINIMUM BILL: identical in structure to the
+# 2026-06-01 spec — see that file's header. Only the numbers differ.
+#
+#     delivery standard = UDC Total + WF-NBC/DWR-BC 0.00591
+#     delivery care     = 0.65 x (UDC Total - CARE surcharge exemption 0.00864)
+#       summer on-peak  UDC 0.34550 -> std 0.35141, care 0.65 x 0.33686 = 0.21896
+#       summer off-peak UDC 0.33903 -> std 0.34494, care 0.65 x 0.33039 = 0.21475
+#       winter both     UDC 0.34101 -> std 0.34692, care 0.65 x 0.33237 = 0.21604
+# The two layers re-sum to SDG&E's printed Total Electric Rate and Total Adjusted CARE
+# Rate on all eight cells, asserted in tests/tariffs/test_sdge_vintages.py.
+schedule_id: TOU-DR2
+name: Residential Time-of-Use (two-period) - Delivery
+provider: SDG&E
+layer: delivery
+effective_date: 2026-01-01
+citation: >-
+  SDG&E "Schedule TOU-DR2 - Residential Time of Use Service Effective 1/1/2026" Total
+  Rates Table (sdge.com/sites/default/files/regulatory/1-1-26 Schedule TOU-DR2 Total
+  Rates Table.pdf) and the matching "1-1-26 Schedule TOU-DR2-CARE Total Rates Table.pdf",
+  both retrieved 2026-09-08. Time periods from SDG&E's Time-of-Use Plans page
+  (sdge.com/residential/pricing-plans/about-our-pricing-plans/whenmatters, "TOU-DR2
+  Pricing Plan", capture of 2025-11-07 giving prices effective 2025-11-01 — the table in
+  force on this vintage's effective date), corroborated by this sheet printing exactly two
+  energy rows. Seasons from Schedule EECC; Minimum Bill structure per Schedule TOU-DR1
+  Cal. P.U.C. Sheet 29955-E; baseline allowances from Schedule DR, Cal. P.U.C. Sheet
+  29294-E.
+
+seasons:
+  summer_months: [6, 7, 8, 9, 10]      # Schedule EECC: Summer Jun 1 - Oct 31
+  winter_months: [11, 12, 1, 2, 3, 4, 5]
+
+# Two periods, year-round, no weekday/weekend split — so no holiday calendar is named:
+# on this schedule a holiday is priced exactly like any other day.
+tou:
+  rules:
+    - {period: on_peak, hours: [[16, 21]]}
+  default_period: off_peak
+  labels: {on_peak: On-Peak, off_peak: Off-Peak}
+
+fixed_name: Base Services Charge
+fixed_per_day:
+  standard: 0.79343
+  care: 0.19713
+
+energy:
+  summer_on_peak:  {standard: 0.35141, care: 0.21896}
+  summer_off_peak: {standard: 0.34494, care: 0.21475}
+  winter_on_peak:  {standard: 0.34692, care: 0.21604}
+  winter_off_peak: {standard: 0.34692, care: 0.21604}
+
+# "Up to 130% of Baseline Adjustment Credit", identical in structure to TOU-DR1. The
+# whole climate-zone table ships and the zone is supplied at bill time; omitting it
+# raises. See the 2026-06-01 spec for the full note.
+baseline:
+  allowances:
+    coastal_basic:         {summer:  9.0, winter:  9.2}
+    inland_basic:          {summer: 10.4, winter:  9.6}
+    mountain_basic:        {summer: 13.6, winter: 12.9}
+    desert_basic:          {summer: 15.9, winter: 10.9}
+    coastal_all_electric:  {summer:  8.3, winter: 13.5}
+    inland_all_electric:   {summer: 10.1, winter: 15.8}
+    mountain_all_electric: {summer: 16.5, winter: 26.0}
+    desert_all_electric:   {summer: 18.5, winter: 20.0}
+  allowance_multiplier: 1.30
+  credit_per_kwh: {standard: -0.10905, care: -0.07088}
+
+minimum_bill:
+  per_day: {standard: 0.329, care: 0.164}
+  citation: >-
+    SDG&E Minimum Bill $0.329/day, 50% discount for CARE/FERA -> $0.164/day, per Schedule
+    TOU-DR1 Cal. P.U.C. Sheet 29955-E (Advice 3167-E); the Total Rates Tables do not
+    restate it. Confirm currency before relying on the floor binding.
+
+# Billed on GROSS imports under the Net Billing Tariff (Schedule NBT SC 2.f) and already
+# inside the `energy` rates above, so netting CARVES them out rather than adding a line.
+# Read off THIS vintage's own table, not copied from another: every component is period-
+# and season-invariant here, so the floor is one number.
+#   PPP 0.01515 + ND 0.00000 + CTC (0.00007) + WF-NBC/DWR-BC 0.00591 = 0.02099 (standard)
+#   CARE: 0.65 x (0.01515 + 0.00000 - 0.00007) = 0.00980, WF-NBC/DWR-BC exempt.
+non_bypassable:
+  included_in_energy_rate: true
+  components:
+    Public Purpose Programs:       {standard:  0.01515, care: 0.00985}
+    Nuclear Decommissioning:       {standard:  0.00000, care: 0.00000}
+    Competition Transition Charge: {standard: -0.00007, care: -0.00005}
+    Wildfire Fund / DWR Bond:      {standard:  0.00591, care: 0.00000}
+  citation: >-
+    SDG&E "Schedule TOU-DR2 - Residential Time of Use Service Effective 1/1/2026" Total
+    Rates Table, PPP / ND / CTC and WF-NBC + DWR-BC columns, and the matching
+    TOU-DR2-CARE table, both retrieved 2026-09-08. Classed non-bypassable per PG&E
+    Schedule NBT Cal. P.U.C. Sheet 57359-E SC 2.f. CARE WF-NBC exemption: Schedule
+    TOU-DR1 Cal. P.U.C. Sheet 29953-E note 3. CARE values = 0.65 x standard per the
+    printed "CARE Discount 35%".

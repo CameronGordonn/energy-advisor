@@ -1,0 +1,41 @@
+# SDG&E Schedule EECC matched to TOU-DR2 — GENERATION layer, 6/1/2026 vintage.
+#
+# ⚠ THIS FILE COMPLETES A LAYER PAIR THAT WAS HALF-AUTHORED. `sdge_tou_dr2_delivery_
+# 2026-06-01.yaml` shipped in session 6 without its matching generation layer, so a
+# BUNDLED customer could not be priced on TOU-DR2 at all — only the delivery half of
+# their bill existed. Nothing was wrong with what was committed; half of it was simply
+# missing, which is why the layer-sum gate (`test_sdge_layers.py`) never covered this
+# schedule. It does now.
+#
+# Composition and CARE derivation: see the 2026-01-01 spec's header.
+#
+# ⭐ RATES IDENTICAL TO THE 4/1/2026 SHEET'S. The 6/1 filing moved TOU-DR2's delivery
+# layer only (winter UDC Total 0.34061 -> 0.32948); EECC did not move.
+schedule_id: TOU-DR2
+name: SDG&E bundled generation (Schedule EECC) matched to TOU-DR2
+provider: SDG&E
+layer: generation
+effective_date: 2026-06-01
+citation: >-
+  SDG&E "Schedule TOU-DR2 - Residential Time of Use Service Effective 6/1/2026" Total
+  Rates Table, Schedule EECC Rate column (sdge.com/sites/default/files/regulatory/6-1-26
+  Schedule TOU-DR2 Total Rates Table.pdf), and the matching "6-1-26 Schedule TOU-DR2-CARE
+  Total Rates Table.pdf" for the CARE derivation, both retrieved 2026-09-08. Commodity
+  component defined by Schedule EECC; seasons per Schedule EECC. Period definitions per
+  the matching delivery spec.
+
+seasons:
+  summer_months: [6, 7, 8, 9, 10]
+  winter_months: [11, 12, 1, 2, 3, 4, 5]
+
+tou:
+  rules:
+    - {period: on_peak, hours: [[16, 21]]}
+  default_period: off_peak
+  labels: {on_peak: On-Peak, off_peak: Off-Peak}
+
+energy:
+  summer_on_peak:  {standard: 0.34920, care: 0.2269800}
+  summer_off_peak: {standard: 0.08432, care: 0.0548080}
+  winter_on_peak:  {standard: 0.27475, care: 0.1785875}
+  winter_off_peak: {standard: 0.13777, care: 0.0895505}

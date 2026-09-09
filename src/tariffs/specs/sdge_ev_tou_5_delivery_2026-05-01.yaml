@@ -1,0 +1,105 @@
+# SDG&E Schedule EV-TOU-5 — DELIVERY layer, 2026-05-01 vintage.
+# RATES ARE THE 4/1/2026 SHEET'S; ONLY THE TOU WINDOW CHANGED ON THIS DATE.
+#
+# ---------------------------------------------------------------------------------------
+# WHY THIS FILE EXISTS. This is the same split HANDOFF open decision 8 settled for
+# TOU-DR1, applied to the second SDG&E schedule that has a super-off-peak window — and
+# re-verified for this schedule rather than inherited:
+#   * RATES changed 1/1, 4/1 and 6/1 (three published EV-TOU-5 Total Rates Tables).
+#   * The weekday 10:00-14:00 SUPER-OFF-PEAK WINDOW went from March-and-April-only to
+#     YEAR-ROUND effective 2026-05-01. SDG&E's super-off-peak page names EV-TOU-5 among
+#     the affected plans and says the hours "were previously only available in March and
+#     April"; SDG&E's own EV plans page confirms both states, printing "10:00 a.m. -
+#     2:00 p.m. in March and April (Weekdays)" in its 2025-11-07 capture and the same
+#     window with no month qualifier today.
+#   * SDG&E published NO 5/1/2026 EV-TOU-5 table — the 5-1-26 URL in that series 404s,
+#     checked for this schedule and not assumed from TOU-DR1 — so the 4/1 rates stayed in
+#     force through May and the window change lands MID-VINTAGE.
+# So the 4/1 rates are committed twice, under two different period definitions, each spec
+# stating truthfully what the tariff was on its own effective date. The alternative —
+# putting the year-round window on the 4/1 spec — is numerically harmless for the days
+# that spec governs but makes a citation-bearing file assert a rule that was not yet in
+# force, which would silently mislead any later-inserted vintage or reuse.
+#
+# Dollar impact of getting it wrong (pricing May weekday 10:00-14:00 as off-peak): four
+# hours a day across ~21 May weekdays at this schedule's off-peak/super-off-peak spread.
+# May is a WINTER month (Schedule EECC: winter is Nov 1 - May 31), so the governing spread
+# is the WINTER one — TOTAL 0.47610 - 0.12115 = 0.35495/kWh on the 4/1 sheet, delivery
+# plus generation. That is ~$30/month for a household drawing 1 kW in that window, about
+# 4x the equivalent TOU-DR1 error, and far more for anything that charges a vehicle or a
+# battery there. On this schedule the split is not a technicality.
+#   (The summer spread here is wider still at 0.37732/kWh, but summer starts June 1, by
+#   which point the 6/1 vintage governs — so it never applies to the days this file
+#   covers. Quoting it would overstate the error by 6%.)
+# ---------------------------------------------------------------------------------------
+schedule_id: EV-TOU-5
+name: Residential Time-of-Use for Electric Vehicle Customers - Delivery
+provider: SDG&E
+layer: delivery
+effective_date: 2026-05-01
+citation: >-
+  RATES: SDG&E "Schedule EV-TOU-5 - DOMESTIC TIME-OF-USE FOR HOUSEHOLDS WITH ELECTRIC
+  VEHICLES ... Effective 4/1/2026" Total Rates Table and the matching "4-1-26 Schedule
+  EV-TOU-5-CARE Total Rates Table.pdf" (both retrieved 2026-09-08), which remained in
+  force through May 2026 — SDG&E published no 5/1/2026 EV-TOU-5 table (that URL in the
+  series returns HTTP 404, verified for this schedule) and the next one is effective
+  6/1/2026. PERIOD DEFINITIONS: the weekday 10:00-14:00 super-off-peak window became
+  year-round effective 2026-05-01 per SDG&E "New Daytime Super Off-Peak Hours Give
+  Customers More Ways to Lower Electric Bills" (sdgetoday.com/NewSuperPeakHours) and
+  sdge.com/super-off-peak-residential, which names EV-TOU-5 among the plans it applies to
+  and states the hours "were previously only available in March and April" (both retrieved
+  2026-09-08); the superseding advice letter and revised Cal. P.U.C. sheet were not
+  located. Seasons from Schedule EECC; holidays from SDG&E Electric Rule 1.
+
+seasons:
+  summer_months: [6, 7, 8, 9, 10]
+  winter_months: [11, 12, 1, 2, 3, 4, 5]
+
+# YEAR-ROUND weekday 10:00-14:00 super-off-peak — the one difference from the 4/1 vintage.
+tou:
+  rules:
+    - {period: on_peak, hours: [[16, 21]]}
+    - {period: super_off_peak, hours: [[0, 6], [10, 14]], days: weekday}
+    - {period: super_off_peak, hours: [[0, 14]], days: weekend}
+  default_period: off_peak
+  holiday_calendar: sdge_residential
+  labels: {on_peak: On-Peak, off_peak: Off-Peak, super_off_peak: Super Off-Peak}
+
+fixed_name: Base Services Charge
+fixed_per_day:
+  standard: 0.79343
+  care: 0.19713
+
+energy:
+  summer_on_peak:        {standard: 0.33273, care: 0.20682}
+  summer_off_peak:       {standard: 0.33273, care: 0.20682}
+  summer_super_off_peak: {standard: 0.04705, care: 0.02113}
+  winter_on_peak:        {standard: 0.33273, care: 0.20682}
+  winter_off_peak:       {standard: 0.33273, care: 0.20682}
+  winter_super_off_peak: {standard: 0.04705, care: 0.02113}
+
+# No `baseline:` block — EV-TOU-5 has no baseline adjustment credit (see the 1/1 spec).
+
+minimum_bill:
+  per_day: {standard: 0.329, care: 0.164}
+  citation: >-
+    SDG&E Minimum Bill $0.329/day, 50% discount for CARE/FERA -> $0.164/day, per Schedule
+    TOU-DR1 Cal. P.U.C. Sheet 29955-E (Advice 3167-E); the Total Rates Tables do not
+    restate it. Confirm currency before relying on the floor binding.
+
+#   PPP 0.01515 + ND 0.00000 + CTC (0.00007) + WF-NBC/DWR-BC 0.00591 = 0.02099 (standard)
+#   CARE: 0.65 x (0.01515 + 0.00000 - 0.00007) = 0.00980, WF-NBC/DWR-BC exempt.
+# Super-off-peak share of the delivery charge: 0.02099 / 0.04705 = 45% standard.
+non_bypassable:
+  included_in_energy_rate: true
+  components:
+    Public Purpose Programs:       {standard:  0.01515, care: 0.00985}
+    Nuclear Decommissioning:       {standard:  0.00000, care: 0.00000}
+    Competition Transition Charge: {standard: -0.00007, care: -0.00005}
+    Wildfire Fund / DWR Bond:      {standard:  0.00591, care: 0.00000}
+  citation: >-
+    SDG&E "Schedule EV-TOU-5 ... Effective 4/1/2026" Total Rates Table, PPP / ND / CTC and
+    WF-NBC + DWR-BC columns, and the matching EV-TOU-5-CARE table, both retrieved
+    2026-09-08. Classed non-bypassable per PG&E Schedule NBT Cal. P.U.C. Sheet 57359-E
+    SC 2.f. CARE WF-NBC exemption: Schedule TOU-DR1 Cal. P.U.C. Sheet 29953-E note 3.
+    CARE values = 0.65 x standard per the printed "CARE Discount 35%".

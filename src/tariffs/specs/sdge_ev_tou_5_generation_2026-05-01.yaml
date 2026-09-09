@@ -1,0 +1,50 @@
+# SDG&E Schedule EECC matched to EV-TOU-5 — GENERATION layer, 2026-05-01 vintage.
+# RATES ARE THE 4/1/2026 SHEET'S; ONLY THE TOU WINDOW CHANGED ON THIS DATE.
+#
+# See `sdge_ev_tou_5_delivery_2026-05-01.yaml` for the full explanation of why a vintage
+# exists on a date with no published rate table: the weekday 10:00-14:00 super-off-peak
+# window went year-round effective 2026-05-01, in the middle of the 4/1 rate vintage, and
+# the two layers must carry identical period definitions. Composition and the CARE
+# derivation: see `sdge_ev_tou_5_generation_2026-01-01.yaml`.
+#
+# The EECC values below are the 4/1 sheet's, which are also the 6/1 sheet's — generation
+# did not move on 6/1 even though delivery did.
+schedule_id: EV-TOU-5
+name: SDG&E bundled generation (Schedule EECC) matched to EV-TOU-5
+provider: SDG&E
+layer: generation
+effective_date: 2026-05-01
+citation: >-
+  RATES: SDG&E "Schedule EV-TOU-5 - DOMESTIC TIME-OF-USE FOR HOUSEHOLDS WITH ELECTRIC
+  VEHICLES ... Effective 4/1/2026" Total Rates Table, Schedule EECC Rate column, and the
+  matching "4-1-26 Schedule EV-TOU-5-CARE Total Rates Table.pdf" (both retrieved
+  2026-09-08), which remained in force through May 2026 — SDG&E published no 5/1/2026
+  EV-TOU-5 table (that URL returns HTTP 404). PERIOD DEFINITIONS: the weekday 10:00-14:00
+  super-off-peak window became year-round effective 2026-05-01 per SDG&E
+  sdge.com/super-off-peak-residential, which names EV-TOU-5 among the plans it applies to
+  and states the hours "were previously only available in March and April", and
+  sdgetoday.com/NewSuperPeakHours (both retrieved 2026-09-08); the superseding advice
+  letter and revised Cal. P.U.C. sheet were not located. Commodity component defined by
+  Schedule EECC; seasons per Schedule EECC.
+
+seasons:
+  summer_months: [6, 7, 8, 9, 10]
+  winter_months: [11, 12, 1, 2, 3, 4, 5]
+
+# YEAR-ROUND weekday 10:00-14:00 super-off-peak; identical to the matching delivery spec.
+tou:
+  rules:
+    - {period: on_peak, hours: [[16, 21]]}
+    - {period: super_off_peak, hours: [[0, 6], [10, 14]], days: weekday}
+    - {period: super_off_peak, hours: [[0, 14]], days: weekend}
+  default_period: off_peak
+  holiday_calendar: sdge_residential
+  labels: {on_peak: On-Peak, off_peak: Off-Peak, super_off_peak: Super Off-Peak}
+
+energy:
+  summer_on_peak:        {standard: 0.47019, care: 0.3056235}
+  summer_off_peak:       {standard: 0.17311, care: 0.1125215}
+  summer_super_off_peak: {standard: 0.08147, care: 0.0529555}
+  winter_on_peak:        {standard: 0.19990, care: 0.1299350}
+  winter_off_peak:       {standard: 0.14337, care: 0.0931905}
+  winter_super_off_peak: {standard: 0.07410, care: 0.0481650}

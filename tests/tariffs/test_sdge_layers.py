@@ -118,14 +118,26 @@ def test_super_off_peak_is_year_round_on_weekdays_not_march_april_only(layers):
 
 # --- Non-bypassable charges: the NEM import floor on every SDG&E schedule ---------------
 
-SDGE_DELIVERY = [
-    "sdge_tou_dr1_delivery_2026-01-01.yaml",
-    "sdge_tou_dr1_delivery_2026-04-01.yaml",
-    "sdge_tou_dr1_delivery_2026-05-01.yaml",
-    "sdge_tou_dr1_delivery_2026-06-01.yaml",
-    "sdge_tou_dr2_delivery_2026-06-01.yaml",
-    "sdge_ev_tou_5_delivery_2026-06-01.yaml",
-]
+# DISCOVERED, not listed. This was a hand-maintained list of six filenames until session
+# 16, which added five more SDG&E delivery vintages — and a hand-maintained list is a gate
+# that silently stops gating the moment someone adds a spec without remembering to add a
+# line here. Globbing means a new SDG&E delivery spec is inside the NBT floor gate the
+# instant it lands.
+#
+# TOU-DR-P is the one deliberate exclusion: its period windows are unsourced and its RYU
+# Event Adder has no engine concept, so the spec is intentionally unloadable (HANDOFF open
+# decision 2) and `load_spec_file` raises on it by design. Excluding it here is the point,
+# not an oversight; if it ever becomes loadable, delete this filter.
+SDGE_DELIVERY = sorted(
+    p.name for p in SPECS_DIR.glob("sdge_*_delivery_*.yaml") if "tou_dr_p" not in p.name
+)
+
+
+def test_the_nbt_gate_actually_found_the_sdge_delivery_specs():
+    """A glob that matched nothing would make every parametrized test below vacuous."""
+    # 11 today: TOU-DR1 x4 vintages, TOU-DR2 x3, EV-TOU-5 x4.
+    assert len(SDGE_DELIVERY) >= 11, SDGE_DELIVERY
+    assert all(name.startswith("sdge_") for name in SDGE_DELIVERY)
 
 
 @pytest.mark.parametrize("filename", SDGE_DELIVERY)
