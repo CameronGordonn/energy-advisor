@@ -8,7 +8,7 @@ how to run, open decisions, exact next action._
 **M0, M2 and M4 are done. M1 and M3 have complete, tested engines whose DoDs are blocked on
 data that does not exist yet. Do not fabricate a load or a bill to "finish" either.**
 
-**418 tests green · ruff clean · 11/11 PG&E golden bills within ±$2 (worst +$0.22) · working
+**719 tests green · ruff clean · 11/11 PG&E golden bills within ±$2 (worst +$0.22) · working
 tree clean · `main` pushed · both CI jobs green.**
 
 | Milestone | State | What is missing |
@@ -54,11 +54,15 @@ has landed it outranks everything below.
   - **First command:** `PYTHONPATH=src python scripts/inspect_export.py FILE.csv`. It
     auto-detects the utility and reports interval length, coverage, gaps, DST handling and any
     export register **before anything tries to price it**.
-  - **Expect the parser to be wrong.** `src/greenbutton/sdge.py` was written to the documented
-    format and **has never been run on a real file**. PG&E's real export surprised us three
-    ways: hourly not 15-minute, an inclusive end timestamp, and two DST edge cases. Budget a
-    session for parser reality-checking *before* trusting any reconciliation number. If it
-    refuses the file, fix the parser, not the file.
+  - **The parser has now met one real SDG&E export — and it is still not validated.**
+    Session 13 found a real anonymised export in a public repo and the parser *rejected* it
+    two ways: SDG&E's real "meter" shape uses `Duration` instead of `END TIME`, 12-hour times,
+    and `Consumption`/`Generation` columns; and SDG&E writes a **true 25-hour DST fall-back
+    day** (`1:00 AM` twice) where PG&E sums both hours into one reading. Both are fixed and
+    tested, and the file's declared `Total Usage` now cross-checks the summed readings.
+    **But: one file, 60-minute, November only.** Still unseen — the 15-minute meter-shape
+    variant, spring-forward on either shape, and whether `Net` is netted for a NEM account.
+    Budget the session anyway. If it refuses the file, fix the parser, not the file.
   - **What the bills must tell us:** schedule, climate zone, CARE status, bundled vs CCA — and
     if a CCA, which one, which SDCP cohort, and the **PCIA vintage** (which moves more money
     than the choice of CCA does). Both San Diego CCAs are authored, so **no overlay work stands
@@ -77,10 +81,22 @@ longer moves a dollar on SDG&E, and an eligible customer is now *told* the adder
 why. Residual: SDG&E's own Schedule NBT sheet was never located (portal exposes no PDF path) —
 add it as corroboration if it surfaces.
 
-**3. Earlier 2026 vintages for TOU-DR2 and EV-TOU-5** — both exist only at 6/1/2026. Same
-method as session 8: fetch `N-1-26 Schedule <ID> Total Rates Table.pdf` and its `-CARE` twin,
-`pdftotext -layout`, mirror the vintage split. Only needed to rank those schedules over a
-calendar year.
+**3. THE 8/1/2026 VINTAGE IS MISSING FOR EVERY SDG&E SCHEDULE.** _(Session 16 found this while
+finishing action 3's earlier vintages, which are now done — TOU-DR1, TOU-DR2 and EV-TOU-5 all
+price calendar 2026 from January.)_ Every SDG&E spec in this repo stops at 6/1, but
+`8-1-26 Schedule <ID> Total Rates Table.pdf` **exists** on sdge.com (7-1, 9-1 and 10-1 all
+404), and it is a real move, not a reprint: TOU-DR1 UDC Total 0.32948 → **0.32601**, summer
+on-peak EECC 0.34920 → **0.35943**, baseline credit (0.10663) → **(0.10702)**. SDG&E's live
+plan pages now quote "prices effective August 1, 2026".
+  **So Aug-Dec 2026 is currently priced with stale rates on every SDG&E schedule, TOU-DR1
+  included** — about five months of any calendar-year run. Session 16 deliberately did not fix
+  it for only the two schedules it touched, because that would make them more current than
+  TOU-DR1 and produce an apples-to-oranges ranking; the lag is at least consistent today.
+  Cheap and unblocked: same method as session 8 — fetch `8-1-26 Schedule <ID> Total Rates
+  Table.pdf` and its `-CARE` twin for TOU-DR1 / TOU-DR2 / EV-TOU-5, `pdftotext -layout`,
+  transcribe delivery and generation separately, extend the printed-total tables in
+  `tests/tariffs/test_sdge_vintages.py`. Check whether the window rules moved (they should
+  not have) and whether a 5/1-style split is needed (it should not be).
 
 **4. Migrate `docs/methodology.html` onto the shared chrome.** It took the new palette and type
 in session 12 but still holds its own copy of the tokens and its own nav/footer rules, which
@@ -108,17 +124,30 @@ CSVs SDG&E publishes, so a different parser. Low priority.
 
 ## What exists now
 
+- **Green Button parsers** (`src/greenbutton/`): PG&E, plus **both** SDG&E CSV shapes — the
+  documented `TYPE,DATE,START TIME,END TIME,...` table and the real `Meter Number,Date,Start
+  Time,Duration,Consumption,Generation,Net` one. The table is located by header *signature*,
+  not a literal. DST folds are resolved from **file order**, so PG&E's summed 24-label day and
+  SDG&E's true 25-hour day are both correct without branching on utility.
 - **Engine** (`src/tariffs/`): N-period first-match-wins TOU rules with weekday/weekend/holiday
   day types, month-conditional windows, cited holiday calendars, `Baseline.allowance_multiplier`,
   `MinimumBill`, per-kWh surcharges, `NonBypassable`, `period_codes`, and **`marginal_energy_price`**
   (version-aware per-interval retail price; refuses dates no spec covers; rejects layers that
   classify an hour differently).
-- **Specs — 32 files, 16 schedule-layers** (`src/tariffs/specs/`):
+- **Specs — 44 files, 22 schedule-layers** (`src/tariffs/specs/`):
   - **PG&E**: E-TOU-C (4 vintages) / E-TOU-D / EV2-A / E-1 delivery, each with matched 3CE and
     PG&E-bundled generation.
-  - **SDG&E**: TOU-DR1 delivery + generation in **four 2026 vintages** (1/1, 4/1, 5/1, 6/1);
-    TOU-DR2, EV-TOU-5 (6/1 only); TOU-DR-P (deliberately unloadable). Every delivery spec
-    carries a `non_bypassable` block and is covered by the NBT-settleability test.
+  - **SDG&E — all three rankable residential schedules now have BOTH layers across 2026**
+    (session 16). TOU-DR1 delivery + generation in **four 2026 vintages** (1/1, 4/1, 5/1, 6/1);
+    **EV-TOU-5 likewise in four** (same 5/1 window split, sourced directly for that schedule);
+    **TOU-DR2 in three** — it has no super-off-peak period, so the 5/1 window filing cannot
+    touch it, and the absence of a 5/1 file is asserted by test rather than merely true.
+    TOU-DR-P remains deliberately unloadable.
+    ⚠ TOU-DR2 and EV-TOU-5 had shipped **delivery-only** since session 6 — a bundled customer
+    could not be priced on either — and nothing failed, because every test named its files
+    explicitly. Both pairs are complete now, and `test_every_sdge_delivery_vintage_has_a_
+    matching_generation_vintage` globs the directory so a half-authored schedule fails loudly.
+    The NBT-settleability list is likewise a glob now, not six hand-maintained filenames.
   - **CCA overlay, complete for San Diego**: Clean Energy Alliance
     (`cea_tou_dr1_generation_2026-06-01.yaml`) and San Diego Community Power
     (`sdcp_{2021v,2022v}_tou_dr1_generation_{2026-01-01,2026-05-01}.yaml` — PowerOn, the default
@@ -285,15 +314,35 @@ cell for cell.
 
 1. **SDG&E super-off-peak window — RESOLVED, modeled per-vintage.** Year-round from 2026-05-01;
    earlier vintages carry `months: [3, 4]`. Both forms pinned by `test_sdge_vintages.py`.
-   Residual caveat: the superseding advice letter was never located; the evidence is SDG&E's
-   customer-facing publications, now corroborated by **two independent CCAs** whose own dated
-   sheets change on the same date.
+   Residual caveat, **restated more sharply after the session-15 cross-check** — it is no longer
+   just "the advice letter was never located":
+   - **SDG&E's filed tariff sheet still says March and April.**
+     `sdge.com/sites/default/files/elec_elec-scheds_tou-dr1.pdf` — the *current and effective*
+     tariff-book PDF, retrieved 2026-09-08 — prints "Excluding 10:00 a.m. – 2:00 p.m. in March
+     and April" on Cal. P.U.C. Sheets 29952–29955-E, Advice 3167-E, eff. Jan 1 2018. **That is
+     why no superseding letter was ever found: the tariff book was never updated.** It is not
+     proof the window did not change (the same PDF still carries 2018 *rates* — SDG&E moves
+     rates via Total Rates Tables and the book lags), but no filed document supports 5/1.
+   - **The change itself is now corroborated by a fourth, non-CCA party.** `corruptbear/my_sdge`
+     held an `is_march_or_april` condition for years and deleted it in commit `be51c303`
+     (2026-06-10, "apply extended super-offpeak hours").
+   - **The 5/1 DATE is not corroborated by them** — their windows live in code with no effective
+     date, so they cannot distinguish 5/1 from 6/1. The date still rests on SDG&E's
+     customer-facing publications plus dated CCA sheets (SDCP's, whose body reads "Effective
+     May 1, 2026", is the strongest single document).
+   Our per-vintage split is right *because* it survives being wrong about the date: one file
+   changes. Full detail in `notes/spec_crosscheck_2026-09.md`.
 2. **TOU-DR-P is deliberately unloadable.** Period windows unsourced, and the **RYU Event Adder
    ($1.16/kWh, 4–9 p.m. on event days)** is event-contingent with no engine concept. **Do not
    default it to zero events.** Preferred: caller-supplied event days, report as a range, or
    exclude and say why.
-3. **SDG&E baseline allowances — RESOLVED.** Full climate-zone table (Sheet 29294-E) in every
-   TOU-DR1 vintage; `territory` supplied at bill time, and omitting it raises.
+3. **SDG&E baseline allowances — RESOLVED, and re-verified session 15.** Full climate-zone table
+   (Sheet 29294-E) in every TOU-DR1 vintage; `territory` supplied at bill time, and omitting it
+   raises. All sixteen cells re-read off Schedule DR SC 3 on 2026-09-08 and matched exactly.
+   Worth knowing: an independent transcription got the **All-Electric** rows wrong while getting
+   Basic right (it had winter coastal all-electric *below* Basic, which is backwards). The
+   all-electric rows are the ones nothing in this repo currently exercises — do not assume they
+   are load-bearing-tested just because `coastal_basic` is.
 4. **CARE rates on PG&E counterfactual schedules are DERIVED, not printed**
    (`care = 0.65 × standard − 0.01038`). Validated to ≤1e-5 on E-TOU-C, cross-checked against
    E-1's printed tier pair, corroborated by SDG&E's printed "CARE Discount 35%". `--no-care`
@@ -335,7 +384,8 @@ cell for cell.
 - **M1 DoD** — dad's last 3 SDG&E bills within ±$2, plus the README SDG&E rows. The single
   highest-leverage input in the project; everything SDG&E-facing sits behind it.
 - **M3 DoD** — one real household with solar/export interval data.
-- **Validation of `src/greenbutton/sdge.py`** against a real SDG&E export.
+- **Full validation of `src/greenbutton/sdge.py`** — session 13 fixed it against one real
+  export (60-min, November). A 15-minute file, and any file spanning March, are still unseen.
 - **M2's PG&E cross-check is unavailable, not pending** — PG&E's Rate Plan Comparison returns
   "no service agreement eligible for rate enrollment" for this account. `--pge-comparison FILE`
   is built and waiting.

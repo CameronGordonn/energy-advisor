@@ -2,6 +2,214 @@
 
 Running log of decisions made and decisions pending. Newest first.
 
+## 2026-09-08 — Session 16 (TOU-DR2 and EV-TOU-5: earlier 2026 vintages, and two half-built schedules finished)
+
+**719 tests green, ruff clean, golden bills untouched.** HANDOFF action 3. Twelve new spec
+files; no existing spec edited (session 15 was cross-checking them read-only — see the
+coordination note at the end). Ran concurrently with session 15, which independently
+cross-checked these files mid-flight and found zero errors.
+
+### DONE — the vintages, from the primary sheets
+`curl` reaches sdge.com fine (no 403 — the field note's 403 is specific to
+sdcommunitypower.org), so all twelve Total Rates Tables came straight from
+`sdge.com/sites/default/files/regulatory/`, `pdftotext -layout`, delivery and generation
+transcribed as separate layers. **All 40 layer-sum cells reconcile to SDG&E's printed Total
+Electric Rate and Total Adjusted CARE Rate, worst error 7.5e-6.** The CARE split derived on
+TOU-DR1 (delivery keeps the 0.00864 exemption, both layers take the 35%) rebuilds the printed
+CARE total on two schedules it was never fitted to — including EV-TOU-5's collapsed
+super-off-peak row, where the exemption is a quarter of the whole delivery charge.
+
+Independently corroborated: every Total Electric Rate matches `corruptbear/my_sdge`'s
+hand-transcribed YAMLs at 1/1 and 4/1, on both schedules. Their files were consulted, not
+vendored (no LICENSE); sdge.com is cited as the source.
+
+### ⭐ FINDING — TOU-DR2 and EV-TOU-5 were HALF-AUTHORED, and nothing failed
+Both shipped in session 6 with a **delivery spec and no generation layer**, so a bundled
+customer could not be priced on either — only half their bill existed. The EV-TOU-5 spec even
+recorded its six EECC values in a comment "for reference". This was invisible because every
+test named its spec files explicitly, so no test ever asked for the missing half. Both pairs
+are now complete (including the 6/1 generation layers, which were also missing), and the gap
+is closed structurally rather than by memory:
+
+- `test_every_sdge_delivery_vintage_has_a_matching_generation_vintage` globs the specs dir
+  and asserts pair completeness. TOU-DR-P is the one documented exclusion.
+- `SDGE_DELIVERY` in `test_sdge_layers.py` **was a hand-maintained list of six filenames**
+  and is now a glob. A hand-maintained list is a gate that stops gating the moment someone
+  adds a spec and forgets a line — it had already silently stopped covering nothing, but it
+  would have. The NBT-settleability gate now covers all 11 SDG&E delivery specs
+  automatically.
+
+### DECISION — TOU-DR2 gets THREE vintages, not four, and that is a fact about the schedule
+TOU-DR1 and EV-TOU-5 each carry a 2026-05-01 vintage because the weekday 10:00-14:00
+super-off-peak window went year-round mid-rate-vintage (open decision 8). **TOU-DR2 has no
+super-off-peak period at all** — two periods, every day, no weekend table — so that filing
+cannot touch it. Confirmed three ways: no 2026 TOU-DR2 rate table prints a Super Off-Peak row;
+SDG&E's super-off-peak page lists the affected plans and does not name TOU-DR2; SDG&E's
+Time-of-Use Plans page prints TOU-DR2 as "Every Day / 12 a.m. - 4 p.m., 9 p.m. - 12 a.m." with
+no carve-out. One secondary source (a solar-installer blog) *does* list TOU-DR2 among the
+affected schedules and **is wrong**; the rate tables outrank it. Pinned by
+`test_tou_dr2_has_no_may_vintage_because_it_has_no_super_off_peak_window`, because "the 5/1
+file is missing" and "the 5/1 file must not exist" look identical in a directory listing.
+
+### ⭐ EV-TOU-5's pre-May window: sourced DIRECTLY, not inherited
+The riskiest input in this session was whether EV-TOU-5's 10 a.m.-2 p.m. weekday window was
+also March/April-only before 5/1, or simply did not exist. Assuming it mirrored TOU-DR1 would
+have been a guess. **SDG&E's own EV Pricing Plans page settles it**: the 2025-11-07 capture
+(prices effective 2025-11-01 — the table in force when the 1/1 vintage took effect) prints the
+Super Off-Peak column as "Midnight - 6:00 a.m. / **10:00 a.m. - 2:00 p.m. in March and April**
+(Weekdays) / Midnight - 2:00 p.m. (Weekends & Holidays)". SDG&E's super-off-peak page names
+EV-TOU-5 among the plans the year-round change applies to and says the hours "were previously
+only available in March and April". The 5-1-26 EV-TOU-5 URL 404s, verified for this schedule
+rather than assumed from TOU-DR1.
+
+**On EV-TOU-5 the 5/1 split is worth ~4x what it is worth on TOU-DR1.** Pricing May weekday
+10:00-14:00 as off-peak instead of super-off-peak costs 0.47610 - 0.12115 = **0.35495/kWh**
+(≈$30/month at 1 kW in that window), against 0.09076/kWh on TOU-DR1. Note that spread is the
+**winter** one: May is a winter month under Schedule EECC (winter is Nov 1 - May 31), and the
+summer spread never applies to the days that file covers.
+
+### Also pinned
+- **TOU-DR2's delivery layer is NOT period-flat.** TOU-DR1's UDC total is flat, which is why
+  100% of its TOU signal lives in generation — a fact this repo leans on. TOU-DR2's UDC *is*
+  time-differentiated, but only in summer (0.34550 on-peak vs 0.33903 off-peak at 1/1); winter
+  is flat. A tool that learned "SDG&E delivery is flat" from TOU-DR1 misprices TOU-DR2 summer.
+- **EV-TOU-5 has no baseline credit on any vintage** — deliberately absent, not UNVERIFIED: no
+  EV-TOU-5 table prints an "Up to 130% of Baseline" row where every TOU-DR1/DR2 table does.
+- The super-off-peak NBC share is starker on the earlier EV-TOU-5 vintages than on 6/1:
+  **49%** of the 1/1 super-off-peak delivery charge is non-bypassable (0.02099 / 0.04267),
+  against 45% at 6/1 and ~6.4% in the other windows.
+
+### ⚠ FINDING, OUT OF SCOPE, AND IT MATTERS MORE THAN THIS SESSION'S WORK — an 8/1/2026 vintage exists
+Chasing the live EV plans page turned up "Prices effective **August 1, 2026**", which did not
+match our 6/1 rates. `8-1-26 Schedule TOU-DR1 Total Rates Table.pdf` **exists and is not in
+this repo** (nor is EV-TOU-5's; 7-1, 9-1 and 10-1 all 404). It is a real move, not a reprint:
+TOU-DR1 UDC Total 0.32948 → **0.32601**, summer on-peak EECC 0.34920 → **0.35943**, baseline
+credit (0.10663) → **(0.10702)**.
+
+**Every SDG&E spec in this repo stops at 6/1, so Aug-Dec 2026 is currently priced with stale
+rates — TOU-DR1 included.** Deliberately NOT fixed here: the task was earlier vintages, and
+adding 8/1 to only the two schedules I touched would make them more current than TOU-DR1 and
+produce an apples-to-oranges ranking, which is worse than a consistent lag. It is now HANDOFF
+action 3, and it is cheap — same method, four more sheets per schedule.
+
+### ⚠ Also noticed, NOT edited (coordination)
+`sdge_tou_dr1_delivery_2026-05-01.yaml`'s header quotes its dollar impact using the **summer**
+EECC spread (0.12853 - 0.04121 = 0.08732/kWh) for a change that only ever governs **May**, a
+winter month. The winter spread is 0.19304 - 0.10228 = 0.09076/kWh, so the file slightly
+*understates* its own case. Comment-only, no rate affected. Left alone because session 15 was
+cross-checking `src/tariffs/specs/` read-only and the handoff said to coordinate before
+editing an existing spec.
+
+### Not done, and deliberately
+There is **no SDG&E candidate set in the optimizer** — `ALL_PGE_CANDIDATES` is the only one, so
+nothing ranks SDG&E schedules today regardless of vintage coverage. The specs were the
+prerequisite and are now in place; the candidate tuple is the follow-on, and it is gated on a
+real SDG&E household anyway (invariant 1 — no SDG&E dollar figure before reconciliation).
+
+## 2026-09-08 — Session 15 (independent cross-check of the SDG&E specs: zero errors found)
+
+Full writeup in `notes/spec_crosscheck_2026-09.md`. **No spec was changed** — the read-only
+constraint held because nothing in `src/tariffs/specs/` turned out to be wrong. 436 tests
+still green.
+
+### What was checked, and against what
+`github.com/corruptbear/my_sdge` (unaffiliated, active since Dec 2022) hand-transcribes SDG&E
+residential rates into YAML across 9 vintages. Their model is *totals* (delivery+generation
+fused); ours is *layers*. Reconstructing their totals by summing our two layers is therefore
+also a check that our layer split is coherent, not just that the digits match.
+
+**115 value-level comparisons, zero mismatches**: 24 TOU-DR1 total $/kWh cells (6
+season×period × all four of our 2026 vintages), 54 PCIA vintage rates, 4 baseline adjustment
+credits, 4 Base Services Charges, 8 Basic baseline allowances, 15 TOU-DR2 cells+credits, plus
+the 6 SDCP 2021V PowerOn cells and the weekday/weekend/holiday hour-sets. Separately, their
+**mirrored source PDFs** gave a second copy of the sheets: full UDC component decomposition
+verified line-for-line for TOU-DR1 @1/1 and @6/1, TOU-DR2 @6/1, EV-TOU-5 @6/1.
+
+**⚠ Eight untracked spec files were on disk when this ran** — earlier TOU-DR2 and EV-TOU-5
+vintages from another session working HANDOFF action 3, including the first TOU-DR2
+*generation* specs. Not written here, not modified here, but in scope, so checked:
+**they cross-check clean.** TOU-DR2 delivery+generation reconstructs the published total
+exactly at 1/1, 4/1 and 6/1; credits match; the two layers carry byte-identical `tou.rules`
+at every vintage; and the four EV-TOU-5 delivery vintages correctly mirror the 4-way window
+split. Whoever resumes that work can rely on it.
+
+Not vendored — that repo has no LICENSE. Read in scratch, cited by URL.
+
+### ⭐ The 2026-05-01 window question got a real answer, and it is uncomfortable
+Three findings pointing three different ways. **The modeling does not change**; the caveat does.
+
+1. **CORROBORATED on substance, by a fourth non-CCA party.** Their code carried
+   `is_march_or_april = 1 if (date.month == 3 or date.month == 4) else 0` — literally our
+   `months: [3, 4]` — for years, and commit `be51c303` (2026-06-10, *"apply extended
+   super-offpeak hours"*) deletes the condition. An unaffiliated engineer independently held
+   our old rule and independently abandoned it.
+2. **NOT corroborated on the DATE.** Their windows live in code with no effective date, so the
+   change applies retroactively to all nine of their vintages — their 2023–2026-04 files now
+   misprice March/April months. They cannot distinguish 5/1 from 6/1. Their handling is
+   strictly worse than ours and is exactly the failure open decision 8 exists to prevent.
+3. **⚠ NEW and against us: the filed tariff sheet still says March and April.**
+   `elec_elec-scheds_tou-dr1.pdf` — SDG&E's *current and effective* tariff-book PDF, retrieved
+   2026-09-08 — prints "Excluding 10:00 a.m. – 2:00 p.m. in March and April" on Cal. P.U.C.
+   Sheets 29952–29955-E, Advice 3167-E, eff. Jan 1 2018. **This is why sessions 8 and 9 never
+   found a superseding advice letter: the tariff book was never updated.** It is not proof the
+   window did not change — the same PDF still carries 2018 *rates* (EECC 0.29722), so the book
+   demonstrably lags the Total Rates Tables — but no *filed* document supports 5/1.
+
+Best single document for the date is still a CCA's: SDCP's `Res_2021V_042026.pdf` — an
+*April*-named file whose body says **"Effective May 1, 2026"** five times, whose PowerOn rates
+are cell-for-cell our `sdcp_2021v_..._2026-05-01.yaml`, and whose printed TOU table drops the
+March/April exclusion that its own February-2025 predecessor still carries.
+
+HANDOFF open decision 1 rewritten accordingly. The per-vintage split is right *because* it
+survives being wrong about the date: one file changes.
+
+### Incidental confirmations off the tariff sheets
+- Weekend/holiday windows (SOP midnight–2pm, off-peak 2–4pm & 9pm–midnight, on-peak 4–9pm)
+  match ours exactly.
+- The March/April carve-out is printed **only in the Winter column** — which makes our
+  season-free `months: [3, 4]` rule exactly equivalent, since Mar/Apr are winter under EECC.
+- **Baseline allowances re-verified**, all 16 cells, off Schedule DR SC 3 (Sheet 29294-E).
+- NBC components (PPP 0.01515 / ND 0 / CTC −0.00007 / WF-NBC 0.00591) confirmed on two sheets,
+  as is the **absence of any CEC surcharge column** — the flagged approximation is correctly
+  left unasserted.
+- HANDOFF's "~45% of EV-TOU-5 super-off-peak delivery is non-bypassable" checks out: 44.6%.
+- Minimum bill $0.329 / $0.164 CARE appears on the current-and-effective Schedule DR sheet —
+  but that sheet is still the 2018 filing, so the flagged approximation **stands as recorded**.
+  Marginally stronger, not resolved.
+
+### Three discrepancies found — all three are theirs
+1. **Stale CCA sheet.** Their 1/1/2026 file pairs correct SDG&E rates with SDCP generation from
+   a sheet reading "Effective February 1, 2025". Implied summer super-off-peak **0.08111** vs
+   the **0.01000** we carry — 8× wrong, precisely on the battery-charging window. A layered
+   model makes that drift visible; a fused total hides it.
+2. **All-electric baseline allowances wrong** (Basic right). Adjudicated against Schedule DR
+   SC 3: **our** numbers are the tariff's, on all sixteen cells. Theirs has winter coastal
+   all-electric *below* Basic — backwards for a heating-electrified household.
+3. **Holiday calendar too broad** — pandas `USFederalHolidayCalendar` (11 days) vs SDG&E
+   Electric Rule 1's 8. They price 06:00–10:00 as super-off-peak on MLK Day, Juneteenth and
+   Columbus Day. ~$1–3/yr, systematic.
+
+### DR-SES and EV-TOU-2 (question b — assessed, deliberately NOT added)
+- **DR-SES is worth adding, and is the more valuable of the two.** Solar-household schedule:
+  UDC Total flat **0.26328** (TRAC 0.00000) → delivery 6.6¢/kWh cheaper than TOU-DR1, but a
+  much steeper EECC (summer on-peak 0.47019 vs 0.34920) and **no Baseline Adjustment Credit at
+  all** where TOU-DR1 credits −0.10663/kWh to 130%. Which wins is a pure function of import
+  shape and baseline allowance — unanswerable from a marketing page, and aimed at exactly the
+  population M3 serves. Ranking a solar household without it on the menu is a real gap.
+- **EV-TOU-2: no.** Cameron has no EV, EV-TOU-5 is already specced and is the current EV
+  offering, and EV-TOU-2's enrolment status is unverified — do not assert it.
+- **Carry forward: PPP is not schedule-independent.** 0.01515 on TOU-DR1/DR2/EV-TOU-5/DR-SES
+  but **0.01713** on EV-TOU and EV-TOU-2, which also carry LGC 0.01235. `non_bypassable` is
+  per-spec so this is not a live bug, but copy-pasting the TOU-DR1 NBC block onto an EV-TOU
+  spec would silently misstate the NBT import floor.
+
+### What this does NOT establish — stated so the result is not over-read
+**Agreement on rate transcription is not reconciliation.** Invariant 1 is still unmet for
+SDG&E and M1's DoD is unchanged. Also genuinely unchecked: **CARE** (they do not model it at
+all — our derivation remains checked only against SDG&E's own printed CARE tables, and open
+decision 9 is untouched); the **EV-TOU-5 generation layer** we do not hold; and all of
+NEM 3.0 / ACC / netting, which is outside their scope.
+
 ## 2026-09-08 — Session 14 (RESOLVED: SDG&E has no ACC Plus adder, and it is a decided fact)
 
 Closed HANDOFF next action 2. `acc.acc_plus_table` no longer raises for SDG&E; it returns a
@@ -64,6 +272,103 @@ CCA-side export adder, entirely separate from ACC Plus, and *not* covered by the
 zero. It plugs into the existing `cca_export_terms` hole (open item: "CCA export terms —
 netting excludes the CCA generation credit by default, so a CCA customer's result is a lower
 bound"). Sourcing it would turn that lower bound into a real number for SDCP customers.
+
+## 2026-09-08 — Session 13 (the SDG&E parser meets a real export — and loses, twice)
+
+**435 tests green (was 418), ruff clean, wasm parity and render checks pass.** Answering "where else can free SDG&E data come from" turned up a **real,
+author-anonymized SDG&E export committed to a public repo** —
+`corruptbear/my_sdge`, `example/Electric_60_Minute_11-1-2022_11-30-2022_20230819.csv`
+(39 stars, active as of 2026-06-10, **no LICENSE file** — so the bytes may NOT be vendored;
+re-download at test time or hand-author an equivalent fixture and cite the URL).
+
+### FINDING — `src/greenbutton/sdge.py` would have refused dad's file
+`scripts/inspect_export.py` on that file: *"not recognized as a PG&E or SDG&E Green Button
+interval export."* The parser was written to a **PG&E-shaped** table
+(`TYPE,DATE,START TIME,END TIME,...`, 24-hour `H:MM`, `IMPORT`/`EXPORT` columns). The real
+file is:
+
+```
+Name,SDGE VICTIM / Address,... / Account Number,... / Disclaimer,...
+Title,CSV Export Electric Meter(s)
+Resource,Electric / Meter Number,... / Interval UOM,Minute(s)
+Reading Start,11/1/2022 00:00 / Reading End,11/30/2022 23:00
+Total Duration,30 Days / Total Usage,817.415 / UOM,kWh
+Meter Number,Date,Start Time,Duration,Consumption,Generation,Net
+"00000000","11/1/2022","12:00 AM","60","0.2200","","0.2200"
+```
+
+Four concrete differences: a **`Duration` in minutes instead of `END TIME`**; **12-hour
+`h:MM AM/PM`** times; **`Consumption`/`Generation`/`Net`** rather than `IMPORT`/`EXPORT`; every
+field **quoted**, with a richer metadata preamble (`Total Usage` is a free checksum — parse it
+and assert against the summed series).
+
+**Caveat, do not over-correct:** this is ONE file, 60-minute, from the 2022–23 portal, and its
+`Title` row says *"CSV Export"* while the repo README calls it the Green Button Download — so
+SDG&E may emit more than one CSV shape. **Sniff and accept both**, do not swap one guess for
+another. The 15-minute variant is still unseen.
+
+### Also free, also unused
+- Same repo carries **9 vintages of independently hand-transcribed SDG&E rate YAMLs**
+  (2023 → 2026-06-01, incl. 2026-01-01 and 2026-04-01) plus the 1/1/26 and 6/1/26 Total Rates
+  PDFs and `Res_2021V_042026.pdf` (SDCP). An independent second reading of the same tariff
+  sheets is the only validation of our specs available without a bill.
+- Green Button Alliance samples (green-button.github.io/samples) are **all synthetic and all
+  XML** — no use for the CSV parsers.
+- **An SDG&E bill PDF alone, with no interval data, validates the dollars-from-bucketed-kWh
+  half of the gate**, because TOU bills print kWh *and* $ per period. Much smaller ask than a
+  13-month export; also the cheapest route to settling open decision 9 (CARE on a CCA).
+
+### FINDING 2, the expensive one — SDG&E writes a TRUE 25-hour fall-back day
+Caught only because the file parsed far enough to reach the duplicate-timestamp guard.
+`11/6/2022` carries **25 rows**, with `1:00 AM` written **twice** — the real PDT hour and the
+real PST hour, in real-time order. PG&E writes 24 nominal labels and sums both physical hours
+into one reading. `_common.localize` hardcoded `ambiguous=True`, which sends *every* ambiguous
+label to the PDT fold, so both SDG&E rows collided on one instant and `finalize` rejected the
+file.
+
+**This is the second time the shared "both IOUs run the same Opower platform" premise has been
+wrong**, and it was wrong in the module docstring as a stated fact. The premise is now
+retired: `_common.py` says plainly that the formats are less alike than they look.
+
+### DECISION — resolve the DST fold from FILE ORDER, not from the utility
+`_fold_flags` infers the convention from the data instead of branching on utility: no repeated
+label means the PG&E summed-reading convention (all-`True`, unchanged behaviour, second hour
+surfaces as a gap); a label appearing exactly twice means the SDG&E true-day convention (first
+occurrence PDT, second PST, no gap, no energy merged). Three or more occurrences is not a fold
+and raises `AmbiguousDSTError`. Chosen over a utility flag because a *third* export shape then
+costs nothing, and because the file is the authority on what the file contains.
+
+### DECISION — the `Total Usage` checksum is a NOTE, never a rejection
+The preamble's declared total matched the summed `Consumption` column to the digit (817.415
+kWh), which is free proof every row was read. It is still reported rather than enforced: the
+semantics on a *solar* account are unverified (consumption sum or net sum?), and a file with
+legitimately missing rows could undershoot a total computed over the requested range. Turning
+one observation into a rejection rule is how a valid export gets refused — the exact failure
+mode HANDOFF.md warns against.
+
+### What changed
+- `_common.split_header_and_table` now finds the table by **signature** (a row with a date
+  column and a start-time column, >=3 fields) rather than a literal `TYPE,`. Required: SDG&E's
+  preamble contains `Meter Number,00000000` *above* a header that also starts `Meter Number`,
+  so a leading-token test stops on the wrong line. Billing-history headers still match, so
+  `check_not_billing_summary` keeps producing its specific message.
+- `_common.to_minutes` accepts 12-hour `h:MM AM/PM` alongside 24-hour `H:MM`, with range
+  checks and a clear error instead of an `astype(int)` traceback.
+- `sdge.py` accepts both shapes: `Duration` is reconstructed into the inclusive-last-minute
+  end so the shared span-vs-modal-step cross-check still applies; timestamps are built from
+  date + minutes-since-midnight rather than string concatenation, so one time parser serves
+  both shapes; `Consumption`/`Generation` join `IMPORT`/`EXPORT` as recognised registers, with
+  blank `Generation` cells treated as zero rather than as an error.
+- 17 new tests, all hand-authored to the observed shape. **The real file is not vendored** —
+  that repo has no LICENSE.
+
+### Still unverified — do not read this as "the SDG&E parser is validated"
+One file, one portal vintage, **60-minute**, **November only**. Unseen: the 15-minute
+meter-shape variant; **spring-forward on either shape** (both conventions happen to survive
+the current `shift_forward` policy, but that is luck, not evidence); whether `Net` is
+per-interval netted for a NEM account and therefore whether `Consumption` is gross — which M3
+needs before it prices a solar export. **No real SDG&E bill has still ever met the engine**;
+the site's reconciliation-gate copy is unchanged and remains accurate.
 
 ## 2026-09-08 — Session 12 (the site stops looking generated: the tariff-sheet redesign)
 
