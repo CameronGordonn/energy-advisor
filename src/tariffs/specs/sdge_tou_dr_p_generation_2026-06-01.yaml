@@ -1,0 +1,145 @@
+# SDG&E Schedule EECC-TOU-DR-P — GENERATION layer (bundled commodity + the RYU event adder).
+#
+# The other half of `sdge_tou_dr_p_delivery_2026-06-01.yaml`. Read that file's header first:
+# it carries the sourcing for the TOU windows, the RYU event history, and the reasoning
+# behind the events model.
+#
+# HOW IT COMPOSES, per the TOU-DR-P Total Rates Table's own note 1 ("the UDC rates
+# associated with service under Schedule TOU-DR and the generation rates associated with
+# Schedule EECC-TOU-DR-P"):
+#     UDC Total + WF-NBC + DWR-BC   <- delivery spec  (identical to TOU-DR1's; Schedule TOU-DR)
+#   + EECC-TOU-DR-P                 <- THIS SPEC
+#   = Total Electric Rate
+#
+# ⭐ THIS LAYER IS THE ENTIRE DIFFERENCE BETWEEN TOU-DR-P AND TOU-DR1. Delivery is byte-for
+# -byte the same on both schedules, so every dollar of the comparison lives here. Against
+# TOU-DR1's EECC at the same 6/1/2026 vintage:
+#     summer  on-peak -0.15072   off-peak +0.02670   super-off-peak +0.04126
+#     winter  on-peak -0.02418   off-peak -0.01698   super-off-peak -0.00899
+# Read that shape carefully, because the marketing framing ("lower on-peak prices") is a
+# third of it: TOU-DR-P is uniformly cheaper across all seven WINTER months, and in summer
+# it does not lower the bill so much as FLATTEN it — the summer on/super-off spread falls
+# from 0.30799 to 0.11601, a 62% cut. So TOU-DR-P is a poor rate for a battery or any
+# load-shifting household (less arbitrage to capture) and a good one for a household that
+# cannot shift — right until an event is called, which is exactly when a household that
+# cannot shift is least able to respond.
+#
+# THE CARE SPLIT IS PRINTED HERE, NOT DERIVED. Unlike TOU-DR1 (where SDG&E prints no CARE
+# EECC rate and the 0.65x split had to be reconstructed), the 6/1/2026 TOU-DR-P-CARE table
+# prints the standard components plus two adjustment columns, so the whole CARE bill is
+# checkable. `care` below is still 0.65 x standard, and the check is that delivery + this
+# layer reproduces the printed Total Adjusted CARE Rate on all six cells:
+#     summer on   0.20855 + 0.65 x 0.19848 = 0.337562   printed 0.33756
+#     summer off  0.20855 + 0.65 x 0.15523 = 0.309450   printed 0.30945
+#     summer sop  0.20855 + 0.65 x 0.08247 = 0.262156   printed 0.26215
+#     winter on   0.20855 + 0.65 x 0.25057 = 0.371421   printed 0.37142
+#     winter off  0.20855 + 0.65 x 0.17606 = 0.322989   printed 0.32298
+#     winter sop  0.20855 + 0.65 x 0.09329 = 0.269189   printed 0.26919
+# Worst residual 1e-5, i.e. the sheet's own 5-dp rounding. Pinned by `test_tou_dr_p.py`.
+#
+# ⚠ CLOSED TO CCA AND DIRECT ACCESS. Schedule EECC-TOU-DR-P, Applicability: "This Schedule
+# is not applicable to Direct Access (DA), Transitional Bundled Service (TBS) or Community
+# Choice Aggregation (CCA) customers." There is therefore no CCA overlay for TOU-DR-P and
+# there never can be one — an SDCP or CEA customer must be dropped from a TOU-DR-P
+# comparison before any event modeling, and the vintaged PCIA never applies. This is why
+# the delivery spec carries no `applies_to: cca` adder while TOU-DR1's does.
+#
+# ⚠ AN 8/1/2026 VINTAGE EXISTS and is NOT authored here (HANDOFF action 2 covers the
+# schedule-wide 8/1 sweep): EECC-TOU-DR-P summer 0.20500 / 0.16034 / 0.08518, winter
+# 0.25881 / 0.18184 / 0.09636, UDC Total 0.32601, baseline credit (0.10702), RYU adder
+# unchanged at 1.16. TOU-DR-P is in no candidate set yet, so nothing ranks it and the lag
+# cannot produce an apples-to-oranges comparison today — but it must be closed before it
+# does.
+schedule_id: TOU-DR-P
+name: SDG&E bundled generation (Schedule EECC-TOU-DR-P) - Time of Use Plus
+provider: SDG&E
+layer: generation
+effective_date: 2026-06-01
+citation: >-
+  SDG&E "Schedule TOU-DR-P - Residential Time of Use Plus Service Effective 6/1/2026" Total
+  Rates Table, Schedule EECC-TOU-DR-P column (sdge.com/sites/default/files/regulatory/6-1-26
+  Schedule TOU-DR-P Total Rates Table.pdf), and the matching "6-1-26 Schedule TOU-DR-P-CARE
+  Total Rates Table" for the CARE check, both retrieved 2026-09-09. Structure, RYU Event
+  Period Adder, the 18-event annual cap and the applicability limits from Schedule
+  EECC-TOU-DR-P, Cal. P.U.C. Sheets 29436-E through 29438-E (Advice 3130-E) and Sheet
+  30038-E (Advice 3167-E). Seasons per Schedule EECC. Period definitions per Schedule TOU-DR
+  Sheet 5, Cal. P.U.C. Sheet 29300-E — see the delivery spec's citation and its note on the
+  year-round super-off-peak window.
+
+seasons:
+  # Schedule EECC-TOU-DR-P Sheet 2: Summer June 1 - October 31, Winter November 1 - May 31.
+  summer_months: [6, 7, 8, 9, 10]
+  winter_months: [11, 12, 1, 2, 3, 4, 5]
+
+# Must classify every hour identically to the delivery layer or the two would price the
+# same kWh in different buckets; `marginal_energy_price` rejects layers that disagree, and
+# `test_tou_dr_p.py` compares all 576 cells against TOU-DR1's as well.
+tou:
+  rules:
+    - {period: on_peak, hours: [[16, 21]]}
+    - {period: super_off_peak, hours: [[0, 6], [10, 14]], days: weekday}
+    - {period: super_off_peak, hours: [[0, 14]], days: weekend}
+  default_period: off_peak
+  holiday_calendar: sdge_residential
+  labels: {on_peak: On-Peak, off_peak: Off-Peak, super_off_peak: Super Off-Peak}
+
+# EECC-TOU-DR-P $/kWh, read straight off the 6/1/2026 table; `care` = 0.65 x standard,
+# verified against the printed Total Adjusted CARE Rate (see header).
+energy:
+  summer_on_peak:        {standard: 0.19848, care: 0.129012}
+  summer_off_peak:       {standard: 0.15523, care: 0.1008995}
+  summer_super_off_peak: {standard: 0.08247, care: 0.0536055}
+  winter_on_peak:        {standard: 0.25057, care: 0.1628705}
+  winter_off_peak:       {standard: 0.17606, care: 0.114439}
+  winter_super_off_peak: {standard: 0.09329, care: 0.0606385}
+
+# ⛔ THE CHARGE THAT MAKES THIS SCHEDULE A GAMBLE. $1.16/kWh ON TOP of the ordinary energy
+# charge, 4-9 p.m., on days SDG&E calls with one day's notice, up to 18 per calendar year.
+#
+# `hours` is 16-21 and NOT the 14-18 printed on the tariff sheets. Sheet 29436-E and SC 15
+# are frozen at Advice 3130-E (2017) and still say "2:00 p.m. - 6:00 p.m."; the window moved
+# to 4-9 p.m. on 2022-06-01. Three sources say so, two of them SDG&E's own: the residential
+# pricing-plans page ("...will be billed to customers from 4 p.m. - 9 p.m. during a RYU
+# Event Day"), every TOU-DR-P event row in SDG&E's monthly CPUC demand-response filings
+# (all recorded 4:00pm-9:00pm), and contemporaneous customer notice of the change. Same
+# book-lags-reality pattern as the super-off-peak window. Do not "correct" this off a sheet.
+#
+# `care` 0.75 is PRINTED, not derived: the TOU-DR-P-CARE table gives the RYU row its own
+# Total Adjusted CARE Rate of 0.75 beside a 35% discount column of (0.41). Exact 0.65 x 1.16
+# would be 0.754; the sheet carries this row at 2 dp throughout (the standard rate is 1.16,
+# not 1.16000), so the printed value is used rather than a recomputed one.
+#
+# THE DAYS ARE NOT HERE, AND CANNOT BE. `EventAdder` deliberately has no `event_days` field:
+# which days SDG&E calls is a fact about a billing period, not about a tariff, so it is a
+# required argument to `compute_bill(..., event_days=[...])` that raises when omitted. What
+# SDG&E actually called, from its own year-end CPUC filings: 2020 nine, 2021 zero, 2022
+# zero, 2023 zero, 2024 three (Sep 5/6/9), 2025 zero, 2026 zero through July. Full sourcing
+# in the delivery spec's header.
+event_adder:
+  name: RYU Event Period Adder
+  per_kwh: {standard: 1.16, care: 0.75}
+  hours: [[16, 21]]
+  max_events_per_year: 18
+  citation: >-
+    Rate and annual cap: SDG&E Schedule EECC-TOU-DR-P SC 15 and SC 14, Cal. P.U.C. Sheet
+    29437-E (Advice 3130-E) — "A maximum of eighteen (18) RYU Events can be triggered per
+    calendar year"; rate confirmed as the "RYU Adder ($/kWh) 1.16" row of the 6/1/2026
+    TOU-DR-P Total Rates Table, and the CARE value as that table's CARE twin (35% discount
+    (0.41), Total Adjusted CARE Rate 0.75), both retrieved 2026-09-09. HOURS 4 p.m.-9 p.m.
+    from SDG&E's residential pricing-plans page ("Up to 18 events can be called per year.
+    If called, you'll be asked to conserve energy between 4 p.m. and 9 p.m.") and from the
+    TOU-DR-P event rows of SDG&E's monthly "Report on Interruptible Load and Demand
+    Response Programs" to the CPUC, which record 4:00pm-9:00pm; the tariff sheets' printed
+    2 p.m.-6 p.m. is superseded (changed 2022-06-01) and is NOT used.
+
+# NOT MODELED HERE, deliberately:
+#  - Bill Protection (SC 1) and the Snap Credit (SC 17) are unavailable to anyone enrolling
+#    now: SC 1 required SDG&E to receive the request "no later than December 31, 2015". Only
+#    Shadow Billing (SC 16) still runs, and it shows the customer the comparison without
+#    refunding the difference. A model that assumed CPP-style bill protection would floor
+#    the downside at zero, which is wrong by the whole event exposure.
+#  - Franchise Fee Differential 5.78% (Sheet 29436-E, Sheet 2) — City of San Diego only, a
+#    per-customer fact, handled the same way as on TOU-DR1.
+#  - TOU Period Grandfathering (SC 21) rates and its separate semi-peak period structure
+#    (Sheets 29440-E / 30039-E). Applies only to pre-2017 solar customer generators and
+#    expires 2027-07-31 at the latest; a distinct schedule shape, not a variant of this one.

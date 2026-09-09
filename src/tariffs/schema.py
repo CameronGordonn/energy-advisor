@@ -613,6 +613,52 @@ class MinimumBill(_Base):
     citation: str = Field(min_length=1)
 
 
+class EventAdder(_Base):
+    """A per-kWh charge that applies only on days the utility calls, with a day's notice.
+
+    SDG&E's RYU Event Period Adder (Schedule EECC-TOU-DR-P SC 14/15) is the only instance
+    today: $1.16/kWh **on top of** the ordinary energy charge, 4 p.m.-9 p.m., on up to
+    eighteen days a calendar year that SDG&E picks and announces the day before.
+
+    **Why this is a schema field and not a rate.** The tariff fixes three of the four
+    things needed to bill it — the rate, the hours, the annual cap — and cannot fix the
+    fourth. *Which* days is a fact about a billing period, so the day list is a bill-time
+    input exactly like ``territory`` (climate zone) and the PCIA ``vintage``, and like both
+    of those, omitting it RAISES rather than defaulting. See ``bill.compute_layer``.
+
+    **Why it must not default to zero.** Zero events is the single most likely outcome in
+    any given year (SDG&E called none in 2021, 2022, 2023, 2025 or 2026-to-date) *and* the
+    assumption under which the schedule looks unambiguously cheap. A default that is both
+    usually right and systematically flattering is the installer-tool failure mode
+    CLAUDE.md's honest-broker invariant exists to prevent: at 6/1/2026 rates one summer
+    event day cancels ~6.7 ordinary summer days of TOU-DR-P's on-peak saving, so the
+    difference between 0 and the 18-event cap is the difference between a recommendation
+    and its opposite. Callers that want the optimistic case must ask for it by passing an
+    empty list, which is a decision on the record rather than a silent default.
+    """
+
+    name: str = Field(min_length=1)
+    per_kwh: Rate
+    hours: list[tuple[int, int]] = Field(
+        min_length=1, description="Half-open local-clock windows [start, end) on an event day"
+    )
+    max_events_per_year: int = Field(gt=0)
+    citation: str = Field(min_length=1)
+
+    @field_validator("hours")
+    @classmethod
+    def _valid_hours(cls, v: list[tuple[int, int]]) -> list[tuple[int, int]]:
+        for start, end in v:
+            if not (0 <= start < end <= 24):
+                raise ValueError(
+                    f"hour window must satisfy 0 <= start < end <= 24, got [{start},{end})"
+                )
+        return v
+
+    def covers(self, hour: int) -> bool:
+        return any(start <= hour < end for start, end in self.hours)
+
+
 class TariffSpec(_Base):
     """One layer (delivery or generation) of one schedule, effective from a date."""
 
@@ -638,6 +684,9 @@ class TariffSpec(_Base):
     surcharges: list[Surcharge] = Field(default_factory=list)
     minimum_bill: MinimumBill | None = None
     non_bypassable: NonBypassable | None = None
+    event_adder: EventAdder | None = None
+    """Set only by event-contingent schedules (SDG&E TOU-DR-P). Its presence makes
+    ``event_days`` a REQUIRED argument to the billing functions — see :class:`EventAdder`."""
 
     @field_validator("citation")
     @classmethod

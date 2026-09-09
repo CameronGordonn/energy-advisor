@@ -18,7 +18,7 @@ from pydantic import BaseModel, ConfigDict
 from greenbutton.models import LOCAL_TZ, IntervalSeries
 
 from .holidays import holiday_dates
-from .schema import Layer, Season, Service, TariffSpec, TouDef
+from .schema import EventAdder, Layer, Season, Service, TariffSpec, TouDef
 
 CENTS = 2
 
@@ -201,6 +201,71 @@ def _usage(
     return {p: float(kwh[codes == i].sum()) for i, p in enumerate(periods)}
 
 
+class MissingEventDaysError(ValueError):
+    """An event-contingent schedule was billed without saying which days were called."""
+
+
+def _event_kwh(
+    series: IntervalSeries,
+    adder: EventAdder,
+    event_days: Sequence[date],
+    d0: date,
+    d1_inclusive: date,
+) -> float:
+    """kWh falling inside the adder's hours on the event days within [d0, d1].
+
+    Days outside the sub-period are ignored rather than rejected: a caller passes the
+    year's event days once and every billing period picks out its own.
+    """
+    days = {d for d in event_days if d0 <= d <= d1_inclusive}
+    if not days:
+        return 0.0
+    idx = series.frame.index
+    lo = pd.Timestamp(d0, tz=LOCAL_TZ)
+    hi = pd.Timestamp(d1_inclusive + timedelta(days=1), tz=LOCAL_TZ)
+    sub = series.frame[(idx >= lo) & (idx < hi)]
+    sidx = sub.index
+    on_event_day = np.isin(sidx.date, list(days))
+    in_window = np.zeros(len(sidx), dtype=bool)
+    for start, end in adder.hours:
+        in_window |= (sidx.hour.values >= start) & (sidx.hour.values < end)
+    return float(sub["kwh"].to_numpy()[on_event_day & in_window].sum())
+
+
+def _check_event_days(spec: TariffSpec, event_days: Sequence[date] | None) -> Sequence[date]:
+    """Require an explicit day list for any schedule carrying an event adder.
+
+    Mirrors ``territory`` and the PCIA ``vintage``: a fact the tariff cannot supply is
+    demanded from the caller instead of defaulted, because the default that would be
+    convenient here (zero events) is also the one that flatters the schedule.
+    """
+    adder = spec.event_adder
+    if adder is None:
+        return ()
+    if event_days is None:
+        raise MissingEventDaysError(
+            f"{spec.schedule_id} carries the {adder.name} ({adder.per_kwh.standard}/kWh on "
+            f"up to {adder.max_events_per_year} utility-called days a year) and cannot be "
+            "billed without event_days=[...]. Pass the days actually called for a "
+            "reconciliation, or a scenario count for a forecast; pass [] to price the "
+            "explicit zero-event case. There is deliberately no default: zero is both the "
+            "most common single-year outcome and the assumption that makes this schedule "
+            "look free."
+        )
+    by_year: dict[int, int] = {}
+    for d in event_days:
+        by_year[d.year] = by_year.get(d.year, 0) + 1
+    for year, n in sorted(by_year.items()):
+        if n > adder.max_events_per_year:
+            raise ValueError(
+                f"{spec.schedule_id}: {n} event days supplied for {year}, but the tariff "
+                f"caps {adder.name} at {adder.max_events_per_year} per calendar year "
+                "(Schedule EECC-TOU-DR-P SC 14). A forecast above the cap is not a "
+                "conservative assumption, it is an impossible one."
+            )
+    return event_days
+
+
 def period_codes(tou: TouDef, index: pd.DatetimeIndex) -> np.ndarray:
     """Period name for every timestamp in ``index``, by the schedule's own rule walk.
 
@@ -320,6 +385,7 @@ def compute_layer(
     service: Service = Service.CCA,
     territory: str | None = None,
     vintage: str | None = None,
+    event_days: Sequence[date] | None = None,
     allow_before_effective: bool = False,
 ) -> LayerBill:
     """Itemize one layer (delivery or generation) over an inclusive date period.
@@ -342,6 +408,13 @@ def compute_layer(
     like ``territory`` it raises rather than defaulting when the spec needs one.
     ``territory`` picks a row of a spec's ``baseline.allowances`` table where one
     is published (SDG&E climate zones).
+
+    ``event_days`` lists the days the utility called an event. It is REQUIRED — and raises
+    :class:`MissingEventDaysError` when omitted — for any schedule whose spec carries an
+    ``event_adder`` (today only SDG&E TOU-DR-P), for the same reason ``territory`` and
+    ``vintage`` are required: the tariff fixes the charge but cannot know the days, and the
+    convenient default is the flattering one. Days outside the billing period are ignored,
+    so a caller can pass a whole year's list to every period.
     """
     if isinstance(spec, TariffSpec):
         versions = [spec]
@@ -350,6 +423,8 @@ def compute_layer(
     if not versions:
         raise ValueError("compute_layer: no spec version supplied")
     meta = versions[-1]  # schedule_id/provider/layer are shared across versions
+    for v in versions:
+        _check_event_days(v, event_days)
     items: list[LineItem] = []
 
     for spec, season, d0, d1 in _rate_subperiods(
@@ -435,6 +510,28 @@ def compute_layer(
                     LineItem(name="CARE Discount", season=tag, amount=_r(disc), volumetric=True)
                 )
 
+        # Event-contingent adder (SDG&E's RYU Event Period Adder). Billed at the
+        # customer's own class rate rather than folded into the CARE Discount line,
+        # because SDG&E prints it that way: the TOU-DR-P-CARE table gives the RYU row its
+        # own "Total Adjusted CARE Rate" (0.75) beside the standard 1.16, exactly as it
+        # does for the Base Services Charge. `event_days` is guaranteed non-None here for
+        # any spec carrying an adder — `_check_event_days` raised above otherwise.
+        if spec.event_adder is not None:
+            ea = spec.event_adder
+            ev_kwh = _event_kwh(series, ea, event_days or (), d0, d1)
+            rate = ea.per_kwh.for_customer(care=care, what=ea.name)
+            sub.append(
+                LineItem(
+                    name=ea.name,
+                    season=tag,
+                    quantity=_r(ev_kwh),
+                    unit="kWh",
+                    rate=rate,
+                    amount=_r(ev_kwh * rate),
+                    volumetric=True,
+                )
+            )
+
         # Per-kWh adders (PCIA, generation credit, ...). May be flat, seasonal, or TOU;
         # a TOU adder (e.g. the TOU-weighted Generation Credit) reports no single rate.
         for adder in spec.adders:
@@ -518,6 +615,7 @@ def compute_bill(
     service: Service = Service.CCA,
     territory: str | None = None,
     vintage: str | None = None,
+    event_days: Sequence[date] | None = None,
     observed_adjustments: list[LineItem] | None = None,
     allow_before_effective: bool = False,
 ) -> Bill:
@@ -536,6 +634,7 @@ def compute_bill(
             service=service,
             territory=territory,
             vintage=vintage,
+            event_days=event_days,
             allow_before_effective=allow_before_effective,
         )
         for s in specs
