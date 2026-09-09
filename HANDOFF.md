@@ -3,13 +3,17 @@
 _Rewrite this whole file whenever you finish a milestone or pause. Keep it current: state,
 how to run, open decisions, exact next action._
 
-## Status _(2026-09-08, end of session 12)_
+## Status _(2026-09-09, end of session 16)_
 
 **M0, M2 and M4 are done. M1 and M3 have complete, tested engines whose DoDs are blocked on
 data that does not exist yet. Do not fabricate a load or a bill to "finish" either.**
 
 **719 tests green · ruff clean · 11/11 PG&E golden bills within ±$2 (worst +$0.22) · working
-tree clean · `main` pushed · both CI jobs green.**
+tree clean · both CI jobs green.**
+
+> **⚠ `main` is 6 commits AHEAD of `origin/main` and has not been pushed.** Sessions 13-16 all
+> landed locally. Push before starting anything, or the next instance re-derives work that
+> exists.
 
 | Milestone | State | What is missing |
 |---|---|---|
@@ -18,7 +22,7 @@ tree clean · `main` pushed · both CI jobs green.**
 | M2 — Rate optimizer | **Done for PG&E** | the SDG&E household; utility cross-check unavailable |
 | M3 — NEM 3.0 solar + battery | **Engine complete, DoD blocked** | one real household with export data |
 | M4 — Public methodology | **Done, live** | — |
-| M5 — First external users | Not started | gated on M1 — see the warning below |
+| M5 — First external users | **Materials drafted** (`RECRUITING.md`), nothing sent | gated on M1 — see the warning below |
 
 - **Repo:** https://github.com/CameronGordonn/energy-advisor (public, AGPL-3.0)
 - **Site:** https://camerongordonn.github.io/energy-advisor/ — a working tool, four pages.
@@ -38,7 +42,7 @@ low-value polish. The one input that changes the project's state is **a real SDG
 Button export plus three itemised bills**, and it unlocks M1, the SDG&E half of M2, and the
 right to show any San Diego user a dollar figure.
 
-Dad was the expected source and had not delivered as of 2026-09-08. **Treating him as the only
+Dad was the expected source and had not delivered as of 2026-09-09. **Treating him as the only
 source is a single point of failure.** The sequencing rule in the M5 warning already says
 recruit for data before sales — so the highest-leverage action available without him is to
 **recruit one SDG&E household as a validation user**. That closes M1's DoD and starts M5 at
@@ -49,7 +53,7 @@ the same time.
 ## EXACT NEXT ACTION
 
 **0. Check for dad's SDG&E data first, every session.** `ls -lt data/` — look for anything
-SDG&E-shaped. Not arrived as of 2026-09-08 (`data/` unchanged since July 19; PG&E only). If it
+SDG&E-shaped. Not arrived as of 2026-09-09 (`data/` unchanged since July 19; PG&E only). If it
 has landed it outranks everything below.
   - **First command:** `PYTHONPATH=src python scripts/inspect_export.py FILE.csv`. It
     auto-detects the utility and reports interval length, coverage, gaps, DST handling and any
@@ -73,16 +77,8 @@ has landed it outranks everything below.
 13-month interval export plus three itemised bills; be explicit that they are validating an
 engine, not buying a verdict. See the M5 warning for why this ordering is not optional.
 
-**2. ~~Confirm SDG&E ACC Plus~~ — DONE, session 14. SDG&E's ACC Plus adder is $0.000/kWh for
-every residential segment**, adopted by CPUC D.22-12-056 Table 7 (and "-" for low-income in
-Table 11) because SDG&E paybacks were already inside the nine-year target without it.
-`acc_plus_table` returns a cited all-zero table instead of raising; `acc_plus_eligible` no
-longer moves a dollar on SDG&E, and an eligible customer is now *told* the adder is zero and
-why. Residual: SDG&E's own Schedule NBT sheet was never located (portal exposes no PDF path) —
-add it as corroboration if it surfaces.
-
-**3. THE 8/1/2026 VINTAGE IS MISSING FOR EVERY SDG&E SCHEDULE.** _(Session 16 found this while
-finishing action 3's earlier vintages, which are now done — TOU-DR1, TOU-DR2 and EV-TOU-5 all
+**2. THE 8/1/2026 VINTAGE IS MISSING FOR EVERY SDG&E SCHEDULE.** _(Session 16 found this while
+finishing the earlier-vintage action, now done — TOU-DR1, TOU-DR2 and EV-TOU-5 all
 price calendar 2026 from January.)_ Every SDG&E spec in this repo stops at 6/1, but
 `8-1-26 Schedule <ID> Total Rates Table.pdf` **exists** on sdge.com (7-1, 9-1 and 10-1 all
 404), and it is a real move, not a reprint: TOU-DR1 UDC Total 0.32948 → **0.32601**, summer
@@ -98,19 +94,20 @@ plan pages now quote "prices effective August 1, 2026".
   `tests/tariffs/test_sdge_vintages.py`. Check whether the window rules moved (they should
   not have) and whether a 5/1-style split is needed (it should not be).
 
-**4. Migrate `docs/methodology.html` onto the shared chrome.** It took the new palette and type
+**3. Migrate `docs/methodology.html` onto the shared chrome.** It took the new palette and type
 in session 12 but still holds its own copy of the tokens and its own nav/footer rules, which
 must be reconciled with `site.css` first (`site.css` sets `th{width:44%}`, which would wreck
 its tables — that is why it links `fonts.css` only). Its heading order, `<th scope>` and
 200%/400% reflow have never been audited.
 
-**5. PG&E ACC tables** — per-vintage PDFs (pge.com/energyexportcredit), not the clean MIDAS
+**4. PG&E ACC tables** — per-vintage PDFs (pge.com/energyexportcredit), not the clean MIDAS
 CSVs SDG&E publishes, so a different parser. Low priority.
 
-**6. TOU-DR-P** — needs an events model before it can be ranked. See open decision 2.
+**5. TOU-DR-P** — needs an events model before it can be ranked. See open decision 2.
 
 > **⚠ READ BEFORE STARTING M5 — M1 and M5 are coupled.** M5 targets San Diego (SDG&E) users,
-> and **the engine has never been validated against a single real SDG&E bill or export.** The
+> and **the engine has never reproduced a single real SDG&E bill.** (The *parser* has now met
+> one real export — session 13 — which is a different and much weaker claim.) The
 > rate specs are tariff-exact across four 2026 vintages, which is necessary but **not
 > sufficient**: sending dollar figures to five strangers without a reconciled SDG&E bill would
 > violate invariant 1 (reconciliation-gated), which is the product's entire trust claim.
@@ -238,7 +235,7 @@ Four pages in `docs/`, served by GitHub Pages: `index.html` (the tool), `methodo
 
 ```bash
 conda activate energy-advisor    # env prefix: /home/cameron/miniforge3/envs/energy-advisor
-pytest -q                                                   # 418 tests; golden tests skip if data/ absent
+pytest -q                                                   # 719 tests; golden tests skip if data/ absent
 ruff check . && ruff format --check .
 PYTHONPATH=src python scripts/reconcile_report.py           # 11 line-item comparisons (the trust artifact)
 PYTHONPATH=src python scripts/reconcile_report.py --write-readme

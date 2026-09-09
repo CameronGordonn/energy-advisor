@@ -2,6 +2,38 @@
 
 Running log of decisions made and decisions pending. Newest first.
 
+## 2026-09-09 — Session 17 (reconciling four parallel sessions' docs)
+
+Housekeeping, no engine change. **719 tests green, ruff clean, wasm parity and render checks
+pass.** Sessions 13-16 ran **in the same working tree at the same time** and all four patched
+HANDOFF.md independently, which reproduced exactly the drift session 12 had just cleaned up:
+
+- **Two contradictory test counts inside one file** — the status header said 719, the "How to
+  run" block still said 418.
+- **A struck-through DONE action still holding its number** (ACC Plus as `**2.**`), the same
+  defect the session-12 rewrite existed to remove. Dropped; the live actions renumbered 1-5.
+  The resolution itself was already recorded under M3 open items, so nothing was lost.
+- **Three stale `331 tests` claims** in README.md, docs/METHODOLOGY.md and the *published*
+  docs/methodology.html.
+- A status header still reading "end of session 12", and `main pushed` while `main` was six
+  commits ahead of `origin`.
+- The M5 warning claimed the engine "has never been validated against a single real SDG&E bill
+  **or export**". The export half stopped being true in session 13 — narrowed to the bill
+  claim, with the weaker parser claim stated separately so it cannot be read as the strong one.
+
+### LESSON — parallel sessions share the git INDEX, not just the tree
+A path-scoped `git add` followed by `git commit` is **not** isolated: another session staging
+between the two calls puts its files in your commit. It happened here — a parser commit
+captured 25 files across four lanes and had to be reset and redone. `git worktree add` per
+writing lane is the fix; a read-only lane can share.
+
+### The corollary that actually matters
+Four lanes ran and **none of them moved M1**, because M1 is blocked on data, not code. Sessions
+14-16 were correct, well-cited work; they were also all polish. Session 16's 8/1/2026 finding
+is the exception worth acting on, and it is worth acting on because it makes existing numbers
+*wrong*, not because it adds capability. Re-read THE BINDING CONSTRAINT before opening another
+parallel fan-out.
+
 ## 2026-09-08 — Session 16 (TOU-DR2 and EV-TOU-5: earlier 2026 vintages, and two half-built schedules finished)
 
 **719 tests green, ruff clean, golden bills untouched.** HANDOFF action 3. Twelve new spec
