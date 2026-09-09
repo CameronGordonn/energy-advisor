@@ -29,46 +29,40 @@ redesign, so re-check each after any markup or CSS change.
 - **Both pages are theme-aware** in light, dark and system, so a forced-dark reader does not
   get an unstyled page.
 
+## Fixed — keep them fixed
+
+Both of the original defects were closed in the redesign. They are recorded because each is
+easy to reintroduce.
+
+**Charts now have a text equivalent.** `role="img"` makes an SVG atomic: its children leave
+the accessibility tree, so the per-bar `<title>` elements are pointer tooltips and are
+**never announced**. The 24 `<title>`s are load-bearing for `tools/test_tool_render.mjs`, so
+they stayed, and `#hourTable` / `#monthTable` were added inside `<details class="data">`
+carrying the same numbers as real tables. Both charts also use `aria-labelledby` pointing at
+their visible caption, so the description is shared rather than duplicated into an
+`aria-label` that can drift from the caption beside it. **If you restyle a chart, the table
+is not optional decoration — it is the only route to that data for a screen reader.**
+
+**Contrast passes on every token.** `--ink-3` was `#7E8477` / `#7B8172` and failed AA body
+text on every light surface (3.22-3.71) while carrying eight real usages, including the SVG
+axis labels at `font-size:10`. It is now `#676C61` / `#888E7F`; `--accent` moved `#0B7D52` →
+`#0B784F`. Chart axis labels were also moved off `--ink-3` onto `--ink-2`. The full matrix
+lives in the `design-system` skill — recompute it after any palette change rather than
+eyeballing.
+
+**Heading order is unbroken.** `h1 → h2 → h3` with no skipped descent; the finding cards are
+`h4` under the "What stands out" `h3`. The three landing steps sit under a real `h2`
+("How this works") rather than jumping from `h1` to `h3`, which is what they did before.
+
 ## Open defects
 
-### 1. Chart data is unreachable by screen reader — the significant one
-
-`#hourChart` and `#monthChart` are `<svg role="img" aria-label="...">`. `role="img"` makes
-the SVG an **atomic image**: its children are removed from the accessibility tree, so the 24
-per-bar `<title>` elements are pointer tooltips only and are **never announced**. A screen
-reader user hears one sentence and gets none of the 24 hourly values.
-
-The `<title>` elements are load-bearing for tests (`tools/test_tool_render.mjs` asserts
-exactly 24 of them), so **keep them** and add a text alternative alongside:
-
-- preferred: render a visually-hidden `<table>` of the same 24 values next to each chart, or
-  a `<details>` disclosure holding it — it reuses data the page already has; or
-- extend the `aria-label` into a short summary naming the peak hour, the trough hour and the
-  peak share, which `src/report/inspect.py` already computes.
-
-Do not switch the SVG to `role="table"` or drop `role="img"` without re-running the render
-test — the assertions are counted, not fuzzy.
-
-### 2. `--ink-3` fails AA for body text
-
-Measured contrast against the current tokens:
-
-- light: **3.45** on `--ground`, **3.71** on `--surface`, **3.22** on `--surface-2`
-- dark: 4.51 on `--ground`, **4.15** on `--surface`, **3.78** on `--surface-2`
-
-AA body text needs **4.5**. `--ink-3` is not an incidental token — it is used in eight places
-in `docs/index.html` for genuine copy: `#drop .small` (.88rem), the privacy line (.84rem),
-`.cap` chart captions (.8rem), table header cells, and — worst — **the SVG axis labels on
-both charts, at `font-size:10`** (`fill:var(--ink-3)`). The smallest text on the page is
-drawn in the one token that fails contrast, which compounds the chart problem in defect 1.
-
-Fix by darkening the token in both pages' `:root` blocks — one line each, and it lifts every
-one of those eight usages at once. See the `design-system` skill for the full matrix.
-`--accent` on `--surface-2` in light (4.32) is large-text/UI only.
+⚠ **`docs/methodology.html` was not touched by the redesign.** It still carries the old
+`--ink-3` and `--accent`, so the contrast failure above is still live on that page. It is the
+first thing to fix there.
 
 ### 3. Unverified, check when auditing
 
-- Heading order on both pages (no skipped levels; one `h1` each).
+- Heading order on `docs/methodology.html` (index.html is done; one `h1` each).
 - `#status` updates during parsing — confirm they reach a live region rather than only
   changing text silently.
 - The results region is revealed by toggling `hidden`; confirm focus or an announcement

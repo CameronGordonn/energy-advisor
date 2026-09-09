@@ -2,155 +2,210 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light dark">
-<title>What does your electricity data actually say?</title>
-<meta name="description" content="Drop in your Green Button file from PG&amp;E or SDG&amp;E and see when you actually use electricity. Runs entirely in your browser — your data never leaves your computer.">
-<meta property="og:title" content="What does your electricity data actually say?">
-<meta property="og:description" content="Drop in your Green Button file and see when you actually use electricity. Runs entirely in your browser.">
+<title>Home Energy Advisor — read your own electricity data</title>
+<meta name="description" content="Drop in the usage file your California utility already keeps for you and see when you actually use electricity. Runs entirely in your browser; nothing is uploaded.">
+<meta property="og:title" content="Home Energy Advisor">
+<meta property="og:description" content="See when you actually use electricity. Your file never leaves your computer.">
 <meta property="og:type" content="website">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600&family=Public+Sans:ital,wght@0,400;0,500;0,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 <style>
 :root{
   --ground:#F1F3EE; --surface:#FBFBF8; --surface-2:#E9ECE3;
-  --ink:#171A13; --ink-2:#545A4C; --ink-3:#7E8477;
+  --ink:#171A13; --ink-2:#545A4C; --ink-3:#676C61;
   --rule:#DBDED3; --rule-2:#C8CCBE;
-  --accent:#0B7D52; --accent-soft:#E2EFE8;
+  --accent:#0B784F; --accent-soft:#E2EFE8;
   --warn:#B24A0B; --warn-soft:#F6E9DE;
-  --serif:"Newsreader",Georgia,serif;
+  --serif:"Newsreader",Georgia,"Times New Roman",serif;
   --sans:"Public Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --ground:#14170F; --surface:#1C1F19; --surface-2:#23271F;
-  --ink:#E9EBE2; --ink-2:#A5AA9A; --ink-3:#7B8172;
+  --ink:#E9EBE2; --ink-2:#A5AA9A; --ink-3:#888E7F;
   --rule:#2C3027; --rule-2:#3A3F33;
   --accent:#2FA372; --accent-soft:#16281F;
   --warn:#D07C22; --warn-soft:#2A1F12;
 }}
 :root[data-theme="dark"]{
   --ground:#14170F; --surface:#1C1F19; --surface-2:#23271F;
-  --ink:#E9EBE2; --ink-2:#A5AA9A; --ink-3:#7B8172;
+  --ink:#E9EBE2; --ink-2:#A5AA9A; --ink-3:#888E7F;
   --rule:#2C3027; --rule-2:#3A3F33;
   --accent:#2FA372; --accent-soft:#16281F;
   --warn:#D07C22; --warn-soft:#2A1F12;
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);
-  font-size:16px;line-height:1.6;-webkit-font-smoothing:antialiased}
+  font-size:16.5px;line-height:1.62;-webkit-font-smoothing:antialiased}
 img{max-width:100%}
 [hidden]{display:none!important}
-.wrap{max-width:60rem;margin:0 auto;padding:0 1.5rem}
+:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:2px}
+.wrap{max-width:63rem;margin:0 auto;padding:0 1.5rem}
+h1,h2,h3{font-family:var(--serif);font-weight:500;letter-spacing:-.015em;text-wrap:balance}
+a{color:var(--accent)}
+.eyebrow{font-family:var(--mono);font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--ink-3);margin:0 0 .7rem;display:flex;align-items:center;gap:.6rem}
+.eyebrow::after{content:"";flex:1;height:1px;background:var(--rule)}
 
-/* nav */
-nav{border-bottom:1px solid var(--rule);background:var(--ground);position:sticky;top:0;z-index:10}
+/* ---------- nav ---------- */
+nav{border-bottom:1px solid var(--rule);background:var(--ground);position:sticky;top:0;z-index:20}
 nav .wrap{display:flex;gap:1.5rem;align-items:center;justify-content:space-between;
-  padding-top:.9rem;padding-bottom:.9rem;flex-wrap:wrap}
-nav .brand{font-family:var(--mono);font-size:.76rem;letter-spacing:.11em;
-  text-transform:uppercase;color:var(--ink-2);font-weight:600;text-decoration:none}
-nav .links{display:flex;gap:1.35rem;font-size:.86rem}
+  padding-top:.85rem;padding-bottom:.85rem;flex-wrap:wrap}
+nav .brand{font-family:var(--mono);font-size:.74rem;letter-spacing:.13em;
+  text-transform:uppercase;color:var(--ink);font-weight:600;text-decoration:none}
+nav .links{display:flex;gap:1.4rem;font-size:.87rem}
 nav a{color:var(--ink-2);text-decoration:none}
 nav a:hover{color:var(--accent);text-decoration:underline}
 
-/* hero */
-header.hero{padding:3.5rem 0 2rem}
-h1{font-family:var(--serif);font-weight:500;font-size:clamp(2.1rem,5.5vw,3.4rem);
-  line-height:1.06;letter-spacing:-.02em;margin:0;max-width:20ch;text-wrap:balance}
-.sub{font-family:var(--serif);font-size:1.15rem;line-height:1.55;color:var(--ink-2);
-  max-width:40rem;margin:1.15rem 0 0}
+/* ---------- hero: asymmetric, headline left / action right ---------- */
+.hero{display:grid;grid-template-columns:1.05fr .95fr;gap:3.5rem;align-items:start;
+  padding:4rem 0 3rem;border-bottom:1px solid var(--rule)}
+.hero h1{font-size:clamp(2.3rem,4.6vw,3.5rem);line-height:1.02;margin:0;max-width:14ch}
+.hero .lede{font-family:var(--serif);font-size:1.18rem;line-height:1.5;color:var(--ink-2);
+  margin:1.3rem 0 0;max-width:34ch}
+.hero .assure{margin:1.6rem 0 0;font-size:.9rem;color:var(--ink-2);display:flex;gap:.55rem;
+  align-items:flex-start;max-width:34ch}
+.hero .assure strong{color:var(--ink)}
 
-/* dropzone */
-.tool{margin:2.25rem 0 1rem}
-#drop{border:2px dashed var(--rule-2);border-radius:6px;background:var(--surface);
-  padding:2.75rem 1.5rem;text-align:center;transition:border-color .15s,background .15s;cursor:pointer}
+/* ---------- dropzone ---------- */
+#drop{border:1.5px dashed var(--rule-2);border-radius:10px;background:var(--surface);
+  padding:2.4rem 1.6rem;text-align:center;cursor:pointer;
+  transition:border-color .15s,background .15s,transform .15s}
 #drop:hover,#drop.over{border-color:var(--accent);background:var(--accent-soft)}
-#drop .big{font-family:var(--serif);font-size:1.3rem;color:var(--ink);margin:0 0 .4rem}
-#drop .small{font-size:.88rem;color:var(--ink-3);margin:0}
-.btnrow{display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap;margin-top:1.1rem}
-button{font-family:var(--sans);font-size:.9rem;font-weight:500;padding:.6rem 1.1rem;
-  border-radius:4px;border:1px solid var(--rule-2);background:var(--surface);
-  color:var(--ink);cursor:pointer}
-button:hover{border-color:var(--accent);color:var(--accent)}
-button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
-button.primary:hover{opacity:.9;color:#fff}
-button:disabled{opacity:.5;cursor:default}
-.privacy{display:flex;gap:.55rem;align-items:flex-start;justify-content:center;
-  margin:1rem auto 0;max-width:34rem;font-size:.84rem;color:var(--ink-3);text-align:center}
+#drop.over{transform:scale(1.012)}
+#drop .big{font-family:var(--serif);font-size:1.42rem;line-height:1.25;color:var(--ink);
+  margin:0 0 .45rem}
+#drop .small{font-size:.87rem;color:var(--ink-3);margin:0}
+.btnrow{display:flex;gap:.7rem;justify-content:center;margin-top:1.4rem;flex-wrap:wrap}
+button{font-family:inherit;font-size:.92rem;padding:.62rem 1.15rem;border-radius:6px;
+  border:1px solid var(--rule-2);background:var(--surface);color:var(--ink);cursor:pointer;
+  transition:background .12s,border-color .12s}
+button:hover{border-color:var(--ink-3)}
+button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+button.primary:hover{filter:brightness(1.08)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) button.primary{color:#0B1410}}
+:root[data-theme="dark"] button.primary{color:#0B1410}
 
-/* status */
-#status{margin:1.25rem 0;padding:.9rem 1.1rem;border-left:3px solid var(--accent);
-  background:var(--surface);font-size:.9rem;color:var(--ink-2)}
-#status.err{border-left-color:var(--warn);color:var(--ink)}
-#status .spin{display:inline-block;width:.85em;height:.85em;margin-right:.5em;
+/* ---------- steps ---------- */
+.steps-wrap{padding:2.6rem 0;border-bottom:1px solid var(--rule)}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:2.4rem}
+.step .n{font-family:var(--mono);font-size:.72rem;letter-spacing:.12em;color:var(--accent);
+  font-weight:600;display:block;margin-bottom:.5rem}
+.step h3{font-size:1.08rem;margin:0 0 .35rem;letter-spacing:0}
+.step p{margin:0;font-size:.92rem;color:var(--ink-2)}
+
+/* ---------- status ---------- */
+#status{margin:1.6rem 0;padding:.95rem 1.15rem;border-radius:8px;background:var(--surface);
+  border:1px solid var(--rule);font-size:.93rem;color:var(--ink-2)}
+#status.err{background:var(--warn-soft);border-color:var(--warn);color:var(--ink)}
+#status pre{margin:.6rem 0 0;font-family:var(--mono);font-size:.78rem;white-space:pre-wrap;
+  color:var(--ink-2)}
+.spin{display:inline-block;width:.8em;height:.8em;margin-right:.6em;vertical-align:-.05em;
   border:2px solid var(--rule-2);border-top-color:var(--accent);border-radius:50%;
-  animation:spin .8s linear infinite;vertical-align:-.1em}
-@keyframes spin{to{transform:rotate(360deg)}}
-@media (prefers-reduced-motion:reduce){.spin{animation:none}}
-#status pre{white-space:pre-wrap;font-family:var(--mono);font-size:.8rem;margin:.6rem 0 0;color:var(--ink-2)}
+  animation:sp .7s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}
+  #drop{transition:none}#drop.over{transform:none}}
 
-/* results */
-section{margin:0 0 3.25rem}
-h2{font-family:var(--serif);font-weight:500;font-size:clamp(1.4rem,3vw,1.9rem);
-  line-height:1.2;margin:0 0 1.1rem;letter-spacing:-.01em}
-h3{font-family:var(--sans);font-weight:600;font-size:.78rem;letter-spacing:.09em;
-  text-transform:uppercase;color:var(--ink-2);margin:2rem 0 .8rem}
-p{max-width:40rem}
-.demo-banner{background:var(--warn-soft);border-left:3px solid var(--warn);
-  padding:.85rem 1.1rem;margin:0 0 1.5rem;font-size:.88rem}
-.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(10rem,1fr));
-  gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:4px;overflow:hidden}
-.stat{background:var(--surface);padding:1.15rem 1.25rem}
-.stat dt{font-family:var(--mono);font-size:.66rem;letter-spacing:.1em;text-transform:uppercase;
+/* ---------- report ---------- */
+#results{padding-top:2.8rem}
+.report-head{border-bottom:2px solid var(--ink);padding-bottom:1rem;margin-bottom:2.2rem}
+.report-head .meta{font-family:var(--mono);font-size:.71rem;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--ink-3);margin:0 0 .55rem}
+.report-head h2{font-size:clamp(1.7rem,3.3vw,2.4rem);margin:0;line-height:1.08}
+.demo-banner{background:var(--warn-soft);border-left:3px solid var(--warn);padding:.95rem 1.2rem;
+  margin-bottom:2rem;font-size:.9rem;border-radius:0 6px 6px 0}
+
+/* lead stat dominant, three supporting */
+.stats{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:1px;background:var(--rule);
+  border:1px solid var(--rule);border-radius:8px;overflow:hidden;margin:0 0 2.8rem}
+.stat{background:var(--surface);padding:1.25rem 1.3rem;margin:0}
+.stat dt{font-family:var(--mono);font-size:.68rem;letter-spacing:.11em;text-transform:uppercase;
   color:var(--ink-3);margin:0 0 .5rem}
-.stat dd{margin:0;font-family:var(--mono);font-weight:600;font-size:1.55rem;
-  letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.1}
-.stat dd small{display:block;font-family:var(--sans);font-weight:400;font-size:.76rem;
-  color:var(--ink-3);margin-top:.4rem;line-height:1.35}
-.stat.key dd{color:var(--accent)}
+.stat dd{margin:0;font-family:var(--serif);font-size:1.75rem;line-height:1.05;color:var(--ink)}
+.stat dd small{display:block;font-family:var(--sans);font-size:.79rem;line-height:1.4;
+  color:var(--ink-2);margin-top:.45rem}
+.stat.lead{background:var(--accent-soft)}
+.stat.lead dd{font-size:3rem;color:var(--accent)}
+.stat.lead dt{color:var(--ink-2)}
 
-.findings{display:grid;gap:.85rem;margin:1.25rem 0}
-.finding{background:var(--surface);border:1px solid var(--rule);border-left-width:3px;
-  border-radius:4px;padding:1.05rem 1.2rem}
+/* findings */
+.findings{display:grid;gap:.9rem;margin-bottom:2.8rem}
+.finding{background:var(--surface);border:1px solid var(--rule);border-left:3px solid var(--rule-2);
+  border-radius:0 8px 8px 0;padding:1.05rem 1.25rem}
 .finding.good{border-left-color:var(--accent)}
 .finding.watch{border-left-color:var(--warn)}
-.finding.info{border-left-color:var(--rule-2)}
-.finding h4{margin:0 0 .4rem;font-family:var(--serif);font-weight:600;font-size:1.08rem;
-  line-height:1.3;text-wrap:balance}
-.finding p{margin:0;font-size:.9rem;color:var(--ink-2);max-width:46rem}
-.tag{font-family:var(--mono);font-size:.62rem;letter-spacing:.1em;text-transform:uppercase;
-  font-weight:600;display:inline-block;margin-bottom:.45rem}
+.finding .tag{font-family:var(--mono);font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--ink-3)}
 .finding.good .tag{color:var(--accent)}
 .finding.watch .tag{color:var(--warn)}
-.finding.info .tag{color:var(--ink-3)}
+.finding h4{font-family:var(--serif);font-weight:500;font-size:1.16rem;margin:.3rem 0 .4rem;
+  letter-spacing:-.01em}
+.finding p{margin:0;font-size:.94rem;color:var(--ink-2)}
 
+/* charts */
+.panel{background:var(--surface);border:1px solid var(--rule);border-radius:10px;
+  padding:1.5rem 1.6rem;margin-bottom:1.6rem}
+.panel h3{font-size:1.32rem;margin:0 0 .3rem}
+.panel .intro{margin:0 0 1.2rem;color:var(--ink-2);font-size:.95rem;max-width:62ch}
 figure{margin:0}
 svg{display:block;width:100%;height:auto;overflow:visible}
-.cap{font-size:.8rem;color:var(--ink-3);margin:.7rem 0 0;max-width:42rem}
-.card{background:var(--surface);border:1px solid var(--rule);border-radius:4px;
-  padding:1.35rem;margin:1.25rem 0}
-table{border-collapse:collapse;width:100%;font-size:.87rem;font-variant-numeric:tabular-nums}
-th,td{text-align:left;padding:.5rem .65rem;border-bottom:1px solid var(--rule)}
-th{font-family:var(--mono);font-size:.66rem;letter-spacing:.08em;text-transform:uppercase;
-  color:var(--ink-3);font-weight:600;width:42%}
-tr:last-child td,tr:last-child th{border-bottom:none}
-details{border-top:1px solid var(--rule);padding:1rem 0}
-summary{cursor:pointer;font-weight:500;font-size:.95rem}
-summary:hover{color:var(--accent)}
-details .body{padding-top:.9rem;font-size:.92rem;color:var(--ink-2)}
-details .body p{max-width:44rem}
-ol,ul{max-width:40rem;padding-left:1.2rem;font-size:.92rem;color:var(--ink-2)}
-li{margin-bottom:.45rem}
-code{font-family:var(--mono);font-size:.88em;background:var(--surface-2);
-  padding:.1em .35em;border-radius:2px}
-a{color:var(--accent);text-underline-offset:2px}
-.gate{border-left:3px solid var(--accent);padding:1rem 0 1rem 1.25rem;margin:1.5rem 0;
-  font-family:var(--serif);font-size:1.06rem;line-height:1.5;max-width:40rem}
-footer{border-top:1px solid var(--rule);margin-top:3rem;padding:1.75rem 0 4rem;
-  font-size:.83rem;color:var(--ink-3)}
-footer p{max-width:44rem}
-:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.cap{font-size:.85rem;color:var(--ink-2);margin:1rem 0 0;max-width:68ch}
+details.data{margin-top:1rem;border-top:1px solid var(--rule);padding-top:.8rem}
+details.data summary{font-size:.85rem;color:var(--ink-2);cursor:pointer}
+details.data summary:hover{color:var(--accent)}
+table{width:100%;border-collapse:collapse;font-size:.88rem;margin-top:.9rem}
+th,td{text-align:left;padding:.5rem .6rem;border-bottom:1px solid var(--rule);vertical-align:top}
+th{font-family:var(--mono);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-3);font-weight:600;width:44%}
+tbody tr:last-child th,tbody tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;font-family:var(--mono);font-size:.82rem;width:auto}
+
+/* fine print */
+details.fine{border:1px solid var(--rule);border-radius:8px;background:var(--surface);
+  margin-bottom:.8rem;overflow:hidden}
+details.fine>summary{padding:1rem 1.3rem;cursor:pointer;font-family:var(--serif);font-size:1.1rem;
+  color:var(--ink);list-style:none;display:flex;justify-content:space-between;gap:1rem;
+  align-items:center}
+details.fine>summary::-webkit-details-marker{display:none}
+details.fine>summary::after{content:"+";font-family:var(--mono);color:var(--ink-3);font-size:1.1rem}
+details.fine[open]>summary::after{content:"\2212"}
+details.fine>summary:hover{color:var(--accent)}
+details.fine .body{padding:0 1.3rem 1.3rem;font-size:.94rem;color:var(--ink-2)}
+details.fine .body p{margin:0 0 .8rem}
+details.fine .body p:last-child{margin-bottom:0}
+.gate{background:var(--accent-soft);border-left:3px solid var(--accent);padding:.85rem 1.1rem;
+  font-family:var(--serif);font-size:1rem;color:var(--ink);margin:.4rem 0 1rem;border-radius:0 6px 6px 0}
+ol{margin:.4rem 0 0;padding-left:1.2rem}
+ol li{margin-bottom:.45rem}
+code{font-family:var(--mono);font-size:.87em;background:var(--surface-2);padding:.1em .35em;
+  border-radius:3px}
+
+/* trust strip */
+.trust{border-top:1px solid var(--rule);margin-top:3.5rem;padding:2.6rem 0 0}
+.trust-figs{display:grid;grid-template-columns:repeat(4,1fr);gap:2rem;margin:1.6rem 0 0}
+.tfig .v{font-family:var(--serif);font-size:1.9rem;line-height:1;color:var(--ink)}
+.tfig .k{font-family:var(--mono);font-size:.67rem;letter-spacing:.11em;text-transform:uppercase;
+  color:var(--ink-3);margin-top:.45rem}
+.tfig .s{font-size:.83rem;color:var(--ink-2);margin-top:.3rem}
+
+footer{border-top:1px solid var(--rule);margin-top:3.5rem;padding:2rem 0 3rem;font-size:.85rem;
+  color:var(--ink-2)}
+footer p{margin:0;max-width:70ch}
+
+@media (max-width:860px){
+  .hero{grid-template-columns:1fr;gap:2.2rem;padding:2.6rem 0 2.2rem}
+  .hero h1,.hero .lede,.hero .assure{max-width:none}
+  .steps-wrap{padding:2rem 0}
+  .steps{grid-template-columns:1fr;gap:1.6rem}
+  .stats{grid-template-columns:1fr 1fr}
+  .stat.lead{grid-column:1/-1}
+  .trust-figs{grid-template-columns:1fr 1fr;gap:1.4rem}
+}
+@media (max-width:520px){
+  .stats{grid-template-columns:1fr}
+  .stat.lead dd{font-size:2.5rem}
+}
 </style>
 </head>
 <body>
@@ -158,167 +213,213 @@ footer p{max-width:44rem}
 <nav><div class="wrap">
   <a class="brand" href="./">Home Energy Advisor</a>
   <div class="links">
-    <a href="./methodology.html">Methodology</a>
-    <a href="https://github.com/CameronGordonn/energy-advisor">Source</a>
+    <a href="./methodology.html">How it works</a>
+    <a href="https://github.com/CameronGordonn/energy-advisor">Source code</a>
   </div>
 </div></nav>
 
 <div class="wrap">
 
 <header class="hero">
-  <h1>What does your electricity data actually say?</h1>
-  <p class="sub">Your utility records how much power you use every hour, and will hand you
-  the file. Drop it in below and see when you actually use electricity — the thing that
-  decides which rate plan suits you. No account, no sign-up, no upload.</p>
+  <div>
+    <h1>See when you actually use electricity</h1>
+    <p class="lede">Your California utility already records your usage every hour, and has to
+    give you the file free. This reads it and shows you your own habits — the thing that
+    decides which rate plan suits you.</p>
+    <p class="assure">
+      <span aria-hidden="true">&#128274;</span>
+      <span><strong>Your file never leaves your computer.</strong> The whole analysis runs
+      inside this page. There is no server to send it to.</span>
+    </p>
+  </div>
+
+  <div class="tool">
+    <div id="drop" tabindex="0" role="button" aria-label="Choose or drop your usage file">
+      <p class="big">Drop your usage file here</p>
+      <p class="small">or click to choose one &middot; a <code>.csv</code> from PG&amp;E or SDG&amp;E</p>
+      <div class="btnrow">
+        <button class="primary" id="pick" type="button">Choose a file</button>
+        <button id="demo" type="button">Show me an example first</button>
+      </div>
+    </div>
+    <input type="file" id="file" accept=".csv,text/csv" hidden>
+  </div>
 </header>
 
-<div class="tool">
-  <div id="drop" tabindex="0" role="button" aria-label="Choose or drop your Green Button CSV file">
-    <p class="big">Drop your Green Button file here</p>
-    <p class="small">or click to choose one &middot; a <code>.csv</code> from PG&amp;E or SDG&amp;E</p>
-    <div class="btnrow">
-      <button class="primary" id="pick" type="button">Choose file</button>
-      <button id="demo" type="button">Try it with a sample</button>
-    </div>
-  </div>
-  <input type="file" id="file" accept=".csv,text/csv" hidden>
-  <p class="privacy">
-    <span aria-hidden="true">&#128274;</span>
-    <span><strong>Your file never leaves your computer.</strong> The analysis runs inside
-    your browser — there is no server to send it to. You can check: open your network tab,
-    or read the <a href="https://github.com/CameronGordonn/energy-advisor/blob/main/docs/index.html">page source</a>.</span>
-  </p>
-</div>
-
 <div id="status" hidden></div>
+
+<section class="steps-wrap">
+<h2 class="eyebrow">How this works</h2>
+<div class="steps">
+  <div class="step">
+    <span class="n">Step 1</span>
+    <h3>Ask your utility for the file</h3>
+    <p>Free, about two minutes, and it is your data by law. Utilities call it
+    <strong>Green Button</strong>. Instructions are further down this page.</p>
+  </div>
+  <div class="step">
+    <span class="n">Step 2</span>
+    <h3>Drop it in above</h3>
+    <p>Nothing is uploaded and nothing is stored. Close the tab and it is gone.</p>
+  </div>
+  <div class="step">
+    <span class="n">Step 3</span>
+    <h3>Read your own patterns</h3>
+    <p>When you use power, how much, and whether it lands in the expensive hours of the day.</p>
+  </div>
+</div>
+</section>
 
 <!-- ============================ RESULTS ============================ -->
 <div id="results" hidden>
 
   <div class="demo-banner" id="demoBanner" hidden>
-    <strong>This is a demonstration file.</strong> It is synthetic data generated by
-    <code>scripts/make_sample_export.py</code>, not a real household's meter readings — so
-    treat the numbers as a tour of the interface, not a finding about anyone. Drop in your
-    own file for real results.
+    <strong>This is a demonstration file.</strong> It is invented data, not a real
+    household's meter readings — so treat what follows as a tour of the interface, not a
+    finding about anyone. Drop in your own file for real results.
   </div>
 
-  <section>
+  <div class="report-head">
+    <p class="meta" id="reportMeta"></p>
     <h2 id="resultTitle">Your electricity, at a glance</h2>
-    <dl class="stats" id="stats"></dl>
-  </section>
+  </div>
 
-  <section>
-    <h2>What this means</h2>
-    <div class="findings" id="findings"></div>
-  </section>
+  <dl class="stats" id="stats"></dl>
 
-  <section>
-    <h2>When you use electricity</h2>
+  <h3 class="eyebrow">What stands out</h3>
+  <div class="findings" id="findings"></div>
+
+  <div class="panel">
+    <h3>When you use electricity</h3>
+    <p class="intro">Every household has a shape to its day. Yours is below — the taller the
+    bar, the more electricity you use in that hour.</p>
     <figure>
-      <svg id="hourChart" viewBox="0 0 760 300" role="img"
-           aria-label="Bar chart of average electricity use by hour of day, with the 4 to 9 p.m. peak window highlighted."></svg>
+      <svg id="hourChart" viewBox="0 0 760 300" role="img" aria-labelledby="hourChartDesc"></svg>
+      <p id="hourChartDesc" class="cap">Share of your total usage in each hour of the day,
+      averaged across the whole period. The shaded band is 4&ndash;9&nbsp;p.m., the most
+      expensive window on both PG&amp;E's E&#8209;TOU&#8209;C and SDG&amp;E's
+      TOU&#8209;DR1 &mdash; the two utilities' standard residential plans. That is why this
+      one chart matters more than the rest: usage inside the band costs the most.</p>
     </figure>
-    <p class="cap">Share of your total usage in each hour of the day, averaged across the
-    whole period. The shaded band is 4&ndash;9&nbsp;p.m., the on-peak window on both PG&amp;E's
-    E&#8209;TOU&#8209;C and SDG&amp;E's TOU&#8209;DR1 &mdash; the two utilities' standard
-    residential plans.</p>
-  </section>
+    <details class="data">
+      <summary>See the hour-by-hour numbers</summary>
+      <table id="hourTable"></table>
+    </details>
+  </div>
 
-  <section id="monthSection">
-    <h2>Month by month</h2>
+  <div class="panel" id="monthSection">
+    <h3>Month by month</h3>
+    <p class="intro">Seasons change what you use. A plan judged on winter alone will be judged
+    wrong.</p>
     <figure>
-      <svg id="monthChart" viewBox="0 0 760 240" role="img"
-           aria-label="Bar chart of electricity use by month."></svg>
+      <svg id="monthChart" viewBox="0 0 760 240" role="img" aria-labelledby="monthChartDesc"></svg>
+      <p id="monthChartDesc" class="cap">Total kWh per calendar month. Partial months at
+      either end of your file will look artificially low.</p>
     </figure>
-    <p class="cap">Total kWh per calendar month. Partial months at either end of your export
-    will look artificially low.</p>
-  </section>
+    <details class="data">
+      <summary>See the monthly numbers</summary>
+      <table id="monthTable"></table>
+    </details>
+  </div>
 
-  <section>
-    <h2>About your file</h2>
-    <p>Before any of the above means anything, the file has to have been read correctly.
-    Here is exactly what the parser found.</p>
-    <div class="card"><table id="fileTable"></table></div>
-    <div id="warnBox"></div>
-  </section>
+  <h3 class="eyebrow">The fine print</h3>
 
-  <section>
-    <h2>What this won't tell you</h2>
-    <p><strong>It does not price anything, and that is deliberate.</strong> Everything above
-    is arithmetic on your own meter readings, which is safe to compute for anyone. Turning it
-    into dollars means modelling a specific tariff &mdash; and this project holds itself to a
-    rule before any dollar figure ships:</p>
-    <div class="gate">No feature that produces a dollar figure ships until the bill engine
-    reproduces real utility bills, from real interval data, within &plusmn;$2 per month.</div>
-    <p>That gate is met for PG&amp;E: eleven consecutive real statements reproduced, worst
-    error 22&nbsp;cents. It is <em>not</em> yet met for SDG&amp;E, because no real SDG&amp;E
-    bill has been tested against the engine. Rather than show you a number the engine hasn't
-    earned, this tool shows you none.
-    <a href="./methodology.html">The methodology writeup</a> explains how the bill engine
-    works, what it still assumes, and where the remaining gaps are.</p>
-  </section>
+  <details class="fine">
+    <summary>Did it read my file correctly?</summary>
+    <div class="body">
+      <p>Nothing above means anything if the file was misread. Here is exactly what was
+      found in it.</p>
+      <table id="fileTable"></table>
+      <div id="warnBox"></div>
+    </div>
+  </details>
+
+  <details class="fine">
+    <summary>Why are there no dollar amounts?</summary>
+    <div class="body">
+      <p><strong>Because this tool has not earned the right to show you one.</strong>
+      Everything above is arithmetic on your own meter readings, which is safe to compute for
+      anybody. Turning it into money means modelling a specific tariff, and the project holds
+      itself to a rule before any dollar figure ships:</p>
+      <div class="gate">No feature that produces a dollar figure ships until the bill engine
+      reproduces real utility bills, from real interval data, within &plusmn;$2 per month.</div>
+      <p>That is met for PG&amp;E — eleven consecutive real statements reproduced, worst error
+      22&nbsp;cents. It is <em>not</em> yet met for SDG&amp;E, because no real SDG&amp;E bill
+      has been tested against the engine. So rather than show you a confident-looking number
+      the engine has not earned, it shows you none.
+      <a href="./methodology.html">The full method is written up here.</a></p>
+    </div>
+  </details>
 
 </div>
 
 <!-- ============================ HELP ============================ -->
 <section id="help">
-  <h2>How to get your file</h2>
-  <p>It is free, it takes a couple of minutes, and it is your data by law. You want the
-  <strong>interval usage</strong> export &mdash; the hour-by-hour readings &mdash; not the
-  billing or cost summary, which is a different download and will be rejected here.</p>
+  <p class="eyebrow">Getting your file</p>
+  <h2 style="font-size:1.6rem;margin:0 0 .5rem">How to download it</h2>
+  <p style="color:var(--ink-2);max-width:62ch;margin:0 0 1.5rem">You want the
+  <strong>interval usage</strong> export — the hour-by-hour readings. The billing or cost
+  summary is a different download and will be turned away here.</p>
 
-  <details open>
+  <details class="fine" open>
     <summary>PG&amp;E</summary>
     <div class="body">
       <ol>
         <li>Sign in at <code>pge.com</code> and open <strong>Energy Usage Details</strong>.</li>
         <li>Find the <strong>Green Button</strong> control and choose
             <strong>Export usage for a range of days</strong>.</li>
-        <li>Pick the widest range offered (up to 13 months) and download the CSV.</li>
+        <li>Pick the widest range offered — up to 13 months — and download the CSV.</li>
       </ol>
     </div>
   </details>
 
-  <details>
+  <details class="fine">
     <summary>SDG&amp;E</summary>
     <div class="body">
       <ol>
-        <li>Sign in at <code>sdge.com</code> and open your usage / <strong>Green Button</strong> tool.</li>
-        <li>Choose the <strong>interval usage</strong> export (15-minute or hourly readings).</li>
-        <li>Pick the widest range offered (up to 13 months) and download the CSV.</li>
+        <li>Sign in at <code>sdge.com</code> and open your usage or
+            <strong>Green Button</strong> tool.</li>
+        <li>Choose the <strong>interval usage</strong> export — 15-minute or hourly readings.</li>
+        <li>Pick the widest range offered — up to 13 months — and download the CSV.</li>
       </ol>
-      <p>If you have solar, your file will contain a separate export register. This tool
-      reads it and will say so.</p>
+      <p>If you have solar, your file records what you sent to the grid separately. This
+      reads that too, and will say so.</p>
     </div>
   </details>
 
-  <details>
-    <summary>Why 13 months, and not less</summary>
+  <details class="fine">
+    <summary>Why ask for 13 months rather than a few?</summary>
     <div class="body">
       <p>California rates change between summer and winter, and so does most households'
       usage. A comparison built on three months of winter data will mis-rank plans for the
-      summer you haven't measured. Both utilities keep 13 months available; export all of it
-      while you can, because access usually ends when the account does.</p>
+      summer you never measured.</p>
+      <p>Both utilities keep 13 months available. Export all of it while you can — access
+      usually ends when the account does.</p>
     </div>
   </details>
 </section>
 
 <!-- ============================ TRUST ============================ -->
-<section>
-  <h2>Why trust the numbers</h2>
-  <p>This tool runs the same Python that the project's test suite covers &mdash; the parsers
-  are compiled to WebAssembly and executed in your browser, not reimplemented in JavaScript
-  where the two could quietly drift apart. The bill engine behind the wider project is held
-  to a published accuracy record against real statements.</p>
-  <div class="stats">
-    <div class="stat key"><dt>Bills reproduced</dt><dd>11 / 11<small>real PG&amp;E statements, within &plusmn;$2</small></dd></div>
-    <div class="stat"><dt>Worst error</dt><dd>+$0.22<small>0.43% of that statement</small></dd></div>
-    <div class="stat"><dt>Tests</dt><dd>357<small>run on every change</small></dd></div>
-    <div class="stat"><dt>Licence</dt><dd>AGPL<small>source is public and checkable</small></dd></div>
+<section class="trust">
+  <p class="eyebrow">Why trust this</p>
+  <h2 style="font-size:1.6rem;margin:0 0 .6rem">It is checked against real bills, in public</h2>
+  <p style="color:var(--ink-2);max-width:64ch;margin:0">The code running in your browser is
+  the same Python the project's test suite covers, compiled to WebAssembly — not a separate
+  copy rewritten for the web that could quietly drift out of step. The bill engine behind the
+  wider project is held to a published accuracy record against real statements.</p>
+  <div class="trust-figs">
+    <div class="tfig"><div class="v">11 / 11</div><div class="k">Bills reproduced</div>
+      <div class="s">real PG&amp;E statements, within &plusmn;$2</div></div>
+    <div class="tfig"><div class="v">+$0.22</div><div class="k">Worst error</div>
+      <div class="s">0.43% of that statement</div></div>
+    <div class="tfig"><div class="v">418</div><div class="k">Tests</div>
+      <div class="s">run on every change</div></div>
+    <div class="tfig"><div class="v">AGPL</div><div class="k">Licence</div>
+      <div class="s">source is public and checkable</div></div>
   </div>
-  <p class="cap">Every tariff number in the engine cites the utility tariff sheet it came
-  from; an unknown value raises an error rather than defaulting to a guess.
-  <a href="./methodology.html">Read the methodology &rarr;</a></p>
+  <p class="cap" style="margin-top:1.4rem">Every tariff number in the engine cites the utility
+  tariff sheet it came from; an unknown value raises an error rather than quietly defaulting
+  to a guess. <a href="./methodology.html">Read the methodology &rarr;</a></p>
 </section>
 
 <footer>
@@ -329,7 +430,6 @@ footer p{max-width:44rem}
 </footer>
 
 </div>
-
 <script src="./engine.js"></script>
 <script>
 (function () {
@@ -433,14 +533,19 @@ footer p{max-width:44rem}
   function render(d) {
     $("demoBanner").hidden = !isDemo;
     $("resultTitle").textContent = isDemo
-      ? "The sample household, at a glance" : "Your electricity, at a glance";
+      ? "The example household, at a glance" : "Your electricity, at a glance";
+    $("reportMeta").textContent = [
+      d.utility,
+      prettyDate(d.first_start) + " to " + prettyDate(d.last_start),
+      num(d.span_days) + " days"
+    ].join("  ·  ");
 
+    // The peak share leads: it is the one number that decides which plan suits a household.
     $("stats").innerHTML = [
-      stat("Electricity used", num(d.total_kwh) + " kWh",
-           "over " + num(d.span_days) + " days", true),
-      stat("Typical day", num(d.avg_kwh_per_day, 1) + " kWh", "on average"),
-      stat("In peak hours", pct(d.peak_share), "4&ndash;9 p.m., the priciest window", true),
-      stat("Overnight", pct(d.overnight_share), "midnight&ndash;6 a.m., the cheapest")
+      stat("Used in the priciest hours", pct(d.peak_share), "4&ndash;9 p.m., every day", true),
+      stat("Electricity used", num(d.total_kwh) + " kWh", "over " + num(d.span_days) + " days"),
+      stat("A typical day", num(d.avg_kwh_per_day, 1) + " kWh", "on average"),
+      stat("Used overnight", pct(d.overnight_share), "midnight&ndash;6 a.m., the cheapest")
     ].join("");
 
     $("findings").innerHTML = (d.findings || []).map(function (f) {
@@ -451,8 +556,9 @@ footer p{max-width:44rem}
     }).join("");
 
     hourChart(d);
+    hourTable(d);
     if (d.by_month && d.by_month.length > 1) {
-      $("monthSection").hidden = false; monthChart(d);
+      $("monthSection").hidden = false; monthChart(d); monthTable(d);
     } else { $("monthSection").hidden = true; }
 
     $("fileTable").innerHTML = [
@@ -474,7 +580,7 @@ footer p{max-width:44rem}
     ].join("");
 
     $("warnBox").innerHTML = (d.warnings || []).length
-      ? '<div class="findings">' + d.warnings.map(function (w) {
+      ? '<div class="findings" style="margin:1rem 0 0">' + (d.warnings).map(function (w) {
           return '<div class="finding watch"><span class="tag">Check this</span><p>' +
                  escapeHtml(w) + "</p></div>";
         }).join("") + "</div>"
@@ -487,8 +593,8 @@ footer p{max-width:44rem}
     }
   }
 
-  function stat(label, value, sub, key) {
-    return '<div class="stat' + (key ? " key" : "") + '"><dt>' + label + "</dt><dd>" +
+  function stat(label, value, sub, lead) {
+    return '<div class="stat' + (lead ? " lead" : "") + '"><dt>' + label + "</dt><dd>" +
            value + "<small>" + sub + "</small></dd></div>";
   }
   function row(k, v) { return "<tr><th>" + k + "</th><td>" + v + "</td></tr>"; }
@@ -499,66 +605,85 @@ footer p{max-width:44rem}
     if (text != null) e.textContent = text;
     return e;
   }
+  function hourLabel(h) {
+    if (h === 0) return "12 a.m.";
+    if (h === 12) return "12 p.m.";
+    return (h % 12) + (h < 12 ? " a.m." : " p.m.");
+  }
+
+  // --- charts -------------------------------------------------------------------------
+  // One series, so no legend: the heading names it. The peak band is highlighted AND
+  // named in text, so the 4-9 p.m. window is never carried by colour alone. Exactly one
+  // value is direct-labelled (the busiest hour) rather than every bar.
 
   function hourChart(d) {
     var svg = $("hourChart"); svg.innerHTML = "";
-    var W = 760, H = 300, L = 46, R = 12, T = 26, B = 46;
+    var W = 760, H = 300, L = 46, R = 12, T = 34, B = 48;
     var pw = W - L - R, ph = H - T - B, base = T + ph;
     var total = d.total_kwh || 1;
     var shares = d.by_hour_kwh.map(function (v) { return v / total; });
     var max = Math.max.apply(null, shares) || 1;
-    var band = pw / 24, bw = Math.min(24, band - 6);
+    var peakHour = shares.indexOf(max);
+    var band = pw / 24, bw = Math.min(26, band - 5);
     var y = function (v) { return base - (v / max) * ph; };
 
-    // peak window shading, drawn first so bars sit on top
+    // peak-window shading, drawn first so the bars sit on top of it
     svg.appendChild(svgEl("rect", {
-      x: L + band * 16, y: T - 6, width: band * 5, height: ph + 6,
-      fill: "var(--accent-soft)"
+      x: L + band * 16, y: T - 8, width: band * 5, height: ph + 8,
+      fill: "var(--accent-soft)", rx: 4
     }));
     svg.appendChild(svgEl("text", {
-      x: L + band * 18.5, y: T - 12, "text-anchor": "middle",
-      "font-family": "var(--mono)", "font-size": "11", fill: "var(--accent)",
-      "font-weight": "600"
-    }, "4-9 p.m. peak"));
+      x: L + band * 18.5, y: T - 15, "text-anchor": "middle",
+      "font-family": "var(--mono)", "font-size": "10.5", fill: "var(--accent)",
+      "font-weight": "600", "letter-spacing": ".08em"
+    }, "4-9 P.M. — PRICIEST"));
 
+    // recessive gridlines
     [0, max / 2, max].forEach(function (t) {
       svg.appendChild(svgEl("line", {
         x1: L, y1: y(t), x2: W - R, y2: y(t),
         stroke: "var(--rule)", "stroke-width": 1
       }));
       svg.appendChild(svgEl("text", {
-        x: L - 8, y: y(t) + 4, "text-anchor": "end",
-        "font-family": "var(--mono)", "font-size": "10", fill: "var(--ink-3)"
+        x: L - 9, y: y(t) + 4, "text-anchor": "end",
+        "font-family": "var(--mono)", "font-size": "10", fill: "var(--ink-2)"
       }, Math.round(t * 100) + "%"));
     });
 
     shares.forEach(function (s, h) {
       var x = L + band * h + (band - bw) / 2;
-      var hh = Math.max(base - y(s), 1);
+      var hh = Math.max(base - y(s), 1.5);
       svg.appendChild(svgEl("rect", {
-        x: x, y: base - hh, width: bw, height: hh, rx: 2,
+        x: x, y: base - hh, width: bw, height: hh, rx: 3,
         fill: (h >= 16 && h < 21) ? "var(--accent)" : "var(--rule-2)"
       })).appendChild(svgEl("title", {},
-        (h < 10 ? "0" + h : h) + ":00 — " + (s * 100).toFixed(1) + "% of total usage"));
+        hourLabel(h) + " — " + (s * 100).toFixed(1) + "% of everything you used"));
       if (h % 3 === 0) {
         svg.appendChild(svgEl("text", {
-          x: x + bw / 2, y: base + 17, "text-anchor": "middle",
-          "font-family": "var(--mono)", "font-size": "10", fill: "var(--ink-3)"
-        }, (h < 10 ? "0" + h : h) + ":00"));
+          x: x + bw / 2, y: base + 18, "text-anchor": "middle",
+          "font-family": "var(--mono)", "font-size": "9.5", fill: "var(--ink-2)"
+        }, hourLabel(h).replace(" ", "")));
       }
     });
+
+    // a single direct label, on the busiest hour
+    svg.appendChild(svgEl("text", {
+      x: L + band * peakHour + band / 2, y: y(max) - 9, "text-anchor": "middle",
+      "font-family": "var(--sans)", "font-size": "11.5", "font-weight": "600",
+      fill: "var(--ink)"
+    }, "busiest: " + hourLabel(peakHour)));
+
     svg.appendChild(svgEl("line", {
       x1: L, y1: base, x2: W - R, y2: base, stroke: "var(--rule-2)", "stroke-width": 1.5
     }));
     svg.appendChild(svgEl("text", {
-      x: L, y: H - 10, "font-family": "var(--mono)", "font-size": "10.5",
-      fill: "var(--ink-2)"
-    }, "hour of day (local time)"));
+      x: L, y: H - 8, "font-family": "var(--mono)", "font-size": "10", fill: "var(--ink-2)"
+    }, "hour of day (your local time)"));
   }
 
   function monthChart(d) {
     var svg = $("monthChart"); svg.innerHTML = "";
-    var W = 760, H = 240, L = 52, R = 12, T = 18, B = 46;
+    var W = 760, H = 240, L = 52, R = 12, T = 18, B = 52;
     var pw = W - L - R, ph = H - T - B, base = T + ph;
     var ms = d.by_month;
     var max = Math.max.apply(null, ms.map(function (m) { return m.kwh; })) || 1;
@@ -570,22 +695,23 @@ footer p{max-width:44rem}
         x1: L, y1: y(t), x2: W - R, y2: y(t), stroke: "var(--rule)", "stroke-width": 1
       }));
       svg.appendChild(svgEl("text", {
-        x: L - 8, y: y(t) + 4, "text-anchor": "end",
-        "font-family": "var(--mono)", "font-size": "10", fill: "var(--ink-3)"
+        x: L - 9, y: y(t) + 4, "text-anchor": "end",
+        "font-family": "var(--mono)", "font-size": "10", fill: "var(--ink-2)"
       }, Math.round(t)));
     });
 
     ms.forEach(function (m, i) {
       var x = L + band * i + (band - bw) / 2;
-      var hh = Math.max(base - y(m.kwh), 1);
+      var hh = Math.max(base - y(m.kwh), 1.5);
       svg.appendChild(svgEl("rect", {
-        x: x, y: base - hh, width: bw, height: hh, rx: 2, fill: "var(--accent)"
-      })).appendChild(svgEl("title", {}, m.month + " — " + num(m.kwh) + " kWh over " + m.days + " days"));
+        x: x, y: base - hh, width: bw, height: hh, rx: 3, fill: "var(--accent)"
+      })).appendChild(svgEl("title", {},
+        m.month + " — " + num(m.kwh) + " kWh over " + m.days + " days"));
       if (ms.length <= 14 || i % 2 === 0) {
         svg.appendChild(svgEl("text", {
-          x: x + bw / 2, y: base + 17, "text-anchor": "middle",
-          "font-family": "var(--mono)", "font-size": "9.5", fill: "var(--ink-3)",
-          transform: "rotate(-40 " + (x + bw / 2) + " " + (base + 17) + ")"
+          x: x + bw / 2, y: base + 18, "text-anchor": "middle",
+          "font-family": "var(--mono)", "font-size": "9.5", fill: "var(--ink-2)",
+          transform: "rotate(-40 " + (x + bw / 2) + " " + (base + 18) + ")"
         }, m.month));
       }
     });
@@ -593,8 +719,33 @@ footer p{max-width:44rem}
       x1: L, y1: base, x2: W - R, y2: base, stroke: "var(--rule-2)", "stroke-width": 1.5
     }));
     svg.appendChild(svgEl("text", {
-      x: L, y: H - 6, "font-family": "var(--mono)", "font-size": "10.5", fill: "var(--ink-2)"
+      x: L, y: H - 6, "font-family": "var(--mono)", "font-size": "10", fill: "var(--ink-2)"
     }, "kWh per calendar month"));
+  }
+
+  // --- the same data as text, for screen readers and for anyone who wants the numbers ---
+  // role="img" makes an SVG atomic, so its per-bar <title> tooltips are never announced.
+  // These tables are the accessible equivalent, not an extra.
+
+  function hourTable(d) {
+    var total = d.total_kwh || 1;
+    $("hourTable").innerHTML =
+      "<thead><tr><th>Hour</th><th class='num'>Share of total</th>" +
+      "<th class='num'>kWh</th></tr></thead><tbody>" +
+      d.by_hour_kwh.map(function (v, h) {
+        return "<tr><th>" + hourLabel(h) + (h >= 16 && h < 21 ? " (peak)" : "") + "</th>" +
+               "<td class='num'>" + (v / total * 100).toFixed(1) + "%</td>" +
+               "<td class='num'>" + num(v, 1) + "</td></tr>";
+      }).join("") + "</tbody>";
+  }
+
+  function monthTable(d) {
+    $("monthTable").innerHTML =
+      "<thead><tr><th>Month</th><th class='num'>kWh</th><th class='num'>Days</th></tr></thead><tbody>" +
+      d.by_month.map(function (m) {
+        return "<tr><th>" + escapeHtml(m.month) + "</th><td class='num'>" + num(m.kwh) +
+               "</td><td class='num'>" + m.days + "</td></tr>";
+      }).join("") + "</tbody>";
   }
 
   // ---- wiring ----

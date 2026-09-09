@@ -57,7 +57,7 @@ Three states, and all three must be written:
 A token defined **only** inside a media query or `[data-theme]` block is a bug: the toggle
 breaks in one direction. `body` must always paint an explicit `background:var(--ground)`.
 
-## Contrast — a known defect, do not propagate it
+## Contrast — all tokens pass; keep it that way
 
 Measured against the current tokens (AA needs 4.5 for body text, 3.0 for large text and UI):
 
@@ -65,15 +65,20 @@ Measured against the current tokens (AA needs 4.5 for body text, 3.0 for large t
 |---|---|---|
 | `--ink` | 15.75 / 16.97 / 14.72 | 15.05 / 13.85 / 12.63 |
 | `--ink-2` | 6.38 / 6.88 / 5.97 | 7.61 / 7.00 / 6.38 |
-| `--ink-3` | **3.45 / 3.71 / 3.22** | 4.51 / **4.15 / 3.78** |
-| `--accent` | 4.62 / 4.98 / **4.32** | 5.70 / 5.24 / 4.78 |
+| `--ink-3` | 4.83 / 5.20 / 4.51 | 5.37 / 4.94 / 4.50 |
+| `--accent` | 4.93 / 5.31 / 4.61 | 5.70 / 5.24 / 4.78 |
 | `--warn` | 4.85 / 5.22 / 4.53 | 5.68 / 5.23 / 4.77 |
 
-**`--ink-3` fails AA for body text on every light background**, and it is used in eight
-places for real copy — `#drop .small`, the privacy line, `.cap` captions, table headers, and
-the **SVG axis labels at `font-size:10`** on both charts. Darken the token rather than
-restricting it; one line in each page's `:root` lifts all eight usages. `--accent` on `--surface-2` in light is large-text-only. Fixing `--ink-3` is a
-one-line change to two files and is worth doing in any redesign.
+Every token clears AA for body text on every surface in both themes. **Recompute after any
+palette change** — relative luminance is arithmetic, not judgement.
+
+**History, so the fix is not quietly undone:** `--ink-3` was `#7E8477` light / `#7B8172` dark
+and failed on every light surface (3.22-3.71) while carrying eight real usages, including the
+**SVG axis labels at `font-size:10`**. It is now `#676C61` / `#888E7F`. `--accent` was
+`#0B7D52` (4.32 on `--surface-2`) and is now `#0B784F`. Both were solved for, not guessed.
+
+⚠ `docs/methodology.html` has NOT been retuned — it still carries the old `--ink-3` and
+`--accent`. Bring it across next time it is touched; the two pages are meant to be one system.
 
 ## Contracts a redesign must not break
 
@@ -82,9 +87,13 @@ These are enforced by CI, not by intent. Breaking them turns a job red.
 1. **`tools/test_tool_render.mjs` pins the DOM.** It renders the page under jsdom and asserts
    on: `#results` and `#status` hidden on load; `#demoBanner` hidden for a real file and
    shown in demo mode with text matching `/demonstration file/i`; `#stats`; `#findings
-   .finding` with the first one's `h4` containing "peak hours"; **24 `#hourChart rect` and 24
-   `#hourChart title`**; `#monthChart rect`; `#fileTable`. Restructure the markup and you
-   must update this test in the **same commit**, deliberately.
+   .finding` with the first one's `h4` containing "peak hours"; **exactly 25 `#hourChart
+   rect`** (24 bars + 1 peak-window shading), of which **exactly 5 carry
+   `fill="var(--accent)"`**; 24 `#hourChart title`; one `#monthChart rect` per month;
+   `#fileTable` containing the utility, an interval, a date and "Yes"; and the string
+   **"$2 per month" must appear inside `#results`**. Adding any decorative `<rect>` to either
+   chart breaks the count — use `<path>`, `<line>` or CSS instead. Restructure the markup and
+   you must update this test in the **same commit**, deliberately.
 2. **No dollar figures anywhere the page computes.** The tool prices nothing by design — the
    reconciliation gate is met for PG&E but not SDG&E, so shipping dollars would violate
    invariant 1. Enforced on both sides: `tests/report/test_inspect.py` forbids money-shaped
@@ -100,9 +109,17 @@ These are enforced by CI, not by intent. Breaking them turns a job red.
 
 Two hand-rolled inline SVGs, no chart library: `#hourChart` (`viewBox="0 0 760 300"`) and
 `#monthChart` (`viewBox="0 0 760 240"`), built with a small `createElementNS` helper. Before
-touching either, **load the `dataviz` skill** for palette, axis and mark guidance. The 4–9
-p.m. peak band is highlighted; it is the on-peak window of both PG&E E-TOU-C and SDG&E
-TOU-DR1, so it is a tariff fact, not a styling choice, and the caption must keep saying so.
+touching either, **load the `dataviz` skill** for palette, axis and mark guidance.
+
+Conventions already applied, worth preserving: one series so no legend (the heading names
+it); recessive gridlines; axis text in `--ink-2`, never `--ink-3`; `rx:3` bar ends; exactly
+one direct label (the busiest hour) rather than a number on every bar; per-bar `<title>` for
+pointer tooltips; and text tables (`#hourTable`, `#monthTable`) carrying the same numbers,
+because `role="img"` hides those `<title>`s from screen readers.
+
+The 4–9 p.m. peak band is highlighted; it is the on-peak window of both PG&E E-TOU-C and
+SDG&E TOU-DR1, so it is a tariff fact, not a styling choice. The caption must keep naming it,
+so the highlight is never colour-alone.
 
 ## Verify
 
