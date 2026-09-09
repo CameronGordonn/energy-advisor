@@ -4,11 +4,11 @@ _Rewrite this whole file whenever you finish a milestone or pause. Keep it short
 current: state, how to run, open decisions, exact next action._
 
 ## Status: **M0, M2, M4 done. Public site is a working tool. M1 and M3 have complete engines, DoDs blocked on data.**
-_(2026-09-08, session 10)_
+_(2026-09-08, session 11)_
 
 > **Sessions 8-10.** **418 tests green** (was 166 at session 7), ruff clean, **11/11 PG&E
 > golden bills reconcile with byte-identical residuals** (worst +$0.22), M2 verdict unchanged.
-> Full detail in SESSION_NOTES §§ Session 8, 8b, 8c, 8d, 9, 10.
+> Full detail in SESSION_NOTES §§ Session 8, 8b, 8c, 8d, 9, 10, 11.
 >
 > - **The repo and site are live and public.** https://github.com/CameronGordonn/energy-advisor
 >   (AGPL-3.0) and https://camerongordonn.github.io/energy-advisor/ — see Publishing below.
@@ -70,7 +70,15 @@ _(2026-09-08, session 10)_
   `battery.py` (greedy + cvxpy LP, both always returned), `payback.py`;
   `uncertainty/montecarlo.py`. Driver: `scripts/nem3_report.py`, **now calendar 2026**.
 - **M4 writeup**: `docs/METHODOLOGY.md` + `docs/methodology.html` (published, see above).
-- **Public tool** (`docs/index.html` + `docs/engine.js`): Green Button inspector running the
+- **Public site, four pages** (`docs/`): `index.html` (the tool), `methodology.html`,
+  `privacy.html`, `terms.html`, sharing `site.css` (tokens + chrome) and `fonts.css`
+  (`@font-face` only — methodology takes fonts without the chrome, whose `th{width:44%}`
+  would wreck its tables). **Fonts are self-hosted in `docs/fonts/`; the site requests
+  nothing from Google.** Overhauled in session 11: landing vs report states, plain language,
+  disclosure panels, and accessibility fixed (contrast solved for, chart data tables added,
+  heading order repaired). Two committed project skills in `.claude/skills/` describe the
+  system and its contracts — read them before touching `docs/`.
+  The tool is a Green Button inspector running the
   real parsers in the browser. Engine: `src/report/inspect.py`; CLI: `scripts/inspect_export.py`.
   Sample data `docs/sample-usage.csv` is SYNTHETIC, from `scripts/make_sample_export.py`.
 
@@ -86,6 +94,8 @@ PYTHONPATH=src python scripts/nem3_report.py                # M3 solar+battery (
 PYTHONPATH=src python scripts/inspect_export.py FILE.csv    # inspect any Green Button export (no pricing)
 PYTHONPATH=src python scripts/build_web_engine.py           # regenerate docs/engine.js after touching src/
 npm install --prefix tools && node tools/test_engine_wasm.mjs && node tools/test_tool_render.mjs
+pip install playwright && python -m playwright install chromium   # optional, not in CI
+PYTHONPATH=src python scripts/screenshot_site.py            # LOOK at the pages; jsdom does no layout
 PYTHONPATH=src python scripts/build_acc_tables.py --utility 'SDG&E' --vintage 2026 --source FILE.csv --citation '...'
 ```
 

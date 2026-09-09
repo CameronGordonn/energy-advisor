@@ -2,6 +2,89 @@
 
 Running log of decisions made and decisions pending. Newest first.
 
+## 2026-09-08 — Session 11 (the site: UI overhaul, legal pages, self-hosted fonts, a browser)
+
+**418 tests green, ruff clean, 11/11 PG&E golden bills unchanged.** No engine work: this
+session is entirely `docs/`, plus two project skills and a screenshot tool. Cameron's brief
+was that the site "not look to just be AI slop" and be followable by a non-technical person.
+
+### DONE — project skills, committed so they travel (`.claude/skills/`)
+Cameron installed Anthropic's **Design** skill pack on **claude.ai**, which does NOT reach
+Claude Code — the CLI loads skills only from `~/.claude/skills/`, `<project>/.claude/skills/`
+and plugin marketplaces, and the official CC marketplace carries no such pack (checked; its
+`frontend-design` plugin has one skill). Rather than chase it, two **project** skills were
+written and committed: `design-system` and `accessibility-audit`. Project scope was chosen
+deliberately — committed skills load in every environment the repo reaches, including a fresh
+clone and a cloud sandbox, and they can encode THIS repo's invariants, which a generic pack
+cannot: the DOM contract `test_tool_render.mjs` pins, the no-dollars rule, the generated
+`engine.js`.
+
+### DONE — the tool page overhauled
+The page had eight identically-shaped sections of heading + prose + card, so nothing led and
+the tool argued for its own virtue before showing anyone their data. Now two states that look
+different: a **landing** (asymmetric hero, drop zone, three numbered steps) and a **report**
+(masthead with utility + date range, one dominant figure, then evidence). Technical material
+moved into disclosure panels. Jargon cut at first use ("Green Button file" -> "usage file");
+chart labels read "7 p.m." not "19:00". **Findings prose was NOT touched** — it is generated
+in `src/report/inspect.py` precisely so it stays tested, and it was already plain English.
+The DOM contract was **preserved exactly rather than relaxed**; no test was weakened.
+
+### DONE — privacy.html and terms.html, and `docs/site.css` / `docs/fonts.css`
+Written from what the site actually does, verified not assumed. No cookies, storage,
+analytics or backend. But the page did make third-party requests, and a privacy page omitting
+them would be the exact failure this project exists to avoid. Also stated: the *timing* of the
+jsDelivr fetch could reveal that someone at an IP used a tool of this kind, though not what
+was in their data. Contact is the public issue tracker — Cameron's email is not mine to
+publish. ⚠ These are plain-language documents, **not lawyer-drafted**; get them reviewed
+before M5 puts them in front of recruited strangers.
+
+### ⭐ THE LESSON OF THE SESSION — headless tests do not see the page
+Everything below passed jsdom, ruff and pytest, and was still wrong. jsdom does no layout.
+Installing Chromium (playwright) and *looking* found, in one run:
+1. **A label collision.** The hour chart's "4-9 P.M." band caption sat on top of the
+   "busiest: 6 p.m." direct label whenever the busiest hour fell inside the band — the common
+   case, and the only case that matters.
+2. **Bars at 1.5:1.** Non-peak bars were drawn in `--rule-2`, a *hairline* colour: 1.58 light
+   / 1.54 dark against the panel, where WCAG 1.4.11 wants 3:1 for meaningful graphics. Those
+   bars are the data. New `--mark-muted` token (3.31 / 3.37). **A border colour is not a data
+   colour.**
+3. **A regression I had introduced myself** — the rewrite dropped the Google Fonts `<link>`,
+   so the entire editorial look was silently falling back to Georgia. Found only by looking.
+`scripts/screenshot_site.py` is committed; playwright is an **optional local extra**, kept out
+of `environment.yml` so CI is not made to download a browser.
+
+### DONE — fonts self-hosted; the site now requests nothing from Google
+A font on someone else's server reports every visitor's IP to that company on every page
+view, on a site whose headline promise is the opposite. `docs/fonts/` now holds the woff2
+files (368 KB on disk; ~204 KB fetched on a typical English page view, since `unicode-range`
+means `latin-ext` downloads only when needed). **Newsreader and Public Sans are variable
+fonts** — Google serves one byte-identical file whatever weight is requested, so six files
+collapsed to two over a 400-600 range. All three families are SIL OFL 1.1; licence and
+attribution travel in `docs/fonts/`.
+⚠ `@font-face` lives in its own `fonts.css`, NOT in `site.css`, because `methodology.html`
+needs the fonts but must not inherit the shared chrome — `site.css` sets `th{width:44%}`,
+which would wreck that page's tables. That collision was caught before shipping, not after.
+
+### Accessibility, measured rather than asserted
+`--ink-3` failed AA body text on every light surface (3.22-3.71) across eight usages including
+the `font-size:10` chart axis labels; solved for, not guessed (`#676C61` / `#888E7F`,
+`--accent` -> `#0B784F`). `role="img"` hides per-bar `<title>` from screen readers, so
+`#hourTable` / `#monthTable` now carry the same numbers. Headings skipped `h1 -> h3` at the
+steps. `methodology.html` picked up the retuned tokens but is otherwise **unaudited** — its
+heading order, `<th scope>` and reflow are the open work.
+
+### Still open
+- `methodology.html` still keeps its own copy of the palette instead of linking `site.css`;
+  migrating it needs its nav/footer rules reconciled with the shared ones first.
+- Legal pages want a lawyer's eye before M5.
+- Arrows (U+2190/2192) are outside Google's latin subsets, so they render from a fallback
+  font. True before this session too; cosmetic.
+
+### Next
+Unchanged: dad's SDG&E export + bills outrank everything. Then SDG&E ACC Plus, then the
+earlier TOU-DR2 / EV-TOU-5 vintages.
+
+
 ## 2026-09-08 — Session 10 (San Diego Community Power overlay; the SDCP 403 was solvable)
 
 **418 tests green (was 384, +34), ruff clean, 11/11 PG&E golden bills reconcile with
