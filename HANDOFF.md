@@ -77,16 +77,22 @@ has landed it outranks everything below.
 13-month interval export plus three itemised bills; be explicit that they are validating an
 engine, not buying a verdict. See the M5 warning for why this ordering is not optional.
 
-**2. Migrate `docs/methodology.html` onto the shared chrome.** It took the new palette and type
-in session 12 but still holds its own copy of the tokens and its own nav/footer rules, which
-must be reconciled with `site.css` first (`site.css` sets `th{width:44%}`, which would wreck
-its tables — that is why it links `fonts.css` only). Its heading order, `<th scope>` and
-200%/400% reflow have never been audited.
+**2. ~~Migrate `docs/methodology.html` onto the shared chrome.~~** DONE, session 20. All four
+pages now link `site.css`; methodology carries page-specific rules only and no palette tokens.
+The feared `th{width:44%}` collision did not exist any more — that rule is scoped `.ledger th`
+with `width:auto`, so the real conflicts were a `.masthead` class-name clash and a duplicate
+`--warn` hue with no shared token. Heading order, `<th scope>` and captions audited and fixed;
+200%/400% reflow audited and **two real horizontal-scroll defects fixed** (see SESSION_NOTES).
 
-**3. PG&E ACC tables** — per-vintage PDFs (pge.com/energyexportcredit), not the clean MIDAS
-CSVs SDG&E publishes, so a different parser. Low priority.
+**3. TOU-DR-P** — needs an events model before it can be ranked. See open decision 2.
 
-**4. TOU-DR-P** — needs an events model before it can be ranked. See open decision 2.
+**4. The 2027 ACC vintage, when either utility publishes it.** 2027 is the last application
+year that earns a nine-year lock-in, so it is the last vintage the "when to install" question
+can ever turn on — and neither utility's 2027 table exists yet. Until it does,
+`Vintage(application_year=2027, ...)` raises `MissingAccTableError`, which is the correct
+behaviour, not a bug. Re-check `pge.com/eecvalues` and SDG&E's export-pricing page; the PG&E
+zip currently served was built 2024-12-18, so PG&E has not refreshed even its floating NBT00
+table since then.
 
 > **⚠ READ BEFORE STARTING M5 — M1 and M5 are coupled.** M5 targets San Diego (SDG&E) users,
 > and **the engine has never reproduced a single real SDG&E bill.** (The *parser* has now met
@@ -261,7 +267,15 @@ npm install --prefix tools && node tools/test_engine_wasm.mjs && node tools/test
 pip install playwright && python -m playwright install chromium   # optional local extra, NOT in CI
 PYTHONPATH=src python scripts/screenshot_site.py            # LOOK at the pages; jsdom does no layout
 PYTHONPATH=src python scripts/build_acc_tables.py --utility 'SDG&E' --vintage 2026 --source FILE.csv --citation '...'
+PYTHONPATH=src python scripts/build_acc_tables.py --utility 'PG&E'  --vintage 2026 --source FILE.csv --citation '...'
 ```
+
+One importer serves both utilities: SDG&E and PG&E publish the same MIDAS shape and differ
+only in the RateLookupID prefix and the capitalisation of the unit string. Sources —
+**SDG&E** `sdge.com/solar/solar-billing-plan/export-pricing` (one zip per vintage), **PG&E**
+`pge.com/eecvalues` (**one 36 MB zip holding all five vintages**). `pge.com/energyexportcredit`
+is a *different* bundle — the printed PDF price sheets, one calendar year each — and is the
+cross-check, not the import source.
 
 ## Headline results
 
@@ -420,7 +434,14 @@ cell for cell.
 ## M3 open items (recorded, none blocking)
 
 - ~~SDG&E ACC Plus unconfirmed~~ — RESOLVED session 14: $0.000/kWh, all segments, D.22-12-056 Table 7. Encoded as a cited zero table, not a raise.
-- PG&E ACC tables not imported (PDFs, not MIDAS CSVs).
+- ~~PG&E ACC tables not imported (PDFs, not MIDAS CSVs)~~ — RESOLVED session 19. **PG&E does
+  publish MIDAS CSVs**, at `pge.com/eecvalues` (one 36 MB zip, all five vintages); the PDFs at
+  `pge.com/energyexportcredit` are a separate customer-facing bundle. One parser now serves
+  both utilities. All five PG&E vintages (2023/2024/2025/2026/current) are committed.
+  Remaining gap: **no 2027 vintage for either utility** — 2027 is the last application year
+  that qualifies for a lock-in at all, so a "should I apply in 2027?" question still raises
+  `MissingAccTableError` rather than answering. SDG&E likewise has no 2023/2024 table; nobody
+  has needed one.
 - **LP dispatch is a marginal-price optimum, not a settled-dollar optimum** — under NBT caps it
   can settle below greedy. Documented and reported honestly; not a bug.
 - **CCA export terms** — netting excludes the CCA generation credit by default (Schedule NBT

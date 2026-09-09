@@ -2,6 +2,203 @@
 
 Running log of decisions made and decisions pending. Newest first.
 
+## 2026-09-09 — Session 20 (methodology.html onto the shared chrome)
+
+HANDOFF action 2. `docs/methodology.html` now links `docs/site.css` and carries **no palette
+tokens of its own**; all four published pages are on one stylesheet. Render test green, wasm
+test green, ruff clean, 1498 tests green.
+
+> ⚠ Sessions 18, 19 and 20 all ran in the same working tree at once. The test count moved
+> under me mid-session (719 → 860 → 1498) and another session edited `docs/methodology.html`
+> after I had rewritten it. Nothing was lost, but **do not run parallel sessions in one
+> checkout** — use worktrees.
+
+### The stated blocker did not exist; the real ones were different
+HANDOFF warned that `site.css` sets `th{width:44%}`, which would wreck methodology's tables,
+and that this was why the page linked `fonts.css` only. **That rule is gone** — it is now
+`.ledger th{width:auto}`, class-scoped, so it never reaches a methodology table. The genuine
+conflicts were:
+
+1. **A `.masthead` class-name collision.** In `site.css` `.masthead` is the sticky nav bar; in
+   methodology it was the article title block. Fixed by dropping the page's own header entirely
+   and using the shared `.row.heavy` + `.rail` hero, as `index.html` does.
+2. **A fourth colour with no token behind it.** The page carried `--warn` (#7A5410 / #D9A63F)
+   for caveat flags and the "current plan" row. The shared palette is deliberately two-colour —
+   ink plus oxblood, sulphur as a fill — so `--warn` was **deleted**, not aliased. Caveat flags
+   now take a 2px `--ink` rule with an `--ink-2` tag; the current-plan row takes a `--paper`
+   tint against the plate's `--paper-2`. Both already state their status in words, so no
+   meaning was carried by the hue alone.
+3. **Parallel devices for the same job.** `.block`/`.block-hd` → shared `.plate`/`.plate-head`;
+   the pull-quote `.rule-box` → shared `.gate`, which on `index.html` already carries the exact
+   same sentence. `h2.sec` moved out of `index.html`'s inline block into `site.css` so both
+   pages share one definition.
+
+### Colour decisions, recorded because they are the ones that will get re-litigated
+- **The reconciliation chart's bars were all `--ox`.** They are now `--mark`. Oxblood means
+  "the expensive hours" in this system, and spending it on eleven plain data bars drains it —
+  the design-system skill says exactly this about the month chart. `--mark` on the plate is
+  3.02:1 light / 3.01:1 dark, clear of the 3:1 graphics threshold.
+- `--ox` is **kept** for links, rail numbers, `h3`, the pass tick and the stamp, which is how
+  `site.css` itself already uses it. The "expensive hours and nothing else" rule is scoped to
+  chart data colours; read literally site-wide it contradicts the shared stylesheet.
+- **No `--sul` text anywhere.** It stays a fill; 1.89:1 on paper.
+- Rounded bar ends and the `border-radius:2px`/`3px` on `code` and the tooltip are gone. There
+  is no radius on the site.
+
+### Accessibility — audited, with two defects only a real browser could find
+Closed from the audit skill's open list:
+- **Heading order**: was `h2 → h4` (block titles) and `h2 → h5` (findings). Block titles are
+  not sections, so they became `<p>` inside `.plate-head`; findings became `h3`. 27 headings,
+  one `h1`, **zero skips**.
+- **`<th scope>` and captions**: all four tables now have a `<caption>` (visually hidden — the
+  plate header shows the same words) and every `th` carries a scope. Row headers added: the
+  billing period, the plan name, the component.
+- **The pass tick is no longer a bare glyph** — `✓<span class="vh"> within tolerance</span>`.
+- **The tooltip stopped being a live region.** It was `role="status"` and fired on hover, so a
+  screen reader announced eleven statements on mouse-over. It is `aria-hidden` now; the table
+  below is the text equivalent, and the chart's `aria-labelledby` points at its visible caption
+  so the description cannot drift from the words beside it.
+
+**Reflow (WCAG 1.4.10) — two real failures, both invisible to jsdom:**
+1. At 200% and 400% the whole **page** scrolled sideways instead of the block. A grid item's
+   `min-width` is `auto` = min-content, so one `<pre>` or wide table dragged the column past the
+   viewport and `overflow-x:auto` on `.scroll`/`<pre>` never got to contain anything.
+   `.row>*{min-width:0}` in `site.css` fixes it for both pages.
+2. Then a **1px visually-hidden caption** still made the page 498px wide at 320px. `.vh` is
+   `position:absolute`, so with no positioned ancestor its containing block was the page and it
+   escaped `.scroll`'s clipping at x=512. `.scroll{position:relative}`.
+3. `index.html` was **also** failing 1.4.10 at 400% — the hero `h1`'s clamp floor (2.6rem) made
+   "ELECTRICITY" 349px wide in a 285px column. Floor lowered to 1.95rem. Pre-existing, not
+   caused by this migration, fixed because it was measured.
+
+All three widths (1280 / 640 / 320) now report `scrollWidth == clientWidth` on both pages.
+
+### Two stale numbers on the live site, corrected
+`index.html` claimed **418 tests** and methodology **719**. A clean run is **1,498**. Both
+updated. `index.html`'s figure had drifted by 3.5× and nothing checks it — worth a test.
+
+### Prose correction forced by a concurrent session
+§2 said TOU-DR-P does not load because "its period windows are unsourced". Session 18 sourced
+them the same day; the spec still deliberately does not load, but now for the schema reason
+(no concept of an event-contingent charge). The sentence now leads with the RYU event adder,
+which is true under both states of the spec.
+
+---
+
+## 2026-09-09 — Session 19 (PG&E ACC export tables, and the vintage asymmetry)
+
+HANDOFF action "PG&E ACC tables". **Full suite green** (1498 at the time this ran; session 18
+was landing tests in the same tree concurrently), ruff clean. Five new tables + one new test
+file; the only source change is two constants in `scripts/build_acc_tables.py`.
+
+### ⭐ FINDING — the premise of the task was wrong, and that saved the work
+HANDOFF said "PG&E publishes per-vintage PDFs at pge.com/energyexportcredit, so this needs a
+different parser rather than a new argument to the existing one. Build it alongside
+`scripts/build_acc_tables.py` rather than inside it." **PG&E publishes MIDAS CSVs too.** The
+PDF page footnotes them: "For a complete list of EEC values, please visit pge.com/eecvalues",
+which redirects to a single 36 MB zip holding **all five vintages** as MIDAS uploads —
+2023, 2024, 2025, 2026 and Floating.
+
+So there is no second parser. The existing one needed exactly two changes:
+
+- `RIN_COMPONENT` gains `USCA-PGXX` (delivery) / `USCA-XXPG` (generation).
+- The unit check is case-insensitive: SDG&E writes `export $/kWh`, PG&E `Export $/kWh`. The
+  unit is still *checked* — a file in $/MWh would misprice every export by 1000x.
+
+That is the whole diff. **Generalising the lesson from the session-9 field note ("curl got 403"
+is not "the document is unavailable"): "the utility publishes a PDF" is not "the utility
+publishes only a PDF."** Follow the PDF's own footnotes before writing a PDF parser.
+
+The PDFs are not wasted — they became the *cross-check*, which is stronger than either source
+alone. See below.
+
+### ⭐ FINDING — PG&E's vintages differ; SDG&E's do not; and the difference inverts the pitch
+This was the open question the task named, and it has a clear answer with a twist.
+
+Five published PG&E files collapse to **two** distinct schedules: **NBT23 ≡ NBT24** and
+**NBT25 ≡ NBT26 ≡ NBT00**, cell-for-cell on every overlapping year. The clusters are far apart
+(>$1/kWh in the extreme cells), so unlike SDG&E — where all three tables are one table wearing
+three labels — the vintage is a real fork in PG&E territory. **That asymmetry is real and it is
+the first territory-specific vintage finding in the repo.**
+
+But the direction is not the installers' one. The gap is **structural by hour of day**:
+
+| weekday band | who leads | size |
+|---|---|---|
+| midday 09–15 (where a solar-only array exports) | **older** NBT23/24, every year | $0.005–0.020/kWh |
+| overnight 00–06 (battery only) | **newer** NBT25/26, every year | up to **+$0.14/kWh** by 2033 |
+| evening 17–21 | older through 2029, newer from 2030 | flips mid-lock-in |
+
+Read together: for a **solar-only** customer the PG&E vintage is nearly immaterial, same
+practical answer as SDG&E. For a customer who can **shift the export hour with a battery**, the
+vintage matters a lot and the **newer** one wins — the reverse of "get in before the rates
+drop". And since NBT26 ≡ NBT00, locking in the 2026 vintage buys precisely the floating table:
+its value today is not a gain but **insurance against the floating table moving at the next ACC
+adoption**. That is a defensible thing to want, and a different claim from the one being sold.
+
+**Do not compress this to "later is better".** It is band-dependent, and the evening band flips
+in 2030. The parametrised tests hold each band separately for exactly that reason.
+
+### ⭐ The cross-check found a real, bounded disagreement between PG&E's own two publications
+Every printed price sheet turns out to show **calendar-2026** values for its own application
+vintage, so all four are directly comparable to the imported tables. Result: **571–574 of 576
+cells agree to 1e-5**, and every disagreement is a **weekend cell in March or November** — the
+two DST-transition months, both transitions falling on a Sunday. The 23-hour and 25-hour days
+evidently get averaged into the monthly weekend figure slightly differently by the two
+pipelines.
+
+Decision, recorded rather than silently taken: **the import follows the MIDAS CSV**, because it
+is the machine-readable file PG&E uploads and the only one carrying the 20-year horizon at all.
+Worth ≤$0.0005/kWh on two hours of ~9 weekend days, so it moves no recommendation. It is pinned
+**in both directions** — each listed cell must still disagree, and only slightly — so that
+nobody later "fixes" the importer to chase the printed number, and so a future import that
+disagrees somewhere *else* fails loudly.
+
+### Also pinned
+- **The printed "Highest value for credits" band is the WEEKDAY maximum only.** In the 2025/2026
+  sheets the weekend table reaches $1.04281/kWh, above the printed $0.99821 ceiling. A reader
+  taking the band as a whole-sheet range is wrong. Used here as a whole-table check on 288 of
+  the 576 cells rather than as a spot value.
+- **"Energy Produced" is the generation component, "Energy Delivered" the delivery one** — and
+  PG&E's own footnote 2 restricts Produced to bundled-generation customers, independently
+  corroborating Schedule NBT SC 2.a (a CCA customer's generation credit is not PG&E's to give).
+  Pinned separately, because a swapped mapping still "matches a printed number".
+  Note the ordering is **not** universal: in the 2023 sheet's July 5 p.m. cell delivery is the
+  larger of the two, so the check names a cell rather than asserting a rule.
+- **SDG&E's three-way table identity is now asserted directly**
+  (`test_sdge_vintages_are_one_table_wearing_three_labels`). It was stated in HANDOFF and
+  leaned on by `test_payback.py`, but never checked — and it is exactly the kind of fact that
+  quietly stops being true at the next ACC adoption.
+- The zip readme **mislabels both NBT23 and NBT24** as "applications filed in 2025". The
+  `RateName` column and the printed sheet titles both say otherwise; the citations record the
+  discrepancy so the labels do not read as ours.
+
+### ⚠ THE SHARED-INDEX HAZARD RECURRED — and this time it crossed sessions
+Session 17 recorded the lesson: parallel sessions share the git **index**, so a path-scoped
+`git add` followed by `git commit` is not isolated. It happened again here, in the direction
+that is harder to notice. Session 18's commit `d0045a8` ("SDG&E 8/1/2026") **swept up this
+session's in-flight HANDOFF.md edit** — the PG&E vintage-asymmetry block under "tariff facts
+that cost real money" is committed under a message about SDG&E rate vintages, and that
+commit's "measured in a clean HEAD checkout with only these files applied" does not describe
+what it actually contains.
+
+Nothing is lost and no history was rewritten (session 18 may still have been working; rewriting
+shared history under a live tree is worse than the misattribution). Recorded so a future
+`git log -S` for the PG&E finding does not come up confused.
+
+**The fix remains `git worktree add` per writing lane.** Two sessions have now paid for not
+doing it. The mitigation that did work: `git add <explicit paths> && git commit -- <the same
+explicit paths>` in a single shell invocation — the pathspec form of `git commit` ignores
+whatever else is staged, so this session's own commit came out clean at 13 files.
+
+### Recorded, not acted on
+- **Neither utility has a 2027 table**, and 2027 is the last application year that earns a
+  lock-in at all — so it is the last vintage the "when to install" question can ever turn on.
+  `Vintage(application_year=2027, ...)` raises `MissingAccTableError`, which is correct.
+- **PG&E's floating NBT00 has not been refreshed since 2024-12-18** (the zip's member file
+  dates). Worth re-checking, since the whole value of a lock-in is what the floating table does
+  next.
+
 ## 2026-09-09 — Session 18 (the 8/1/2026 SDG&E vintage, all three schedules in one pass)
 
 **860 tests green (was 719), ruff clean, golden bills untouched.** HANDOFF action 2. Six new
