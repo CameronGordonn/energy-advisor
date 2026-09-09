@@ -43,6 +43,12 @@ their visible caption, so the description is shared rather than duplicated into 
 `aria-label` that can drift from the caption beside it. **If you restyle a chart, the table
 is not optional decoration — it is the only route to that data for a screen reader.**
 
+**Chart bars meet non-text contrast.** Non-highlighted bars were drawn in `--rule-2`, a
+hairline colour, giving 1.58:1 (light) and 1.54:1 (dark) against the panel — well under the
+3:1 WCAG 1.4.11 needs for meaningful graphics. They now use a dedicated `--mark-muted`
+(3.31 / 3.37). **A border colour is not a data colour**; if you add a series, give it a mark
+token and measure it against `--surface`.
+
 **Contrast passes on every token.** `--ink-3` was `#7E8477` / `#7B8172` and failed AA body
 text on every light surface (3.22-3.71) while carrying eight real usages, including the SVG
 axis labels at `font-size:10`. It is now `#676C61` / `#888E7F`; `--accent` moved `#0B7D52` →

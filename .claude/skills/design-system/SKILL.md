@@ -32,6 +32,8 @@ values are in sync today and must be kept so until it is migrated.
 --ground --surface --surface-2      surfaces, lightest to most recessed
 --ink --ink-2 --ink-3               text, strongest to faintest
 --rule --rule-2                     hairlines and borders
+--mark-muted                        non-highlighted CHART BARS — a data colour, not a
+                                    hairline; 3:1 against --surface in both themes
 --accent --accent-soft              the green; soft is its tinted background
 --warn --warn-soft                  the orange, for caveats and gates
 --serif --sans --mono               Newsreader / Public Sans / IBM Plex Mono
@@ -137,3 +139,17 @@ pytest -q                       # includes the no-dollars and bundle-staleness g
 ```
 
 Both browser checks run as a separate CI job on every push.
+
+**Then look at it.** jsdom does no layout, so those tests cannot see a label collision, a
+clipped caption or an unreadable bar:
+
+```bash
+pip install playwright && python -m playwright install chromium   # optional local extra,
+PYTHONPATH=src python scripts/screenshot_site.py                  # deliberately not in CI
+```
+
+It shoots all four pages in both themes plus the report state and each chart, driving the
+page's own `__renderInspection` hook so no Pyodide boot is needed. It earned its place
+immediately: it caught the hour chart's band caption colliding with its direct label, and
+non-peak bars sitting at 1.5:1 against the panel in both themes. Contrast is arithmetic and
+belongs in a script; **collisions and clipping need eyes on a real render.**

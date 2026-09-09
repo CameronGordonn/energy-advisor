@@ -4,10 +4,12 @@
    every ink token clears WCAG AA (4.5) for body text on every surface, in both themes.
    See .claude/skills/design-system/SKILL.md for the matrix and the history. */
 
+strong{font-weight:600}
+
 :root{
   --ground:#F1F3EE; --surface:#FBFBF8; --surface-2:#E9ECE3;
   --ink:#171A13; --ink-2:#545A4C; --ink-3:#676C61;
-  --rule:#DBDED3; --rule-2:#C8CCBE;
+  --rule:#DBDED3; --rule-2:#C8CCBE; --mark-muted:#868E70;
   --accent:#0B784F; --accent-soft:#E2EFE8;
   --warn:#B24A0B; --warn-soft:#F6E9DE;
   --serif:"Newsreader",Georgia,"Times New Roman",serif;
@@ -17,14 +19,14 @@
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
   --ground:#14170F; --surface:#1C1F19; --surface-2:#23271F;
   --ink:#E9EBE2; --ink-2:#A5AA9A; --ink-3:#888E7F;
-  --rule:#2C3027; --rule-2:#3A3F33;
+  --rule:#2C3027; --rule-2:#3A3F33; --mark-muted:#6B7360;
   --accent:#2FA372; --accent-soft:#16281F;
   --warn:#D07C22; --warn-soft:#2A1F12;
 }}
 :root[data-theme="dark"]{
   --ground:#14170F; --surface:#1C1F19; --surface-2:#23271F;
   --ink:#E9EBE2; --ink-2:#A5AA9A; --ink-3:#888E7F;
-  --rule:#2C3027; --rule-2:#3A3F33;
+  --rule:#2C3027; --rule-2:#3A3F33; --mark-muted:#6B7360;
   --accent:#2FA372; --accent-soft:#16281F;
   --warn:#D07C22; --warn-soft:#2A1F12;
 }

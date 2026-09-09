@@ -6,9 +6,7 @@
 <meta name="color-scheme" content="light dark">
 <title>Privacy — Home Energy Advisor</title>
 <meta name="description" content="What this site does and does not collect. No accounts, no cookies, no analytics, and your usage file is never uploaded.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600&family=Public+Sans:ital,wght@0,400;0,500;0,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="./fonts.css">
 <link rel="stylesheet" href="./site.css">
 </head>
 <body>
@@ -50,20 +48,18 @@
 
   <h2>What the page does request from other companies</h2>
   <p>Being honest about this matters more than the marketing line. The page itself is static,
-  but loading it does cause your browser to make requests to three third parties. None of
-  them carries any part of your usage file or your results — they fetch code, fonts and the
-  page itself — but each necessarily sees your IP address, as any web request does.</p>
+  but loading it does cause your browser to make requests to two third parties. Neither
+  carries any part of your usage file or your results — they serve the page and the analysis
+  code — but each necessarily sees your IP address, as any web request does.</p>
+  <p><strong>Typefaces are served from this site, not from Google.</strong> A font hosted
+  elsewhere would report your IP address to that company on every single page view, which
+  would sit badly beside the promise at the top of this page, so the font files are stored
+  here instead.</p>
 
   <h3>GitHub (site hosting)</h3>
   <p>This site is served by GitHub Pages. GitHub receives the ordinary web-server information
   that hosting requires, including your IP address and browser user-agent, and applies its own
   privacy policy to it. This happens for every page on this site.</p>
-
-  <h3>Google Fonts</h3>
-  <p>The typefaces are loaded from Google's font service (<code>fonts.googleapis.com</code>
-  and <code>fonts.gstatic.com</code>) when the page opens, which discloses your IP address and
-  user-agent to Google under its privacy policy. No information about you or your file is
-  sent — only a request for font files.</p>
 
   <h3>jsDelivr (the analysis engine)</h3>
   <p>The analysis engine is real Python compiled to WebAssembly, downloaded from the jsDelivr
