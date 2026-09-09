@@ -31,44 +31,28 @@ redesign, so re-check each after any markup or CSS change.
 
 ## Fixed — keep them fixed
 
-Both of the original defects were closed in the redesign. They are recorded because each is
-easy to reintroduce.
+Each of these is easy to reintroduce, and two of them have been reintroduced once already.
 
-**Charts now have a text equivalent.** `role="img"` makes an SVG atomic: its children leave
-the accessibility tree, so the per-bar `<title>` elements are pointer tooltips and are
-**never announced**. The 24 `<title>`s are load-bearing for `tools/test_tool_render.mjs`, so
-they stayed, and `#hourTable` / `#monthTable` were added inside `<details class="data">`
-carrying the same numbers as real tables. Both charts also use `aria-labelledby` pointing at
-their visible caption, so the description is shared rather than duplicated into an
-`aria-label` that can drift from the caption beside it. **If you restyle a chart, the table
-is not optional decoration — it is the only route to that data for a screen reader.**
+**Charts have a text equivalent.** `role="img"` makes an SVG atomic: its children leave the
+accessibility tree, so per-bar `<title>` elements are pointer tooltips and are **never
+announced**. The 24 `<title>`s stay (the render test counts them) and `#hourTable` /
+`#monthTable` carry the same numbers as real tables. Both charts use `aria-labelledby`
+pointing at their visible caption, so the description cannot drift from the text beside it.
 
-**Chart bars meet non-text contrast.** Non-highlighted bars were drawn in `--rule-2`, a
-hairline colour, giving 1.58:1 (light) and 1.54:1 (dark) against the panel — well under the
-3:1 WCAG 1.4.11 needs for meaningful graphics. They now use a dedicated `--mark-muted`
-(3.31 / 3.37). **A border colour is not a data colour**; if you add a series, give it a mark
-token and measure it against `--surface`.
+**Every token clears AA.** Full matrix in the `design-system` skill. `--sul` is the exception
+and is a **fill only** — 1.89:1 on paper. Accent text is always `--ox`.
 
-**Contrast passes on every token.** `--ink-3` was `#7E8477` / `#7B8172` and failed AA body
-text on every light surface (3.22-3.71) while carrying eight real usages, including the SVG
-axis labels at `font-size:10`. It is now `#676C61` / `#888E7F`; `--accent` moved `#0B7D52` →
-`#0B784F`. Chart axis labels were also moved off `--ink-3` onto `--ink-2`. The full matrix
-lives in the `design-system` skill — recompute it after any palette change rather than
-eyeballing.
+**Chart bars meet non-text contrast.** Bars are data, so they need 3:1 against the plate, not
+the 1.5:1 a hairline colour gives. `--mark` is 3.39 / 3.25; `--ox` on the sulphur band is
+4.58 / 3.62. **A border colour is not a data colour.**
 
-**Heading order is unbroken.** `h1 → h2 → h3` with no skipped descent; the finding cards are
-`h4` under the "What stands out" `h3`. The three landing steps sit under a real `h2`
-("How this works") rather than jumping from `h1` to `h3`, which is what they did before.
+**Heading order is unbroken** on `index.html`: `h1 → h2 → h3`, finding cards `h4` under the
+"What stands out" `h3`.
+
+**Label collisions.** Fixed twice now on the hour chart. jsdom does no layout and will never
+catch this — run `scripts/screenshot_site.py` and look.
 
 ## Open defects
-
-`docs/methodology.html` now carries the corrected tokens, so the contrast failure is closed
-there too. Its heading order, table markup (`<th scope>`) and 200%/400% reflow have **not**
-been audited — it was not part of the redesign. That is the open work.
-
-`docs/privacy.html` and `docs/terms.html` are prose pages on the shared stylesheet; they were
-written with correct heading order and no colour-only signals, but have not been tested with a
-screen reader.
 
 ### 3. Unverified, check when auditing
 

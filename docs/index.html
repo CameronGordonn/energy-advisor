@@ -12,243 +12,232 @@
 <link rel="stylesheet" href="./fonts.css">
 <link rel="stylesheet" href="./site.css">
 <style>
-/* ---------- hero: asymmetric, headline left / action right ---------- */
-.hero{display:grid;grid-template-columns:1.05fr .95fr;gap:3.5rem;align-items:start;
-  padding:4rem 0 3rem;border-bottom:1px solid var(--rule)}
-.hero h1{font-size:clamp(2.3rem,4.6vw,3.5rem);line-height:1.02;margin:0;max-width:14ch}
-.hero .lede{font-family:var(--serif);font-size:1.18rem;line-height:1.5;color:var(--ink-2);
-  margin:1.3rem 0 0;max-width:34ch}
-.hero .assure{margin:1.6rem 0 0;font-size:.9rem;color:var(--ink-2);display:flex;gap:.55rem;
-  align-items:flex-start;max-width:34ch}
-.hero .assure strong{color:var(--ink)}
+/* ---- hero: the headline is the largest thing on the page by a wide margin, and it is
+   allowed to run wider than the text column below it. Density contrast is the point. ---- */
+.hero h1{font-size:clamp(2.6rem,9.2vw,7.6rem)}
+.hero .lede{font-size:1.12rem;line-height:1.5;max-width:38ch;margin:1.8rem 0 0;color:var(--ink-2)}
+.hero .lede b{color:var(--ink);font-weight:700}
+.hero-foot{display:flex;gap:2.5rem;align-items:flex-start;margin-top:2.2rem;flex-wrap:wrap}
 
-/* ---------- dropzone ---------- */
-#drop{border:1.5px dashed var(--rule-2);border-radius:10px;background:var(--surface);
-  padding:2.4rem 1.6rem;text-align:center;cursor:pointer;
-  transition:border-color .15s,background .15s,transform .15s}
-#drop:hover,#drop.over{border-color:var(--accent);background:var(--accent-soft)}
-#drop.over{transform:scale(1.012)}
-#drop .big{font-family:var(--serif);font-size:1.42rem;line-height:1.25;color:var(--ink);
-  margin:0 0 .45rem}
-#drop .small{font-size:.87rem;color:var(--ink-3);margin:0}
-.btnrow{display:flex;gap:.7rem;justify-content:center;margin-top:1.4rem;flex-wrap:wrap}
+/* ---- intake: a form, with a ruled header, not a floating card ---- */
+#drop{border:2px solid var(--ink);background:var(--paper-2);padding:2.6rem 1.5rem;
+  text-align:center;cursor:pointer;transition:background .12s}
+#drop:hover,#drop.over{background:var(--band)}
+#drop:hover .big,#drop.over .big,#drop:hover .small,#drop.over .small{color:#191510}
+#drop .big{font-family:var(--display);font-stretch:112%;font-weight:700;text-transform:uppercase;
+  font-size:1.5rem;line-height:1;margin:0 0 .5rem;letter-spacing:-.01em}
+#drop .small{font-family:var(--mono);font-size:.72rem;color:var(--ink-3);margin:0;
+  letter-spacing:.03em}
+.btnrow{display:flex;gap:.6rem;justify-content:center;margin-top:1.5rem;flex-wrap:wrap}
+.assure{font-family:var(--mono);font-size:.72rem;line-height:1.6;color:var(--ink-2);
+  margin:1rem 0 0;letter-spacing:.02em}
+.assure b{color:var(--ink)}
 
-/* ---------- steps ---------- */
-.steps-wrap{padding:2.6rem 0;border-bottom:1px solid var(--rule)}
-.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:2.4rem}
-.step .n{font-family:var(--mono);font-size:.72rem;letter-spacing:.12em;color:var(--accent);
-  font-weight:600;display:block;margin-bottom:.5rem}
-.step h3{font-size:1.08rem;margin:0 0 .35rem;letter-spacing:0}
-.step p{margin:0;font-size:.92rem;color:var(--ink-2)}
-
-/* ---------- status ---------- */
-#status{margin:1.6rem 0;padding:.95rem 1.15rem;border-radius:8px;background:var(--surface);
-  border:1px solid var(--rule);font-size:.93rem;color:var(--ink-2)}
-#status.err{background:var(--warn-soft);border-color:var(--warn);color:var(--ink)}
-#status pre{margin:.6rem 0 0;font-family:var(--mono);font-size:.78rem;white-space:pre-wrap;
-  color:var(--ink-2)}
-.spin{display:inline-block;width:.8em;height:.8em;margin-right:.6em;vertical-align:-.05em;
-  border:2px solid var(--rule-2);border-top-color:var(--accent);border-radius:50%;
+/* ---- status ---- */
+#status{margin:1.4rem 0 0;padding:.8rem 1rem;border:1px solid var(--rule-2);
+  background:var(--paper-2);font-family:var(--mono);font-size:.78rem;color:var(--ink-2)}
+#status.err{border-color:var(--ox);border-left-width:3px;color:var(--ink)}
+#status pre{margin:.5rem 0 0;font-size:.72rem;white-space:pre-wrap;color:var(--ink-2)}
+.spin{display:inline-block;width:.75em;height:.75em;margin-right:.55em;
+  border:2px solid var(--rule-2);border-top-color:var(--ox);border-radius:50%;
   animation:sp .7s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
-@media (prefers-reduced-motion:reduce){.spin{animation:none}
-  #drop{transition:none}#drop.over{transform:none}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}#drop{transition:none}}
 
-/* ---------- report ---------- */
-#results{padding-top:2.8rem}
-.report-head{border-bottom:2px solid var(--ink);padding-bottom:1rem;margin-bottom:2.2rem}
-.report-head .meta{font-family:var(--mono);font-size:.71rem;letter-spacing:.12em;
-  text-transform:uppercase;color:var(--ink-3);margin:0 0 .55rem}
-.report-head h2{font-size:clamp(1.7rem,3.3vw,2.4rem);margin:0;line-height:1.08}
-.demo-banner{background:var(--warn-soft);border-left:3px solid var(--warn);padding:.95rem 1.2rem;
-  margin-bottom:2rem;font-size:.9rem;border-radius:0 6px 6px 0}
+/* ---- steps as ruled ledger entries ---- */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:0}
+.step{border-left:1px solid var(--rule);padding:0 1.4rem}
+.step:first-child{border-left:0;padding-left:0}
+.step .n{font-family:var(--mono);font-size:.68rem;letter-spacing:.06em;color:var(--ox);
+  font-weight:700;display:block;margin-bottom:.7rem}
+.step h3{font-family:var(--display);font-stretch:108%;font-weight:700;text-transform:uppercase;
+  font-size:.98rem;line-height:1.15;margin:0 0 .45rem}
+.step p{margin:0;font-size:.88rem;color:var(--ink-2)}
 
-/* lead stat dominant, three supporting */
-.stats{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr;gap:1px;background:var(--rule);
-  border:1px solid var(--rule);border-radius:8px;overflow:hidden;margin:0 0 2.8rem}
-.stat{background:var(--surface);padding:1.25rem 1.3rem;margin:0}
-.stat dt{font-family:var(--mono);font-size:.68rem;letter-spacing:.11em;text-transform:uppercase;
+/* ---- report ---- */
+.report-head{border-bottom:3px solid var(--ink);padding-bottom:.7rem;margin-bottom:2rem;
+  display:flex;justify-content:space-between;align-items:flex-end;gap:1.5rem;flex-wrap:wrap}
+.report-head h2{font-family:var(--display);font-stretch:118%;font-weight:700;
+  text-transform:uppercase;font-size:clamp(1.5rem,3.6vw,2.5rem);line-height:.92;margin:0}
+#reportMeta{font-family:var(--mono);font-size:.68rem;letter-spacing:.05em;text-transform:uppercase;
   color:var(--ink-3);margin:0 0 .5rem}
-.stat dd{margin:0;font-family:var(--serif);font-size:1.75rem;line-height:1.05;color:var(--ink)}
-.stat dd small{display:block;font-family:var(--sans);font-size:.79rem;line-height:1.4;
-  color:var(--ink-2);margin-top:.45rem}
-.stat.lead{background:var(--accent-soft)}
-.stat.lead dd{font-size:3rem;color:var(--accent)}
-.stat.lead dt{color:var(--ink-2)}
+.demo-banner{border:1px solid var(--ox);border-left-width:3px;padding:.85rem 1.1rem;
+  margin-bottom:1.6rem;font-size:.88rem;color:var(--ink);background:var(--paper-2)}
 
-/* findings */
-.findings{display:grid;gap:.9rem;margin-bottom:2.8rem}
-.finding{background:var(--surface);border:1px solid var(--rule);border-left:3px solid var(--rule-2);
-  border-radius:0 8px 8px 0;padding:1.05rem 1.25rem}
-.finding.good{border-left-color:var(--accent)}
-.finding.watch{border-left-color:var(--warn)}
-.finding .tag{font-family:var(--mono);font-size:.65rem;letter-spacing:.12em;text-transform:uppercase;
-  color:var(--ink-3)}
-.finding.good .tag{color:var(--accent)}
-.finding.watch .tag{color:var(--warn)}
-.finding h4{font-family:var(--serif);font-weight:500;font-size:1.16rem;margin:.3rem 0 .4rem;
-  letter-spacing:-.01em}
-.finding p{margin:0;font-size:.94rem;color:var(--ink-2)}
+/* headline figure + supporting ledger, side by side: density contrast again */
+.headline{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.35fr);gap:2.5rem;
+  align-items:start;margin-bottom:2.6rem}
+.figure-lead .v{font-family:var(--display);font-stretch:125%;font-weight:700;
+  font-size:clamp(4rem,11vw,8rem);line-height:.82;color:var(--ox);letter-spacing:-.02em}
+.figure-lead .k{font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-2);margin-top:.7rem;max-width:22ch;line-height:1.5}
 
-/* charts */
-.panel{background:var(--surface);border:1px solid var(--rule);border-radius:10px;
-  padding:1.5rem 1.6rem;margin-bottom:1.6rem}
-.panel h3{font-size:1.32rem;margin:0 0 .3rem}
-.panel .intro{margin:0 0 1.2rem;color:var(--ink-2);font-size:.95rem;max-width:62ch}
-figure{margin:0}
-svg{display:block;width:100%;height:auto;overflow:visible}
-.cap{font-size:.85rem;color:var(--ink-2);margin:1rem 0 0;max-width:68ch}
-details.data{margin-top:1rem;border-top:1px solid var(--rule);padding-top:.8rem}
-details.data summary{font-size:.85rem;color:var(--ink-2);cursor:pointer}
-details.data summary:hover{color:var(--accent)}
+/* findings as numbered notes, number hanging in the margin */
+.findings{display:grid;gap:0;margin-bottom:2.6rem;border-top:1px solid var(--rule)}
+.finding{display:grid;grid-template-columns:2.6rem 1fr;gap:1rem;padding:1.15rem 0;
+  border-bottom:1px solid var(--rule)}
+.finding::before{content:counter(fnote,decimal-leading-zero);counter-increment:fnote;
+  font-family:var(--mono);font-size:.74rem;color:var(--ink-3);padding-top:.3rem}
+.findings{counter-reset:fnote}
+.finding h4{font-family:var(--display);font-stretch:106%;font-weight:700;text-transform:uppercase;
+  font-size:1rem;line-height:1.2;margin:0 0 .4rem;letter-spacing:.005em}
+.finding p{margin:0;font-size:.92rem;color:var(--ink-2);max-width:70ch}
+.finding .tag{display:block;margin-bottom:.35rem}
+.finding.good .tag{color:var(--ox)}
+.finding.watch .tag{color:var(--ox);font-weight:700}
+.finding.good h4,.finding.watch h4{color:var(--ink)}
 
-/* fine print */
+.plate + .plate{margin-top:1.4rem}
+details.data{margin-top:1rem;border-top:1px solid var(--rule-2);padding-top:.7rem}
+details.data summary{font-family:var(--mono);font-size:.72rem;text-transform:uppercase;
+  letter-spacing:.05em;color:var(--ink-3);cursor:pointer}
+details.data summary:hover{color:var(--ox)}
+.data table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:.76rem;
+  margin-top:.8rem}
+.data th,.data td{padding:.35rem .5rem;border-bottom:1px solid var(--rule);text-align:left}
+.data td{text-align:right}
+.data thead th{color:var(--ink-3);font-weight:700;text-transform:uppercase;font-size:.66rem}
+#fileTable{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:.8rem}
+#fileTable th,#fileTable td{padding:.4rem 0;border-bottom:1px solid var(--rule);
+  text-align:left;font-weight:400;color:var(--ink-2)}
+#fileTable td{text-align:right;color:var(--ink);padding-left:1.5rem}
 
-/* trust strip */
-.trust{border-top:1px solid var(--rule);margin-top:3.5rem;padding:2.6rem 0 0}
-.trust-figs{display:grid;grid-template-columns:repeat(4,1fr);gap:2rem;margin:1.6rem 0 0}
-.tfig .v{font-family:var(--serif);font-size:1.9rem;line-height:1;color:var(--ink)}
-.tfig .k{font-family:var(--mono);font-size:.67rem;letter-spacing:.11em;text-transform:uppercase;
-  color:var(--ink-3);margin-top:.45rem}
-.tfig .s{font-size:.83rem;color:var(--ink-2);margin-top:.3rem}
+/* trust figures: a ruled ledger strip, not four equal tiles */
+.trust-figs{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-top:1.4rem;
+  border-top:1px solid var(--ink)}
+.tfig{border-left:1px solid var(--rule);padding:1rem 1.1rem}
+.tfig:first-child{border-left:0;padding-left:0}
+.tfig .v{font-family:var(--display);font-stretch:118%;font-weight:700;font-size:1.7rem;
+  line-height:1;color:var(--ink)}
+.tfig .k{font-family:var(--mono);font-size:.64rem;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ox);margin-top:.5rem}
+.tfig .s{font-size:.8rem;color:var(--ink-2);margin-top:.25rem;line-height:1.4}
 
+.prose{max-width:64ch;color:var(--ink-2);font-size:.95rem}
+.prose b,.prose strong{color:var(--ink)}
+h2.sec{font-family:var(--display);font-stretch:115%;font-weight:700;text-transform:uppercase;
+  font-size:clamp(1.3rem,2.6vw,1.9rem);line-height:1;margin:0 0 .9rem}
 
-@media (max-width:860px){
-  .hero{grid-template-columns:1fr;gap:2.2rem;padding:2.6rem 0 2.2rem}
-  .hero h1,.hero .lede,.hero .assure{max-width:none}
-  .steps-wrap{padding:2rem 0}
-  .steps{grid-template-columns:1fr;gap:1.6rem}
-  .stats{grid-template-columns:1fr 1fr}
-  .stat.lead{grid-column:1/-1}
-  .trust-figs{grid-template-columns:1fr 1fr;gap:1.4rem}
-}
-@media (max-width:520px){
-  .stats{grid-template-columns:1fr}
-  .stat.lead dd{font-size:2.5rem}
+@media (max-width:820px){
+  .steps{grid-template-columns:1fr;gap:1.4rem}
+  .step{border-left:0;padding:0}
+  .headline{grid-template-columns:1fr;gap:1.6rem}
+  .trust-figs{grid-template-columns:1fr 1fr}
+  .tfig{border-left:0;padding-left:0;border-top:1px solid var(--rule)}
 }
 </style>
 </head>
 <body>
 
-<nav><div class="wrap">
-  <a class="brand" href="./">Home Energy Advisor</a>
-  <div class="links">
-    <a href="./methodology.html">How it works</a>
-    <a href="https://github.com/CameronGordonn/energy-advisor">Source code</a>
-  </div>
-</div></nav>
+<header class="masthead"><div class="in">
+  <a class="brand" href="./">Home&nbsp;Energy&nbsp;Advisor</a>
+  <nav>
+    <a href="./methodology.html">Method</a>
+    <a href="./privacy.html">Privacy</a>
+    <a href="./terms.html">Terms</a>
+    <a href="https://github.com/CameronGordonn/energy-advisor">Source</a>
+  </nav>
+</div></header>
 
-<div class="wrap">
+<div class="sheet">
 
-<header class="hero">
+<!-- ============================ HERO ============================ -->
+<section class="row heavy hero">
+  <div class="rail"><b>00</b>Independent<br>California<br>IOU customers</div>
   <div>
-    <h1>See when you actually use electricity</h1>
-    <p class="lede">Your California utility already records your usage every hour, and has to
-    give you the file free. This reads it and shows you your own habits — the thing that
-    decides which rate plan suits you.</p>
-    <p class="assure">
-      <span aria-hidden="true">&#128274;</span>
-      <span><strong>Your file never leaves your computer.</strong> The whole analysis runs
-      inside this page. There is no server to send it to &mdash;
-      <a href="./privacy.html">here is exactly what the page does request</a>.</span>
-    </p>
+    <h1 class="display">When you<br>actually use<br>electricity</h1>
+    <div class="hero-foot">
+      <p class="lede">Your utility meters you every hour and must hand you the file.
+      This reads it and shows you your own habits &mdash; <b>the thing that decides which
+      rate plan suits you</b>. No account. No upload.</p>
+      <div class="stamp">Not a bill<span>No amount due</span></div>
+    </div>
   </div>
+</section>
 
-  <div class="tool">
+<!-- ============================ INTAKE ============================ -->
+<section class="row">
+  <div class="rail"><b>01</b>Intake<br>Form A</div>
+  <div>
     <div id="drop" tabindex="0" role="button" aria-label="Choose or drop your usage file">
       <p class="big">Drop your usage file here</p>
-      <p class="small">or click to choose one &middot; a <code>.csv</code> from PG&amp;E or SDG&amp;E</p>
+      <p class="small">or click to choose &middot; a .csv from PG&amp;E or SDG&amp;E</p>
       <div class="btnrow">
         <button class="primary" id="pick" type="button">Choose a file</button>
-        <button id="demo" type="button">Show me an example first</button>
+        <button id="demo" type="button">Show an example</button>
       </div>
     </div>
     <input type="file" id="file" accept=".csv,text/csv" hidden>
+    <p class="assure"><b>Your file never leaves your computer.</b> The analysis runs inside
+    this page; there is no server to send it to &mdash;
+    <a href="./privacy.html">exactly what the page does request</a>.</p>
+    <div id="status" hidden></div>
   </div>
-</header>
-
-<div id="status" hidden></div>
-
-<section class="steps-wrap">
-<h2 class="eyebrow">How this works</h2>
-<div class="steps">
-  <div class="step">
-    <span class="n">Step 1</span>
-    <h3>Ask your utility for the file</h3>
-    <p>Free, about two minutes, and it is your data by law. Utilities call it
-    <strong>Green Button</strong>. Instructions are further down this page.</p>
-  </div>
-  <div class="step">
-    <span class="n">Step 2</span>
-    <h3>Drop it in above</h3>
-    <p>Nothing is uploaded and nothing is stored. Close the tab and it is gone.</p>
-  </div>
-  <div class="step">
-    <span class="n">Step 3</span>
-    <h3>Read your own patterns</h3>
-    <p>When you use power, how much, and whether it lands in the expensive hours of the day.</p>
-  </div>
-</div>
 </section>
 
 <!-- ============================ RESULTS ============================ -->
 <div id="results" hidden>
+ <section class="row heavy">
+  <div class="rail"><b>02</b>Findings<br>Your meter</div>
+  <div>
 
   <div class="demo-banner" id="demoBanner" hidden>
-    <strong>This is a demonstration file.</strong> It is invented data, not a real
-    household's meter readings — so treat what follows as a tour of the interface, not a
-    finding about anyone. Drop in your own file for real results.
+    <strong>Specimen.</strong> This is invented data, not a real household's meter readings
+    &mdash; a tour of the interface, not a finding about anyone. Drop in your own file for
+    real results.
   </div>
 
   <div class="report-head">
-    <p class="meta" id="reportMeta"></p>
-    <h2 id="resultTitle">Your electricity, at a glance</h2>
+    <div>
+      <p id="reportMeta"></p>
+      <h2 id="resultTitle">Your electricity, at a glance</h2>
+    </div>
   </div>
 
-  <dl class="stats" id="stats"></dl>
+  <div class="headline">
+    <div class="figure-lead">
+      <div class="v" id="leadFigure"></div>
+      <div class="k" id="leadLabel"></div>
+    </div>
+    <table class="ledger" id="stats"></table>
+  </div>
 
-  <h3 class="eyebrow">What stands out</h3>
   <div class="findings" id="findings"></div>
 
-  <div class="panel">
-    <h3>When you use electricity</h3>
-    <p class="intro">Every household has a shape to its day. Yours is below — the taller the
-    bar, the more electricity you use in that hour.</p>
+  <div class="plate">
+    <div class="plate-head"><span>Fig. 1 &mdash; usage by hour of day</span><span>share of total</span></div>
     <figure>
       <svg id="hourChart" viewBox="0 0 760 300" role="img" aria-labelledby="hourChartDesc"></svg>
-      <p id="hourChartDesc" class="cap">Share of your total usage in each hour of the day,
-      averaged across the whole period. The shaded band is 4&ndash;9&nbsp;p.m., the most
-      expensive window on both PG&amp;E's E&#8209;TOU&#8209;C and SDG&amp;E's
-      TOU&#8209;DR1 &mdash; the two utilities' standard residential plans. That is why this
-      one chart matters more than the rest: usage inside the band costs the most.</p>
+      <p id="hourChartDesc" class="cap">The taller the bar, the more electricity you use in
+      that hour. The shaded band is 4&ndash;9&nbsp;p.m., the most expensive window on both
+      PG&amp;E's E&#8209;TOU&#8209;C and SDG&amp;E's TOU&#8209;DR1 &mdash; the two utilities'
+      standard residential plans. Usage inside the band costs the most, which is why this
+      one chart matters more than the rest.</p>
     </figure>
     <details class="data">
-      <summary>See the hour-by-hour numbers</summary>
+      <summary>Hour-by-hour figures</summary>
       <table id="hourTable"></table>
     </details>
   </div>
 
-  <div class="panel" id="monthSection">
-    <h3>Month by month</h3>
-    <p class="intro">Seasons change what you use. A plan judged on winter alone will be judged
-    wrong.</p>
+  <div class="plate" id="monthSection">
+    <div class="plate-head"><span>Fig. 2 &mdash; usage by calendar month</span><span>kWh</span></div>
     <figure>
       <svg id="monthChart" viewBox="0 0 760 240" role="img" aria-labelledby="monthChartDesc"></svg>
-      <p id="monthChartDesc" class="cap">Total kWh per calendar month. Partial months at
-      either end of your file will look artificially low.</p>
+      <p id="monthChartDesc" class="cap">Seasons change what you use, and a plan judged on
+      winter alone will be judged wrong. Partial months at either end of your file will look
+      artificially low.</p>
     </figure>
     <details class="data">
-      <summary>See the monthly numbers</summary>
+      <summary>Monthly figures</summary>
       <table id="monthTable"></table>
     </details>
   </div>
 
-  <h3 class="eyebrow">The fine print</h3>
-
-  <details class="fine">
-    <summary>Did it read my file correctly?</summary>
+  <details class="fine" style="margin-top:2rem">
+    <summary>Schedule A &mdash; did it read my file correctly?</summary>
     <div class="body">
-      <p>Nothing above means anything if the file was misread. Here is exactly what was
+      <p>Nothing above means anything if the file was misread. This is exactly what was
       found in it.</p>
       <table id="fileTable"></table>
       <div id="warnBox"></div>
@@ -256,7 +245,7 @@ details.data summary:hover{color:var(--accent)}
   </details>
 
   <details class="fine">
-    <summary>Why are there no dollar amounts?</summary>
+    <summary>Schedule B &mdash; why are there no dollar amounts?</summary>
     <div class="body">
       <p><strong>Because this tool has not earned the right to show you one.</strong>
       Everything above is arithmetic on your own meter readings, which is safe to compute for
@@ -264,90 +253,118 @@ details.data summary:hover{color:var(--accent)}
       itself to a rule before any dollar figure ships:</p>
       <div class="gate">No feature that produces a dollar figure ships until the bill engine
       reproduces real utility bills, from real interval data, within &plusmn;$2 per month.</div>
-      <p>That is met for PG&amp;E — eleven consecutive real statements reproduced, worst error
-      22&nbsp;cents. It is <em>not</em> yet met for SDG&amp;E, because no real SDG&amp;E bill
-      has been tested against the engine. So rather than show you a confident-looking number
-      the engine has not earned, it shows you none.
+      <p>That is met for PG&amp;E &mdash; eleven consecutive real statements reproduced, worst
+      error 22&nbsp;cents. It is <em>not</em> yet met for SDG&amp;E, because no real SDG&amp;E
+      bill has been tested against the engine. So rather than show a confident-looking number
+      the engine has not earned, it shows none.
       <a href="./methodology.html">The full method is written up here.</a></p>
     </div>
   </details>
 
+  </div>
+ </section>
 </div>
 
+<!-- ============================ HOW ============================ -->
+<section class="row">
+  <div class="rail"><b>03</b>Procedure</div>
+  <div class="steps">
+    <div class="step">
+      <span class="n">Step 01</span>
+      <h3>Ask your utility</h3>
+      <p>Free, about two minutes, and it is your data by law. Utilities call it
+      <strong>Green Button</strong>.</p>
+    </div>
+    <div class="step">
+      <span class="n">Step 02</span>
+      <h3>Drop it in</h3>
+      <p>Nothing is uploaded and nothing is stored. Close the tab and it is gone.</p>
+    </div>
+    <div class="step">
+      <span class="n">Step 03</span>
+      <h3>Read your patterns</h3>
+      <p>When you use power, how much, and whether it lands in the expensive hours.</p>
+    </div>
+  </div>
+</section>
+
 <!-- ============================ HELP ============================ -->
-<section id="help">
-  <p class="eyebrow">Getting your file</p>
-  <h2 style="font-size:1.6rem;margin:0 0 .5rem">How to download it</h2>
-  <p style="color:var(--ink-2);max-width:62ch;margin:0 0 1.5rem">You want the
-  <strong>interval usage</strong> export — the hour-by-hour readings. The billing or cost
-  summary is a different download and will be turned away here.</p>
+<section class="row" id="help">
+  <div class="rail"><b>04</b>Obtaining<br>the file</div>
+  <div>
+    <h2 class="sec">How to download it</h2>
+    <p class="prose" style="margin:0 0 1.4rem">You want the <b>interval usage</b> export
+    &mdash; the hour-by-hour readings. The billing or cost summary is a different download
+    and will be turned away here.</p>
 
-  <details class="fine" open>
-    <summary>PG&amp;E</summary>
-    <div class="body">
-      <ol>
-        <li>Sign in at <code>pge.com</code> and open <strong>Energy Usage Details</strong>.</li>
-        <li>Find the <strong>Green Button</strong> control and choose
-            <strong>Export usage for a range of days</strong>.</li>
-        <li>Pick the widest range offered — up to 13 months — and download the CSV.</li>
-      </ol>
-    </div>
-  </details>
+    <details class="fine" open>
+      <summary>PG&amp;E</summary>
+      <div class="body">
+        <ol>
+          <li>Sign in at <code>pge.com</code> and open <strong>Energy Usage Details</strong>.</li>
+          <li>Find the <strong>Green Button</strong> control and choose
+              <strong>Export usage for a range of days</strong>.</li>
+          <li>Pick the widest range offered &mdash; up to 13 months &mdash; and download the CSV.</li>
+        </ol>
+      </div>
+    </details>
 
-  <details class="fine">
-    <summary>SDG&amp;E</summary>
-    <div class="body">
-      <ol>
-        <li>Sign in at <code>sdge.com</code> and open your usage or
-            <strong>Green Button</strong> tool.</li>
-        <li>Choose the <strong>interval usage</strong> export — 15-minute or hourly readings.</li>
-        <li>Pick the widest range offered — up to 13 months — and download the CSV.</li>
-      </ol>
-      <p>If you have solar, your file records what you sent to the grid separately. This
-      reads that too, and will say so.</p>
-    </div>
-  </details>
+    <details class="fine">
+      <summary>SDG&amp;E</summary>
+      <div class="body">
+        <ol>
+          <li>Sign in at <code>sdge.com</code> and open your usage or
+              <strong>Green Button</strong> tool.</li>
+          <li>Choose the <strong>interval usage</strong> export &mdash; 15-minute or hourly.</li>
+          <li>Pick the widest range offered &mdash; up to 13 months &mdash; and download the CSV.</li>
+        </ol>
+        <p>If you have solar, your file records what you sent to the grid separately. This
+        reads that too, and will say so.</p>
+      </div>
+    </details>
 
-  <details class="fine">
-    <summary>Why ask for 13 months rather than a few?</summary>
-    <div class="body">
-      <p>California rates change between summer and winter, and so does most households'
-      usage. A comparison built on three months of winter data will mis-rank plans for the
-      summer you never measured.</p>
-      <p>Both utilities keep 13 months available. Export all of it while you can — access
-      usually ends when the account does.</p>
-    </div>
-  </details>
+    <details class="fine">
+      <summary>Why 13 months and not a few</summary>
+      <div class="body">
+        <p>California rates change between summer and winter, and so does most households'
+        usage. A comparison built on three months of winter data will mis-rank plans for the
+        summer you never measured.</p>
+        <p>Both utilities keep 13 months. Export all of it while you can &mdash; access
+        usually ends when the account does.</p>
+      </div>
+    </details>
+  </div>
 </section>
 
 <!-- ============================ TRUST ============================ -->
-<section class="trust">
-  <p class="eyebrow">Why trust this</p>
-  <h2 style="font-size:1.6rem;margin:0 0 .6rem">It is checked against real bills, in public</h2>
-  <p style="color:var(--ink-2);max-width:64ch;margin:0">The code running in your browser is
-  the same Python the project's test suite covers, compiled to WebAssembly — not a separate
-  copy rewritten for the web that could quietly drift out of step. The bill engine behind the
-  wider project is held to a published accuracy record against real statements.</p>
-  <div class="trust-figs">
-    <div class="tfig"><div class="v">11 / 11</div><div class="k">Bills reproduced</div>
-      <div class="s">real PG&amp;E statements, within &plusmn;$2</div></div>
-    <div class="tfig"><div class="v">+$0.22</div><div class="k">Worst error</div>
-      <div class="s">0.43% of that statement</div></div>
-    <div class="tfig"><div class="v">418</div><div class="k">Tests</div>
-      <div class="s">run on every change</div></div>
-    <div class="tfig"><div class="v">AGPL</div><div class="k">Licence</div>
-      <div class="s">source is public and checkable</div></div>
+<section class="row">
+  <div class="rail"><b>05</b>Accuracy<br>record</div>
+  <div>
+    <h2 class="sec">Checked against real bills, in public</h2>
+    <p class="prose" style="margin:0">The code running in your browser is the same Python the
+    project's test suite covers, compiled to WebAssembly &mdash; not a separate copy rewritten
+    for the web that could quietly drift out of step. The bill engine behind the wider project
+    is held to a published accuracy record against real statements.</p>
+    <div class="trust-figs">
+      <div class="tfig"><div class="v">11 / 11</div><div class="k">Bills reproduced</div>
+        <div class="s">real PG&amp;E statements, within &plusmn;$2</div></div>
+      <div class="tfig"><div class="v">+$0.22</div><div class="k">Worst error</div>
+        <div class="s">0.43% of that statement</div></div>
+      <div class="tfig"><div class="v">418</div><div class="k">Tests</div>
+        <div class="s">run on every change</div></div>
+      <div class="tfig"><div class="v">AGPL</div><div class="k">Licence</div>
+        <div class="s">source is public and checkable</div></div>
+    </div>
+    <p class="cap">Every tariff number in the engine cites the utility tariff sheet it came
+    from; an unknown value raises an error rather than quietly defaulting to a guess.
+    <a href="./methodology.html">Read the methodology</a></p>
   </div>
-  <p class="cap" style="margin-top:1.4rem">Every tariff number in the engine cites the utility
-  tariff sheet it came from; an unknown value raises an error rather than quietly defaulting
-  to a guess. <a href="./methodology.html">Read the methodology &rarr;</a></p>
 </section>
 
 <footer>
-  <p><strong>Home Energy Advisor</strong> — an independent decision engine for California
-  electricity customers. Not affiliated with PG&amp;E, SDG&amp;E, or any solar installer.
-  This is analysis of published tariffs and your own metered data, not financial advice.
-  Source at <a href="https://github.com/CameronGordonn/energy-advisor">github.com/CameronGordonn/energy-advisor</a>, AGPL-3.0.</p>
+  <p><strong>Home Energy Advisor</strong> &mdash; an independent decision engine for California
+  electricity customers. Not affiliated with PG&amp;E, SDG&amp;E, or any solar installer. This
+  is analysis of published tariffs and your own metered data, not financial advice.</p>
   <p class="legal">
     <a href="./methodology.html">Method</a><a href="./privacy.html">Privacy</a><a href="./terms.html">Terms</a><a href="https://github.com/CameronGordonn/energy-advisor">Source</a>
   </p>
@@ -457,26 +474,34 @@ details.data summary:hover{color:var(--accent)}
   function render(d) {
     $("demoBanner").hidden = !isDemo;
     $("resultTitle").textContent = isDemo
-      ? "The example household, at a glance" : "Your electricity, at a glance";
+      ? "The specimen household, at a glance" : "Your electricity, at a glance";
     $("reportMeta").textContent = [
       d.utility,
       prettyDate(d.first_start) + " to " + prettyDate(d.last_start),
       num(d.span_days) + " days"
     ].join("  ·  ");
 
-    // The peak share leads: it is the one number that decides which plan suits a household.
-    $("stats").innerHTML = [
-      stat("Used in the priciest hours", pct(d.peak_share), "4&ndash;9 p.m., every day", true),
-      stat("Electricity used", num(d.total_kwh) + " kWh", "over " + num(d.span_days) + " days"),
-      stat("A typical day", num(d.avg_kwh_per_day, 1) + " kWh", "on average"),
-      stat("Used overnight", pct(d.overnight_share), "midnight&ndash;6 a.m., the cheapest")
-    ].join("");
+    // The peak share is the lead figure: it is the one number that decides which plan
+    // suits a household, so it gets the display voice and everything else gets the ledger.
+    $("leadFigure").textContent = pct(d.peak_share);
+    $("leadLabel").textContent =
+      "of everything you use falls in the 4–9 p.m. window, the priciest hours on both "
+      + "utilities' standard plans";
+
+    $("stats").innerHTML = "<tbody>" + [
+      row("Electricity used", num(d.total_kwh) + " kWh"),
+      row("Over", num(d.span_days) + " days"),
+      row("A typical day", num(d.avg_kwh_per_day, 1) + " kWh"),
+      row("In peak hours · 4–9 p.m.", pct(d.peak_share)),
+      row("Overnight · midnight–6 a.m.", pct(d.overnight_share)),
+      row("Busiest hour", hourLabel(d.by_hour_kwh.indexOf(Math.max.apply(null, d.by_hour_kwh))))
+    ].join("") + "</tbody>";
 
     $("findings").innerHTML = (d.findings || []).map(function (f) {
       var label = f.kind === "good" ? "In your favour"
                 : f.kind === "watch" ? "Worth knowing" : "Context";
-      return '<div class="finding ' + f.kind + '"><span class="tag">' + label + "</span>" +
-             "<h4>" + escapeHtml(f.title) + "</h4><p>" + escapeHtml(f.detail) + "</p></div>";
+      return '<div class="finding ' + f.kind + '"><div><span class="tag">' + label + "</span>" +
+             "<h4>" + escapeHtml(f.title) + "</h4><p>" + escapeHtml(f.detail) + "</p></div></div>";
     }).join("");
 
     hourChart(d);
@@ -488,11 +513,10 @@ details.data summary:hover{color:var(--accent)}
     $("fileTable").innerHTML = [
       row("Utility detected", escapeHtml(d.utility)),
       row("Reading interval", d.interval_minutes + " minutes"),
-      row("Period covered", prettyDate(d.first_start) + " &ndash; " + prettyDate(d.last_start) +
-          " (" + num(d.span_days) + " days)"),
+      row("Period covered", prettyDate(d.first_start) + " – " + prettyDate(d.last_start)),
       row("Readings found", num(d.n_intervals)),
       row("Complete", (d.coverage * 100).toFixed(2) + "%" +
-          (d.n_gaps ? " &mdash; " + num(d.n_gaps) + " missing" : " &mdash; nothing missing")),
+          (d.n_gaps ? " — " + num(d.n_gaps) + " missing" : " — nothing missing")),
       d.n_estimated ? row("Estimated by utility", num(d.n_estimated) + " reading(s)") : "",
       (d.dst_fall_back_days.length || d.dst_spring_forward_days.length)
         ? row("Clock changes handled",
@@ -500,13 +524,13 @@ details.data summary:hover{color:var(--accent)}
       d.has_export_register
         ? row("Solar export register", num(d.export_kwh) + " kWh sent to the grid") : "",
       row("Good enough to compare bills?",
-          d.coverage >= 0.98 ? "Yes" : "No &mdash; see the warnings below")
+          d.coverage >= 0.98 ? "Yes" : "No — see the warnings below")
     ].join("");
 
     $("warnBox").innerHTML = (d.warnings || []).length
-      ? '<div class="findings" style="margin:1rem 0 0">' + (d.warnings).map(function (w) {
-          return '<div class="finding watch"><span class="tag">Check this</span><p>' +
-                 escapeHtml(w) + "</p></div>";
+      ? '<div class="findings" style="margin:1.2rem 0 0">' + (d.warnings).map(function (w) {
+          return '<div class="finding watch"><div><span class="tag">Check this</span><p>' +
+                 escapeHtml(w) + "</p></div></div>";
         }).join("") + "</div>"
       : "";
 
@@ -517,10 +541,6 @@ details.data summary:hover{color:var(--accent)}
     }
   }
 
-  function stat(label, value, sub, lead) {
-    return '<div class="stat' + (lead ? " lead" : "") + '"><dt>' + label + "</dt><dd>" +
-           value + "<small>" + sub + "</small></dd></div>";
-  }
   function row(k, v) { return "<tr><th>" + k + "</th><td>" + v + "</td></tr>"; }
 
   function svgEl(tag, attrs, text) {
@@ -535,42 +555,39 @@ details.data summary:hover{color:var(--accent)}
     return (h % 12) + (h < 12 ? " a.m." : " p.m.");
   }
 
-  // --- charts -------------------------------------------------------------------------
-  // One series, so no legend: the heading names it. The peak band is highlighted AND
-  // named in text, so the 4-9 p.m. window is never carried by colour alone. Exactly one
-  // value is direct-labelled (the busiest hour) rather than every bar.
+  // --- charts ---------------------------------------------------------------------------
+  // Printed, not drawn: square bar ends, hairline rules, ledger type. One series, so no
+  // legend — the plate header names it. The peak band is a sulphur FILL with the bars in
+  // oxblood over it, and it is named in text as well as shaded, so the highlight is never
+  // carried by colour alone. Exactly one value is direct-labelled.
 
   function hourChart(d) {
     var svg = $("hourChart"); svg.innerHTML = "";
-    var W = 760, H = 300, L = 46, R = 12, T = 56, B = 48;
+    var W = 760, H = 300, L = 48, R = 10, T = 64, B = 48;
     var pw = W - L - R, ph = H - T - B, base = T + ph;
     var total = d.total_kwh || 1;
     var shares = d.by_hour_kwh.map(function (v) { return v / total; });
     var max = Math.max.apply(null, shares) || 1;
     var peakHour = shares.indexOf(max);
-    var band = pw / 24, bw = Math.min(26, band - 5);
+    var band = pw / 24, bw = Math.min(26, band - 4);
     var y = function (v) { return base - (v / max) * ph; };
 
-    // peak-window shading, drawn first so the bars sit on top of it
     svg.appendChild(svgEl("rect", {
-      x: L + band * 16, y: T - 8, width: band * 5, height: ph + 8,
-      fill: "var(--accent-soft)", rx: 4
+      x: L + band * 16, y: T - 10, width: band * 5, height: ph + 10, fill: "var(--band)"
     }));
     svg.appendChild(svgEl("text", {
-      x: L + band * 18.5, y: T - 34, "text-anchor": "middle",
-      "font-family": "var(--mono)", "font-size": "10.5", fill: "var(--accent)",
-      "font-weight": "600", "letter-spacing": ".08em"
-    }, "4-9 P.M. — PRICIEST"));
+      x: L + band * 18.5, y: T - 40, "text-anchor": "middle",
+      "font-family": "var(--mono)", "font-size": "10", fill: "var(--ox)",
+      "font-weight": "700", "letter-spacing": ".1em"
+    }, "4–9 P.M. · PRICIEST"));
 
-    // recessive gridlines
     [0, max / 2, max].forEach(function (t) {
       svg.appendChild(svgEl("line", {
-        x1: L, y1: y(t), x2: W - R, y2: y(t),
-        stroke: "var(--rule)", "stroke-width": 1
+        x1: L, y1: y(t), x2: W - R, y2: y(t), stroke: "var(--rule)", "stroke-width": 1
       }));
       svg.appendChild(svgEl("text", {
-        x: L - 9, y: y(t) + 4, "text-anchor": "end",
-        "font-family": "var(--mono)", "font-size": "10", fill: "var(--ink-2)"
+        x: L - 10, y: y(t) + 3.5, "text-anchor": "end",
+        "font-family": "var(--mono)", "font-size": "9.5", fill: "var(--ink-3)"
       }, Math.round(t * 100) + "%"));
     });
 
@@ -578,43 +595,40 @@ details.data summary:hover{color:var(--accent)}
       var x = L + band * h + (band - bw) / 2;
       var hh = Math.max(base - y(s), 1.5);
       svg.appendChild(svgEl("rect", {
-        x: x, y: base - hh, width: bw, height: hh, rx: 3,
-        fill: (h >= 16 && h < 21) ? "var(--accent)" : "var(--mark-muted)"
+        x: x, y: base - hh, width: bw, height: hh,
+        fill: (h >= 16 && h < 21) ? "var(--accent)" : "var(--mark)"
       })).appendChild(svgEl("title", {},
         hourLabel(h) + " — " + (s * 100).toFixed(1) + "% of everything you used"));
       if (h % 3 === 0) {
         svg.appendChild(svgEl("text", {
-          x: x + bw / 2, y: base + 18, "text-anchor": "middle",
-          "font-family": "var(--mono)", "font-size": "9.5", fill: "var(--ink-2)"
-        }, hourLabel(h).replace(" ", "")));
+          x: x + bw / 2, y: base + 17, "text-anchor": "middle",
+          "font-family": "var(--mono)", "font-size": "9", fill: "var(--ink-3)"
+        }, hourLabel(h).replace(/ /g, "")));
       }
     });
 
-    // A single direct label, on the busiest hour. Its x is clamped so the text cannot
-    // overhang the plot when the busiest hour is at either end of the day, and the extra
-    // top margin above keeps it clear of the peak-band caption when the two coincide.
-    var labelX = Math.min(Math.max(L + band * peakHour + band / 2, L + 34), W - R - 34);
+    var labelX = Math.min(Math.max(L + band * peakHour + band / 2, L + 38), W - R - 38);
     svg.appendChild(svgEl("text", {
-      x: labelX, y: y(max) - 10, "text-anchor": "middle",
-      "font-family": "var(--sans)", "font-size": "11.5", "font-weight": "600",
-      fill: "var(--ink)"
-    }, "busiest: " + hourLabel(peakHour)));
+      x: labelX, y: y(max) - 10, "text-anchor": "middle", "font-family": "var(--mono)",
+      "font-size": "10.5", "font-weight": "700", fill: "var(--ink)"
+    }, "BUSIEST · " + hourLabel(peakHour).toUpperCase()));
 
     svg.appendChild(svgEl("line", {
-      x1: L, y1: base, x2: W - R, y2: base, stroke: "var(--rule-2)", "stroke-width": 1.5
+      x1: L, y1: base, x2: W - R, y2: base, stroke: "var(--ink)", "stroke-width": 1.5
     }));
     svg.appendChild(svgEl("text", {
-      x: L, y: H - 8, "font-family": "var(--mono)", "font-size": "10", fill: "var(--ink-2)"
-    }, "hour of day (your local time)"));
+      x: L, y: H - 8, "font-family": "var(--mono)", "font-size": "9.5", fill: "var(--ink-3)",
+      "letter-spacing": ".06em"
+    }, "HOUR OF DAY · LOCAL TIME"));
   }
 
   function monthChart(d) {
     var svg = $("monthChart"); svg.innerHTML = "";
-    var W = 760, H = 240, L = 52, R = 12, T = 18, B = 52;
+    var W = 760, H = 240, L = 52, R = 10, T = 20, B = 52;
     var pw = W - L - R, ph = H - T - B, base = T + ph;
     var ms = d.by_month;
     var max = Math.max.apply(null, ms.map(function (m) { return m.kwh; })) || 1;
-    var band = pw / ms.length, bw = Math.min(40, band - 8);
+    var band = pw / ms.length, bw = Math.min(38, band - 6);
     var y = function (v) { return base - (v / max) * ph; };
 
     [0, max / 2, max].forEach(function (t) {
@@ -622,8 +636,8 @@ details.data summary:hover{color:var(--accent)}
         x1: L, y1: y(t), x2: W - R, y2: y(t), stroke: "var(--rule)", "stroke-width": 1
       }));
       svg.appendChild(svgEl("text", {
-        x: L - 9, y: y(t) + 4, "text-anchor": "end",
-        "font-family": "var(--mono)", "font-size": "10", fill: "var(--ink-2)"
+        x: L - 10, y: y(t) + 3.5, "text-anchor": "end",
+        "font-family": "var(--mono)", "font-size": "9.5", fill: "var(--ink-3)"
       }, Math.round(t)));
     });
 
@@ -631,47 +645,44 @@ details.data summary:hover{color:var(--accent)}
       var x = L + band * i + (band - bw) / 2;
       var hh = Math.max(base - y(m.kwh), 1.5);
       svg.appendChild(svgEl("rect", {
-        x: x, y: base - hh, width: bw, height: hh, rx: 3, fill: "var(--accent)"
+        x: x, y: base - hh, width: bw, height: hh, fill: "var(--mark)"
       })).appendChild(svgEl("title", {},
         m.month + " — " + num(m.kwh) + " kWh over " + m.days + " days"));
       if (ms.length <= 14 || i % 2 === 0) {
         svg.appendChild(svgEl("text", {
           x: x + bw / 2, y: base + 18, "text-anchor": "middle",
-          "font-family": "var(--mono)", "font-size": "9.5", fill: "var(--ink-2)",
-          transform: "rotate(-40 " + (x + bw / 2) + " " + (base + 18) + ")"
+          "font-family": "var(--mono)", "font-size": "9", fill: "var(--ink-3)",
+          transform: "rotate(-42 " + (x + bw / 2) + " " + (base + 18) + ")"
         }, m.month));
       }
     });
     svg.appendChild(svgEl("line", {
-      x1: L, y1: base, x2: W - R, y2: base, stroke: "var(--rule-2)", "stroke-width": 1.5
+      x1: L, y1: base, x2: W - R, y2: base, stroke: "var(--ink)", "stroke-width": 1.5
     }));
     svg.appendChild(svgEl("text", {
-      x: L, y: H - 6, "font-family": "var(--mono)", "font-size": "10", fill: "var(--ink-2)"
-    }, "kWh per calendar month"));
+      x: L, y: H - 6, "font-family": "var(--mono)", "font-size": "9.5", fill: "var(--ink-3)",
+      "letter-spacing": ".06em"
+    }, "KWH PER CALENDAR MONTH"));
   }
 
-  // --- the same data as text, for screen readers and for anyone who wants the numbers ---
-  // role="img" makes an SVG atomic, so its per-bar <title> tooltips are never announced.
-  // These tables are the accessible equivalent, not an extra.
-
+  // --- the same data as text: role="img" hides per-bar <title> from screen readers -------
   function hourTable(d) {
     var total = d.total_kwh || 1;
     $("hourTable").innerHTML =
-      "<thead><tr><th>Hour</th><th class='num'>Share of total</th>" +
-      "<th class='num'>kWh</th></tr></thead><tbody>" +
+      "<thead><tr><th>Hour</th><th>Share</th><th>kWh</th></tr></thead><tbody>" +
       d.by_hour_kwh.map(function (v, h) {
-        return "<tr><th>" + hourLabel(h) + (h >= 16 && h < 21 ? " (peak)" : "") + "</th>" +
-               "<td class='num'>" + (v / total * 100).toFixed(1) + "%</td>" +
-               "<td class='num'>" + num(v, 1) + "</td></tr>";
+        return "<tr><th>" + hourLabel(h) + (h >= 16 && h < 21 ? " · peak" : "") + "</th>" +
+               "<td>" + (v / total * 100).toFixed(1) + "%</td>" +
+               "<td>" + num(v, 1) + "</td></tr>";
       }).join("") + "</tbody>";
   }
 
   function monthTable(d) {
     $("monthTable").innerHTML =
-      "<thead><tr><th>Month</th><th class='num'>kWh</th><th class='num'>Days</th></tr></thead><tbody>" +
+      "<thead><tr><th>Month</th><th>kWh</th><th>Days</th></tr></thead><tbody>" +
       d.by_month.map(function (m) {
-        return "<tr><th>" + escapeHtml(m.month) + "</th><td class='num'>" + num(m.kwh) +
-               "</td><td class='num'>" + m.days + "</td></tr>";
+        return "<tr><th>" + escapeHtml(m.month) + "</th><td>" + num(m.kwh) +
+               "</td><td>" + m.days + "</td></tr>";
       }).join("") + "</tbody>";
   }
 

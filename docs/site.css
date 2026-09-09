@@ -1,115 +1,161 @@
-/* Home Energy Advisor — shared design tokens and page chrome.
-   ONE definition of the palette for the whole site. Do not re-declare these tokens in a
-   page's own <style>; add to this file instead. Contrast is solved for, not eyeballed:
-   every ink token clears WCAG AA (4.5) for body text on every surface, in both themes.
-   See .claude/skills/design-system/SKILL.md for the matrix and the history. */
+/* Home Energy Advisor — shared tokens and page chrome.
+   ------------------------------------------------------------------------------------
+   THE IDEA: this product exists to reproduce a utility bill to within $2, so the site is
+   built as the document it is about — a tariff sheet. Two-colour offset print on manila:
+   ink plus oxblood, with sulphur reserved for the live/expensive hours. Zero radius
+   anywhere; rules and ledger columns do the structural work that cards would otherwise do.
 
-strong{font-weight:600}
+   COLOUR RULE, and it is a hard one: --sul is a FILL, never a text colour. On paper it
+   sits at 1.89:1. Accent TEXT is always --ox (5.60 light / 4.88 dark). Every ink token
+   clears WCAG AA 4.5 on both surfaces in both themes; --mark clears 3:1 because it paints
+   chart bars, which are data. See .claude/skills/design-system/SKILL.md for the matrix.
+   ------------------------------------------------------------------------------------ */
 
 :root{
-  --ground:#F1F3EE; --surface:#FBFBF8; --surface-2:#E9ECE3;
-  --ink:#171A13; --ink-2:#545A4C; --ink-3:#676C61;
-  --rule:#DBDED3; --rule-2:#C8CCBE; --mark-muted:#868E70;
-  --accent:#0B784F; --accent-soft:#E2EFE8;
-  --warn:#B24A0B; --warn-soft:#F6E9DE;
-  --serif:"Newsreader",Georgia,"Times New Roman",serif;
-  --sans:"Public Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
-  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  --paper:#EAE3D3; --paper-2:#DFD7C2; --band:#E7CF4E;
+  --ink:#191510; --ink-2:#4F4739; --ink-3:#665D4E;
+  --rule:#C9BFA6; --rule-2:#A89C7E;
+  --ox:#9E3220; --accent:#9E3220;
+  --sul:#C8A310; --mark:#867859;
+  --display:"Archivo",'Arial Narrow',Helvetica,sans-serif;
+  --sans:"Archivo",-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+  --mono:"Space Mono",ui-monospace,Menlo,Consolas,monospace;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --ground:#14170F; --surface:#1C1F19; --surface-2:#23271F;
-  --ink:#E9EBE2; --ink-2:#A5AA9A; --ink-3:#888E7F;
-  --rule:#2C3027; --rule-2:#3A3F33; --mark-muted:#6B7360;
-  --accent:#2FA372; --accent-soft:#16281F;
-  --warn:#D07C22; --warn-soft:#2A1F12;
+  --paper:#15120D; --paper-2:#1E1A14; --band:#332C19;
+  --ink:#EFE7D5; --ink-2:#BDB29C; --ink-3:#8C8272;
+  --rule:#332E24; --rule-2:#4C4638;
+  --ox:#CA654F; --accent:#CA654F;
+  --sul:#E3C93F; --mark:#6E6553;
 }}
 :root[data-theme="dark"]{
-  --ground:#14170F; --surface:#1C1F19; --surface-2:#23271F;
-  --ink:#E9EBE2; --ink-2:#A5AA9A; --ink-3:#888E7F;
-  --rule:#2C3027; --rule-2:#3A3F33; --mark-muted:#6B7360;
-  --accent:#2FA372; --accent-soft:#16281F;
-  --warn:#D07C22; --warn-soft:#2A1F12;
+  --paper:#15120D; --paper-2:#1E1A14; --band:#332C19;
+  --ink:#EFE7D5; --ink-2:#BDB29C; --ink-3:#8C8272;
+  --rule:#332E24; --rule-2:#4C4638;
+  --ox:#CA654F; --accent:#CA654F;
+  --sul:#E3C93F; --mark:#6E6553;
 }
 
 *{box-sizing:border-box}
-body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--sans);
-  font-size:16.5px;line-height:1.62;-webkit-font-smoothing:antialiased}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
+  font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
 img{max-width:100%}
 [hidden]{display:none!important}
-:focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:2px}
-a{color:var(--accent)}
-h1,h2,h3{font-family:var(--serif);font-weight:500;letter-spacing:-.015em;text-wrap:balance}
-.wrap{max-width:63rem;margin:0 auto;padding:0 1.5rem}
-.eyebrow{font-family:var(--mono);font-size:.7rem;letter-spacing:.14em;text-transform:uppercase;
-  color:var(--ink-3);margin:0 0 .7rem;display:flex;align-items:center;gap:.6rem}
-.eyebrow::after{content:"";flex:1;height:1px;background:var(--rule)}
-code{font-family:var(--mono);font-size:.87em;background:var(--surface-2);padding:.1em .35em;
-  border-radius:3px}
-ol,ul{margin:.4rem 0 0;padding-left:1.2rem}
-ol li,ul li{margin-bottom:.45rem}
+::selection{background:var(--band);color:#191510}
+:focus-visible{outline:2px solid var(--ox);outline-offset:2px}
+a{color:var(--ox);text-underline-offset:2px}
+strong{font-weight:700}
 
-/* nav */
-nav{border-bottom:1px solid var(--rule);background:var(--ground);position:sticky;top:0;z-index:20}
-nav .wrap{display:flex;gap:1.5rem;align-items:center;justify-content:space-between;
-  padding-top:.85rem;padding-bottom:.85rem;flex-wrap:wrap}
-nav .brand{font-family:var(--mono);font-size:.74rem;letter-spacing:.13em;
-  text-transform:uppercase;color:var(--ink);font-weight:600;text-decoration:none}
-nav .links{display:flex;gap:1.4rem;font-size:.87rem}
-nav a{color:var(--ink-2);text-decoration:none}
-nav a:hover{color:var(--accent);text-decoration:underline}
+/* Display voice: Archivo pushed to its widest axis. Uppercase, very tight, ranged left. */
+.display{font-family:var(--display);font-stretch:125%;font-weight:700;text-transform:uppercase;
+  line-height:.9;letter-spacing:-.005em;margin:0}
 
-/* buttons */
-button{font-family:inherit;font-size:.92rem;padding:.62rem 1.15rem;border-radius:6px;
-  border:1px solid var(--rule-2);background:var(--surface);color:var(--ink);cursor:pointer;
-  transition:background .12s,border-color .12s}
-button:hover{border-color:var(--ink-3)}
-button.primary{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
-button.primary:hover{filter:brightness(1.08)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) button.primary{color:#0B1410}}
-:root[data-theme="dark"] button.primary{color:#0B1410}
+/* Ledger voice: everything numeric, every label, every stamp. */
+.mono{font-family:var(--mono)}
+.tag{font-family:var(--mono);font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-3)}
 
-/* disclosure panels */
-details.fine{border:1px solid var(--rule);border-radius:8px;background:var(--surface);
-  margin-bottom:.8rem;overflow:hidden}
-details.fine>summary{padding:1rem 1.3rem;cursor:pointer;font-family:var(--serif);font-size:1.1rem;
-  color:var(--ink);list-style:none;display:flex;justify-content:space-between;gap:1rem;
-  align-items:center}
+/* ---- the sheet: a left rail of margin annotations, content to its right --------------
+   This is what stops the page being a stack of centred blocks. The rail carries section
+   numbers the way a tariff sheet carries them, and the content hangs off it. */
+.sheet{max-width:76rem;margin:0 auto;padding:0 1.75rem}
+.row{display:grid;grid-template-columns:8.5rem 1fr;gap:2rem;
+  border-top:1px solid var(--rule);padding:2.6rem 0}
+.row.heavy{border-top:3px solid var(--ink)}
+.rail{font-family:var(--mono);font-size:.7rem;line-height:1.5;letter-spacing:.04em;
+  text-transform:uppercase;color:var(--ink-3);position:sticky;top:3.6rem;align-self:start}
+.rail b{display:block;color:var(--ox);font-weight:700;font-size:.78rem}
+
+/* ---- masthead: a document header, not a nav bar ---- */
+.masthead{border-bottom:3px solid var(--ink);background:var(--paper);
+  position:sticky;top:0;z-index:30}
+.masthead .in{max-width:76rem;margin:0 auto;padding:.55rem 1.75rem;display:flex;
+  align-items:baseline;justify-content:space-between;gap:1.5rem;flex-wrap:wrap;
+  font-family:var(--mono);font-size:.68rem;letter-spacing:.05em;text-transform:uppercase}
+.masthead .brand{color:var(--ink);font-weight:700;text-decoration:none}
+.masthead nav{display:flex;gap:1.1rem}
+.masthead a{color:var(--ink-3);text-decoration:none}
+.masthead a:hover{color:var(--ox);text-decoration:underline}
+
+/* ---- the stamp: the signature device. A tool that deliberately prices nothing should
+   say so the way a document would. ---- */
+.stamp{display:inline-block;border:2px solid var(--ox);color:var(--ox);
+  font-family:var(--mono);font-weight:700;text-transform:uppercase;letter-spacing:.1em;
+  font-size:.74rem;line-height:1.25;padding:.5rem .8rem;transform:rotate(-3deg);
+  text-align:center}
+.stamp span{display:block;font-size:.6rem;letter-spacing:.08em;font-weight:400;
+  border-top:1px solid var(--ox);margin-top:.35rem;padding-top:.3rem}
+
+/* ---- ledger rows: dot leaders, right-aligned figures ---- */
+.ledger{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:.82rem}
+.ledger th,.ledger td{padding:.42rem 0;border-bottom:1px solid var(--rule);text-align:left;
+  font-weight:400;vertical-align:baseline}
+.ledger th{color:var(--ink-2);width:auto;text-transform:none;letter-spacing:0;font-size:.82rem}
+.ledger td{text-align:right;color:var(--ink);white-space:nowrap;padding-left:1.5rem}
+.ledger tr:last-child th,.ledger tr:last-child td{border-bottom:0}
+
+/* ---- plates: bordered blocks for charts. A border, not a card: no radius, no shadow. ---- */
+.plate{border:1px solid var(--rule-2);background:var(--paper-2);padding:1.4rem}
+.plate-head{display:flex;justify-content:space-between;align-items:baseline;gap:1rem;
+  border-bottom:1px solid var(--rule-2);padding-bottom:.6rem;margin-bottom:1.2rem;
+  font-family:var(--mono);font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-3)}
+figure{margin:0}
+svg{display:block;width:100%;height:auto;overflow:visible}
+.cap{font-size:.84rem;line-height:1.5;color:var(--ink-2);margin:1rem 0 0;max-width:66ch}
+
+/* ---- disclosure ---- */
+details.fine{border-top:1px solid var(--rule)}
+details.fine>summary{padding:.9rem 0;cursor:pointer;font-family:var(--mono);font-size:.78rem;
+  text-transform:uppercase;letter-spacing:.05em;color:var(--ink);list-style:none;
+  display:flex;justify-content:space-between;gap:1rem;align-items:center}
 details.fine>summary::-webkit-details-marker{display:none}
-details.fine>summary::after{content:"+";font-family:var(--mono);color:var(--ink-3);font-size:1.1rem}
-details.fine[open]>summary::after{content:"\2212"}
-details.fine>summary:hover{color:var(--accent)}
-details.fine .body{padding:0 1.3rem 1.3rem;font-size:.94rem;color:var(--ink-2)}
+details.fine>summary::after{content:"[+]";color:var(--ox)}
+details.fine[open]>summary::after{content:"[\2212]"}
+details.fine>summary:hover{color:var(--ox)}
+details.fine .body{padding:0 0 1.4rem;font-size:.92rem;color:var(--ink-2);max-width:68ch}
 details.fine .body p{margin:0 0 .8rem}
 details.fine .body p:last-child{margin-bottom:0}
-.gate{background:var(--accent-soft);border-left:3px solid var(--accent);padding:.85rem 1.1rem;
-  font-family:var(--serif);font-size:1rem;color:var(--ink);margin:.4rem 0 1rem;border-radius:0 6px 6px 0}
+.gate{border-left:3px solid var(--ox);background:var(--paper-2);padding:.8rem 1rem;
+  font-family:var(--mono);font-size:.82rem;line-height:1.5;color:var(--ink);margin:.6rem 0 1rem}
 
-/* tables */
-table{width:100%;border-collapse:collapse;font-size:.88rem;margin-top:.9rem}
-th,td{text-align:left;padding:.5rem .6rem;border-bottom:1px solid var(--rule);vertical-align:top}
-th{font-family:var(--mono);font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;
-  color:var(--ink-3);font-weight:600;width:44%}
-tbody tr:last-child th,tbody tr:last-child td{border-bottom:0}
-td.num,th.num{text-align:right;font-family:var(--mono);font-size:.82rem;width:auto}
+button{font-family:var(--mono);font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;
+  padding:.7rem 1.1rem;border:1px solid var(--ink);background:transparent;color:var(--ink);
+  cursor:pointer}
+button:hover{background:var(--ink);color:var(--paper)}
+button.primary{background:var(--ox);border-color:var(--ox);color:#F7F2E6;font-weight:700}
+button.primary:hover{background:var(--ink);border-color:var(--ink);color:var(--paper)}
 
-/* footer */
-footer{border-top:1px solid var(--rule);margin-top:3.5rem;padding:2rem 0 3rem;font-size:.85rem;
-  color:var(--ink-2)}
-footer p{margin:0 0 .8rem;max-width:70ch}
-footer p:last-child{margin-bottom:0}
-footer .legal{display:flex;gap:1.2rem;flex-wrap:wrap;font-family:var(--mono);font-size:.72rem;
-  letter-spacing:.08em;text-transform:uppercase}
+code{font-family:var(--mono);font-size:.86em;background:var(--paper-2);padding:.05em .3em}
+ol,ul{margin:.4rem 0 0;padding-left:1.1rem}
+ol li,ul li{margin-bottom:.4rem}
 
-/* long-form prose pages (privacy, terms) */
-.doc{max-width:44rem;padding:3rem 0 0}
-.doc h1{font-size:clamp(2rem,4vw,2.8rem);line-height:1.05;margin:0 0 .5rem}
-.doc .updated{font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;text-transform:uppercase;
-  color:var(--ink-3);margin:0 0 2.2rem}
-.doc h2{font-size:1.4rem;margin:2.4rem 0 .6rem}
-.doc h3{font-size:1.1rem;margin:1.6rem 0 .4rem;letter-spacing:0}
+footer{border-top:3px solid var(--ink);margin-top:3rem;padding:1.6rem 0 3rem;
+  font-size:.82rem;color:var(--ink-2)}
+footer p{margin:0 0 .7rem;max-width:74ch}
+footer .legal{display:flex;gap:1.1rem;flex-wrap:wrap;font-family:var(--mono);font-size:.68rem;
+  letter-spacing:.05em;text-transform:uppercase}
+
+/* ---- prose documents (privacy, terms) ---- */
+.doc{max-width:42rem;padding:2.6rem 0 0}
+.doc h1{font-family:var(--display);font-stretch:125%;font-weight:700;text-transform:uppercase;
+  font-size:clamp(2rem,5vw,3.2rem);line-height:.92;margin:0 0 .6rem}
+.doc .updated{font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--ink-3);margin:0 0 2rem;border-bottom:1px solid var(--rule);padding-bottom:1rem}
+.doc h2{font-family:var(--display);font-stretch:110%;font-weight:700;text-transform:uppercase;
+  font-size:1.1rem;letter-spacing:.01em;margin:2.4rem 0 .7rem}
+.doc h3{font-family:var(--mono);font-size:.82rem;text-transform:uppercase;letter-spacing:.05em;
+  color:var(--ox);margin:1.6rem 0 .4rem;font-weight:700}
 .doc p{margin:0 0 1rem;color:var(--ink-2)}
 .doc li{color:var(--ink-2)}
 .doc strong{color:var(--ink)}
-.doc .callout{background:var(--surface);border:1px solid var(--rule);border-left:3px solid var(--accent);
-  border-radius:0 8px 8px 0;padding:1.1rem 1.3rem;margin:1.4rem 0}
+.doc .callout{border:1px solid var(--ink);padding:1.1rem 1.2rem;margin:1.4rem 0;
+  background:var(--paper-2)}
 .doc .callout p{margin:0;color:var(--ink)}
+
+@media (max-width:820px){
+  .row{grid-template-columns:1fr;gap:1rem;padding:2rem 0}
+  .rail{position:static;display:flex;gap:.9rem;align-items:baseline}
+  .rail b{display:inline}
+  .sheet{padding:0 1.1rem}
+}

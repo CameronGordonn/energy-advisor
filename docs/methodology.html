@@ -12,31 +12,31 @@
 <link rel="stylesheet" href="./fonts.css">
 <style>
 :root{
-  --ground:#F1F3EE; --surface:#FBFBF8; --surface-2:#E9ECE3;
-  --ink:#171A13; --ink-2:#545A4C; --ink-3:#676C61;
-  --rule:#DBDED3; --rule-2:#C8CCBE;
-  --accent:#0B784F; --accent-soft:#E2EFE8;
-  --warn:#B24A0B; --warn-soft:#F6E9DE;
-  --serif:"Newsreader",Georgia,"Times New Roman",serif;
-  --sans:"Public Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
-  --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --ground:#EAE3D3; --surface:#DFD7C2; --surface-2:#D6CDB6;
+  --ink:#191510; --ink-2:#4F4739; --ink-3:#665D4E;
+  --rule:#C9BFA6; --rule-2:#A89C7E;
+  --accent:#9E3220; --accent-soft:#E6DBC4;
+  --warn:#7A5410; --warn-soft:#E7DCBE;
+  --serif:"Archivo",Helvetica,Arial,sans-serif;
+  --sans:"Archivo",-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
+  --mono:"Space Mono",ui-monospace,Menlo,Consolas,monospace;
   --col:40rem;
 }
 @media (prefers-color-scheme:dark){
   :root:not([data-theme="light"]){
-    --ground:#14170F; --surface:#1C1F19; --surface-2:#23271F;
-    --ink:#E9EBE2; --ink-2:#A5AA9A; --ink-3:#888E7F;
-    --rule:#2C3027; --rule-2:#3A3F33;
-    --accent:#2FA372; --accent-soft:#16281F;
-    --warn:#D07C22; --warn-soft:#2A1F12;
+    --ground:#15120D; --surface:#1E1A14; --surface-2:#262119;
+    --ink:#EFE7D5; --ink-2:#BDB29C; --ink-3:#8C8272;
+    --rule:#332E24; --rule-2:#4C4638;
+    --accent:#CA654F; --accent-soft:#2A2418;
+    --warn:#D9A63F; --warn-soft:#2A2316;
   }
 }
 :root[data-theme="dark"]{
-  --ground:#14170F; --surface:#1C1F19; --surface-2:#23271F;
-  --ink:#E9EBE2; --ink-2:#A5AA9A; --ink-3:#888E7F;
-  --rule:#2C3027; --rule-2:#3A3F33;
-  --accent:#2FA372; --accent-soft:#16281F;
-  --warn:#D07C22; --warn-soft:#2A1F12;
+  --ground:#15120D; --surface:#1E1A14; --surface-2:#262119;
+  --ink:#EFE7D5; --ink-2:#BDB29C; --ink-3:#8C8272;
+  --rule:#332E24; --rule-2:#4C4638;
+  --accent:#CA654F; --accent-soft:#2A2418;
+  --warn:#D9A63F; --warn-soft:#2A2316;
 }
 
 *{box-sizing:border-box}
@@ -118,9 +118,9 @@ figure{margin:0}
 svg{display:block;width:100%;height:auto}
 .bar{cursor:pointer;transition:opacity .12s}
 .bar:hover{opacity:.72}
-.ax{font-family:"IBM Plex Mono",monospace;font-size:11px;fill:var(--ink-3)}
-.axlabel{font-family:"IBM Plex Mono",monospace;font-size:11px;fill:var(--ink-2);font-weight:500}
-.dlabel{font-family:"IBM Plex Mono",monospace;font-size:11px;fill:var(--ink-2);font-weight:600}
+.ax{font-family:"Space Mono",monospace;font-size:11px;fill:var(--ink-3)}
+.axlabel{font-family:"Space Mono",monospace;font-size:11px;fill:var(--ink-2);font-weight:500}
+.dlabel{font-family:"Space Mono",monospace;font-size:11px;fill:var(--ink-2);font-weight:600}
 #tip{position:fixed;pointer-events:none;opacity:0;transition:opacity .1s;z-index:20;
   background:var(--ink);color:var(--ground);padding:.5rem .65rem;border-radius:3px;
   font-family:var(--mono);font-size:.72rem;line-height:1.5;white-space:pre;
@@ -215,7 +215,7 @@ img{max-width:100%}
 </dl>
 
 <section>
-  <div class="sechead"><span class="num">§1</span><h2>The gate</h2></div>
+  <div class="sechead"><span class="num">01</span><h2>The gate</h2></div>
 
   <p class="lede">Most consumer energy calculators cannot tell you whether they would have
   reproduced your last bill, because they never try. They price a modeled load profile against
@@ -275,7 +275,7 @@ img{max-width:100%}
 </section>
 
 <section>
-  <div class="sechead"><span class="num">§2</span><h2>How the engine computes a bill</h2></div>
+  <div class="sechead"><span class="num">02</span><h2>How the engine computes a bill</h2></div>
 
   <h3>The bill is a pure function</h3>
   <p>No I/O, no network, no hidden state, deterministic:</p>
@@ -333,7 +333,7 @@ img{max-width:100%}
 </section>
 
 <section>
-  <div class="sechead"><span class="num">§3</span><h2>One household, end to end</h2></div>
+  <div class="sechead"><span class="num">03</span><h2>One household, end to end</h2></div>
 
   <p><strong>Disclosure.</strong> This is the author's own account, published deliberately and
   with attribution. Anonymising it would be theatre — the repository carries my name — and
@@ -490,7 +490,7 @@ care_baseline = 0.65 × standard</pre>
 </section>
 
 <section>
-  <div class="sechead"><span class="num">§4</span><h2>Five findings a generic calculator misses</h2></div>
+  <div class="sechead"><span class="num">04</span><h2>Five findings a generic calculator misses</h2></div>
   <p class="lede">These came out of building the engine, not out of looking for marketing copy.
   Each is checkable from public documents.</p>
 
@@ -547,7 +547,7 @@ care_baseline = 0.65 × standard</pre>
 </section>
 
 <section>
-  <div class="sechead"><span class="num">§5</span><h2>What is still assumed, approximate, or unknown</h2></div>
+  <div class="sechead"><span class="num">05</span><h2>What is still assumed, approximate, or unknown</h2></div>
   <p class="lede">Presented in full, because a methodology writeup that lists only its strengths
   is marketing.</p>
 
@@ -602,7 +602,7 @@ care_baseline = 0.65 × standard</pre>
 </section>
 
 <section>
-  <div class="sechead"><span class="num">§6</span><h2>Reproducing this</h2></div>
+  <div class="sechead"><span class="num">06</span><h2>Reproducing this</h2></div>
   <pre>conda env create -f environment.yml &amp;&amp; conda activate energy-advisor
 pytest                                              <b># 331 tests</b>
 

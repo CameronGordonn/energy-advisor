@@ -84,8 +84,12 @@ ok(/\$2 per month/.test(results.textContent),
 // Demo mode must announce itself.
 window.__renderInspection(inspection, true);
 ok(!doc.getElementById("demoBanner").hidden, "demo banner shows in demo mode");
-ok(/demonstration file/i.test(doc.getElementById("demoBanner").textContent),
-   "demo banner explains the data is synthetic");
+// The wording is the page's to choose; what it must never stop doing is telling the
+// reader the numbers are not a real household's. Assert the GUARANTEE, not one phrasing:
+// it has to name the data as fabricated AND say plainly that it is not real.
+const banner = doc.getElementById("demoBanner").textContent;
+ok(/specimen|demonstration|invented|synthetic|sample/i.test(banner) && /not a real/i.test(banner),
+   "demo banner explains the data is synthetic", banner.slice(0, 120));
 
 console.log(fails === 0 ? "\nALL RENDER CHECKS PASSED" : `\n${fails} CHECK(S) FAILED`);
 process.exit(fails === 0 ? 0 : 1);

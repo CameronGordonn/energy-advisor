@@ -4,11 +4,11 @@ _Rewrite this whole file whenever you finish a milestone or pause. Keep it short
 current: state, how to run, open decisions, exact next action._
 
 ## Status: **M0, M2, M4 done. Public site is a working tool. M1 and M3 have complete engines, DoDs blocked on data.**
-_(2026-09-08, session 11)_
+_(2026-09-08, session 12)_
 
 > **Sessions 8-10.** **418 tests green** (was 166 at session 7), ruff clean, **11/11 PG&E
 > golden bills reconcile with byte-identical residuals** (worst +$0.22), M2 verdict unchanged.
-> Full detail in SESSION_NOTES §§ Session 8, 8b, 8c, 8d, 9, 10, 11.
+> Full detail in SESSION_NOTES §§ Session 8, 8b, 8c, 8d, 9, 10, 11, 12.
 >
 > - **The repo and site are live and public.** https://github.com/CameronGordonn/energy-advisor
 >   (AGPL-3.0) and https://camerongordonn.github.io/energy-advisor/ — see Publishing below.
@@ -74,7 +74,13 @@ _(2026-09-08, session 11)_
   `privacy.html`, `terms.html`, sharing `site.css` (tokens + chrome) and `fonts.css`
   (`@font-face` only — methodology takes fonts without the chrome, whose `th{width:44%}`
   would wreck its tables). **Fonts are self-hosted in `docs/fonts/`; the site requests
-  nothing from Google.** Overhauled in session 11: landing vs report states, plain language,
+  nothing from Google.**
+  **Session 12 redesigned it as the document it is about — a tariff sheet:** two-colour
+  print on manila (oxblood + sulphur), **zero border-radius anywhere**, a left rail of
+  mono section numbers, ledger rows instead of stat cards, and a `NOT A BILL` stamp.
+  Type is Archivo (variable width axis) + Space Mono. `--sul` is a FILL, never text;
+  `--ox` means "the expensive hours" and nothing else. Read `.claude/skills/design-system`
+  before touching `docs/` — the colour rules and the chart geometry are load-bearing. Overhauled in session 11: landing vs report states, plain language,
   disclosure panels, and accessibility fixed (contrast solved for, chart data tables added,
   heading order repaired). Two committed project skills in `.claude/skills/` describe the
   system and its contracts — read them before touching `docs/`.

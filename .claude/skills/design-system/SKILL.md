@@ -23,35 +23,41 @@ Pages is the canonical home. `docs/index.html` carries its own `<!doctype html>`
 lang>`, and `<head>`, so it is **not** an Artifact — do not route it through the Artifact
 publisher without stripping the wrapper first, and prefer not to at all.
 
+## The idea
+
+The product exists to reproduce a utility bill to within $2, so the site is built as **the
+document it is about**: a tariff sheet. Two-colour offset print on manila. Rules and ledger
+columns do the structural work; **there is no border-radius anywhere on the site**, and
+adding one is a regression, not a refinement. A left rail of mono margin-annotations
+(`.rail`, section numbers `00`-`05`) carries each block, which is what stops the page being
+a stack of centred cards.
+
+The signature device is the **stamp** (`.stamp`): `NOT A BILL / NO AMOUNT DUE`. The tool
+deliberately prices nothing, and a document says that the way a document would. Keep it.
+
 ## The tokens
 
-The palette lives in **`docs/site.css`**. `methodology.html` still repeats it inline; those
-values are in sync today and must be kept so until it is migrated.
+Defined once in `docs/site.css`. `methodology.html` still holds its own copy of the values
+(in sync; migrating it needs its nav/footer rules reconciled with the shared chrome first).
 
 ```
---ground --surface --surface-2      surfaces, lightest to most recessed
+--paper --paper-2                   the manila grounds
+--band                              the sulphur block behind the 4-9 p.m. hours
 --ink --ink-2 --ink-3               text, strongest to faintest
---rule --rule-2                     hairlines and borders
---mark-muted                        non-highlighted CHART BARS — a data colour, not a
-                                    hairline; 3:1 against --surface in both themes
---accent --accent-soft              the green; soft is its tinted background
---warn --warn-soft                  the orange, for caveats and gates
---serif --sans --mono               Newsreader / Public Sans / IBM Plex Mono
---col                               methodology.html only: 40rem measure
+--rule --rule-2                     hairlines
+--ox  (= --accent)                  oxblood: accent TEXT, peak bars, rules, the stamp
+--sul                               sulphur: a FILL ONLY, never text (1.89:1 on paper)
+--mark                              non-highlighted chart bars — a data colour
+--display --sans --mono             Archivo (wdth axis), Archivo, Space Mono
 ```
 
-**Rules**
+**The hard colour rule: `--sul` is a fill, `--ox` is the ink.** Sulphur sits at 1.89:1 on
+paper and must never carry text. Accent text is always `--ox`.
 
-1. **Never hardcode a colour.** Every colour in either page resolves to a token. A raw hex
-   outside the `:root` blocks is a bug.
-2. **Add tokens to `site.css`, never to a page.** The one exception is
-   `methodology.html`, which still has its own copy — change both until it is migrated.
-3. **Serif for display and prose, sans for UI, mono for eyebrows and labels.** `h1`, `.sub`,
-   `#drop .big` and section headings are `--serif`; nav brand and small caps labels are
-   `--mono` with `letter-spacing:.11em` and `text-transform:uppercase`.
-4. `.wrap` is `max-width:60rem`. Long-form prose on methodology.html uses `--col` (40rem)
-   for measure. Do not widen prose past ~75 characters.
-5. Keep the existing font fallback stacks. Any webfont must degrade to them.
+**Type.** `Archivo` is variable on weight *and width* (62–125%), so one file gives both
+voices: `font-stretch:125%` + uppercase is the display voice (`.display`), normal width is
+body. `Space Mono` carries every number, label, stamp and axis — the ledger voice. Two
+families, both doing a specific job; do not add a third.
 
 ## The theme contract
 
@@ -68,26 +74,21 @@ breaks in one direction. `body` must always paint an explicit `background:var(--
 
 ## Contrast — all tokens pass; keep it that way
 
-Measured against the current tokens (AA needs 4.5 for body text, 3.0 for large text and UI):
+Solved for, not eyeballed. Text needs 4.5; chart bars are graphics and need 3.0.
 
-| token | light on ground / surface / surface-2 | dark on ground / surface / surface-2 |
+| token | light: paper / paper-2 | dark: paper / paper-2 |
 |---|---|---|
-| `--ink` | 15.75 / 16.97 / 14.72 | 15.05 / 13.85 / 12.63 |
-| `--ink-2` | 6.38 / 6.88 / 5.97 | 7.61 / 7.00 / 6.38 |
-| `--ink-3` | 4.83 / 5.20 / 4.51 | 5.37 / 4.94 / 4.50 |
-| `--accent` | 4.93 / 5.31 / 4.61 | 5.70 / 5.24 / 4.78 |
-| `--warn` | 4.85 / 5.22 / 4.53 | 5.68 / 5.23 / 4.77 |
+| `--ink` | 14.21 / 12.66 | 15.18 / 14.06 |
+| `--ink-2` | 7.16 / 6.38 | 8.91 / 8.25 |
+| `--ink-3` | 5.07 / 4.52 | 4.94 / 4.58 |
+| `--ox` | 5.60 / 4.99 | 4.88 / 4.52 |
+| `--mark` (bars) | 3.39 / 3.02 | 3.25 / 3.01 |
+| `--sul` | **1.89 — FILL ONLY** | 11.29 |
 
-Every token clears AA for body text on every surface in both themes. **Recompute after any
-palette change** — relative luminance is arithmetic, not judgement.
+Peak bars sit on the sulphur band, so that pair is checked too: `--ox` on `--band` is
+**4.58** light and **3.62** dark, both clear of the 3.0 graphics threshold.
 
-**History, so the fix is not quietly undone:** `--ink-3` was `#7E8477` light / `#7B8172` dark
-and failed on every light surface (3.22-3.71) while carrying eight real usages, including the
-**SVG axis labels at `font-size:10`**. It is now `#676C61` / `#888E7F`. `--accent` was
-`#0B7D52` (4.32 on `--surface-2`) and is now `#0B784F`. Both were solved for, not guessed.
-
-`docs/methodology.html` has since been brought into line with these values, though it still
-holds its own copy of them rather than linking `site.css`.
+**Recompute after any palette change** — relative luminance is arithmetic, not judgement.
 
 ## Contracts a redesign must not break
 
@@ -95,7 +96,8 @@ These are enforced by CI, not by intent. Breaking them turns a job red.
 
 1. **`tools/test_tool_render.mjs` pins the DOM.** It renders the page under jsdom and asserts
    on: `#results` and `#status` hidden on load; `#demoBanner` hidden for a real file and
-   shown in demo mode with text matching `/demonstration file/i`; `#stats`; `#findings
+   shown in demo mode, its text naming the data as fabricated AND saying it is not real
+   (the assertion matches the guarantee, not one phrasing); `#stats`; `#findings
    .finding` with the first one's `h4` containing "peak hours"; **exactly 25 `#hourChart
    rect`** (24 bars + 1 peak-window shading), of which **exactly 5 carry
    `fill="var(--accent)"`**; 24 `#hourChart title`; one `#monthChart rect` per month;
@@ -118,17 +120,21 @@ These are enforced by CI, not by intent. Breaking them turns a job red.
 
 Two hand-rolled inline SVGs, no chart library: `#hourChart` (`viewBox="0 0 760 300"`) and
 `#monthChart` (`viewBox="0 0 760 240"`), built with a small `createElementNS` helper. Before
-touching either, **load the `dataviz` skill** for palette, axis and mark guidance.
+touching either, **load the `dataviz` skill**.
 
-Conventions already applied, worth preserving: one series so no legend (the heading names
-it); recessive gridlines; axis text in `--ink-2`, never `--ink-3`; `rx:3` bar ends; exactly
-one direct label (the busiest hour) rather than a number on every bar; per-bar `<title>` for
-pointer tooltips; and text tables (`#hourTable`, `#monthTable`) carrying the same numbers,
-because `role="img"` hides those `<title>`s from screen readers.
-
-The 4–9 p.m. peak band is highlighted; it is the on-peak window of both PG&E E-TOU-C and
-SDG&E TOU-DR1, so it is a tariff fact, not a styling choice. The caption must keep naming it,
-so the highlight is never colour-alone.
+Conventions to preserve:
+- **Square bar ends.** No `rx`. Printed, not drawn.
+- **`--ox` means one thing: the expensive hours.** Peak bars are `--accent` (= `--ox`) on a
+  `--band` block; every other bar in both charts is `--mark`. Month bars are deliberately
+  `--mark`, not oxblood — reusing the accent for "just data" would drain it of meaning.
+- One series, so no legend; the plate header names it.
+- Axis and label text in `--ink-3` or `--ink`, never `--sul`.
+- Exactly one direct label (the busiest hour); never a number on every bar.
+- Per-bar `<title>` for pointer tooltips, plus `#hourTable` / `#monthTable` in text, because
+  `role="img"` hides those titles from screen readers.
+- **Leave the top margin alone.** `T = 64` on the hour chart exists so the band caption and
+  the direct label cannot collide when the busiest hour falls inside the band — which is the
+  common case. This has now been broken and re-fixed twice; it is not spare whitespace.
 
 ## Verify
 

@@ -2,6 +2,78 @@
 
 Running log of decisions made and decisions pending. Newest first.
 
+## 2026-09-08 — Session 12 (the site stops looking generated: the tariff-sheet redesign)
+
+**418 tests green, ruff clean, golden bills untouched.** No engine work. Cameron: the session-11
+site "instantly signals ai perfection and no creativeity" — content and structure fine, look
+generic. He was right, and the diagnosis is worth keeping because it generalises.
+
+### What actually signalled "generated", and why
+Every one of these was a **default nobody decided against**, not a bad choice:
+1. A desaturated neutral + one muted accent from a single hue family — what "safe good taste"
+   optimises to. Nothing in it anyone could disagree with.
+2. `border-radius` on every card, panel, button and bar. Uniform softness is a tell.
+3. **Cards** — bordered rounded rectangles as the universal container.
+4. One centre axis, near-identical vertical padding per section. Nothing hung into a margin,
+   bled off an edge, or broke the line.
+5. The mono-uppercase-letterspaced eyebrow, used six times.
+6. No density contrast and nothing hand-made — no passage a person had to decide.
+The deepest failure: **the design expressed nothing about what the product is.**
+
+### DECISION — the site becomes the document it is about
+Cameron picked, from four options: **utility document**, pushed **hard**, **unexpected colour
+pairing**, **characterful type**. So: a tariff sheet. Two-colour offset print on manila —
+**oxblood + sulphur** on `#EAE3D3`. **Zero border-radius anywhere on the site.** A left rail of
+mono margin-annotations (`00`–`05`) carries every block, which is what kills the centred-stack
+tell. Ledger rows with right-aligned mono figures replace the stat cards; findings became
+numbered notes with the numeral hanging in the margin; charts sit on bordered "plates" with
+`FIG. 1` headers.
+**The signature device is a rotated stamp: `NOT A BILL / NO AMOUNT DUE`.** The tool
+deliberately prices nothing, and a document says that the way a document would. It is the one
+element that could not appear on any other site.
+
+### DECISION — colour carries meaning, and one hard rule
+`--sul` (sulphur) is a **FILL ONLY** — 1.89:1 on paper, so it must never carry text; accent
+text is always `--ox`. And **`--ox` means exactly one thing: the expensive hours.** Fig. 2's
+month bars were oxblood in the first draft and were changed to `--mark`: reusing the accent
+for "just data" would have drained it of meaning. Every token was solved for contrast, not
+picked — full matrix in the design-system skill.
+
+### DONE — type with a point of view
+**Archivo** is variable on weight *and width* (62–125%), so one file gives both voices:
+`font-stretch:125%` + uppercase for the display, normal width for body. **Space Mono** carries
+every number, label, stamp and axis. Two families, each with a job. Replaces the
+Newsreader/Public Sans/IBM Plex trio, which is *the* default tasteful trio.
+
+### ⭐ THE BROWSER PAID FOR ITSELF AGAIN — three defects in one pass
+All three passed jsdom, ruff and pytest:
+1. **A JS syntax error** — a missing `)` on `svg.appendChild(svgEl(...)` in `monthChart`. The
+   render test caught it as `__renderInspection is not a function`. Same class of bug session
+   8d hit. `node --check` on the extracted inline script located it in seconds.
+2. **The label collision came back.** New chart geometry put the band caption and the
+   "BUSIEST" direct label 9px apart again. `T = 64` now exists specifically to prevent it —
+   **it is not spare whitespace**, and this has now been broken and re-fixed twice.
+3. **The `§` glyph renders as a speck** in Space Mono at label sizes. All section marks (tool
+   rails and methodology's six `§n` headings) became zero-padded numerals — one convention
+   across the site.
+
+### DELIBERATE TEST CHANGE — assert the guarantee, not the phrasing
+`test_tool_render.mjs` asserted the demo banner matched `/demonstration file/i`. The new copy
+says "Specimen … invented data, not a real household's". Rather than bend the copy to the
+test, the assertion now requires the banner to **name the data as fabricated AND say it is not
+real** — the guarantee it existed to enforce, now phrasing-independent. Changed in the same
+commit as the markup, per the design-system skill's own rule.
+
+### Scope
+`index.html` rebuilt; `privacy.html` / `terms.html` rewired to the new chrome (their old nav
+markup referenced classes that no longer exist); `methodology.html` migrated by **token and
+font swap only** — it keeps its calmer long-form layout, which suits a reading document, and
+still holds its own copy of the palette. Migrating its layout is the remaining tidy-up.
+
+### Next
+Unchanged and still ahead of all of this: dad's SDG&E export + bills.
+
+
 ## 2026-09-08 — Session 11 (the site: UI overhaul, legal pages, self-hosted fonts, a browser)
 
 **418 tests green, ruff clean, 11/11 PG&E golden bills unchanged.** No engine work: this
