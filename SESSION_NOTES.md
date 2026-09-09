@@ -2,6 +2,69 @@
 
 Running log of decisions made and decisions pending. Newest first.
 
+## 2026-09-08 — Session 14 (RESOLVED: SDG&E has no ACC Plus adder, and it is a decided fact)
+
+Closed HANDOFF next action 2. `acc.acc_plus_table` no longer raises for SDG&E; it returns a
+cited all-zero table. 436 tests green, ruff clean on the files touched.
+
+### THE ANSWER — $0.000/kWh, every residential segment, by decision
+**CPUC D.22-12-056** (R.20-08-020, issued 2022-12-15) sets the adder per utility, not each
+utility's own filing, and adopted **zero for SDG&E**:
+
+- **Table 7, "Adopted Initial ACC Plus Adders by Utility ($/kWh)", at 158** —
+  Residential Non-CARE / Residential CARE / Commercial: PG&E $0.022 / $0.090 / $0.000;
+  SDG&E **$0.000 / $0.000 / $0.000**; SCE $0.040 / $0.093 / $0.000.
+- **Table 11, low-income households, at 177** — PG&E 0.087, SCE 0.093, SDG&E **"-"**.
+- **Text at 153:** *"Since SDG&E residential customers already have a simple payback period
+  of less than nine years without the ACC Plus, SDG&E residential customers who interconnect
+  during the five-year glide path and transition period will not receive an adder."*
+- **The reason, Table 6 at 153:** SDG&E residential paybacks *without* any adder were already
+  4.70–8.43 years (non-CARE 5.95 stand-alone / 4.70 with storage; CARE 8.43 / 6.98), inside
+  the nine-year target the adder exists to hit — **because SDG&E's retail rates are the
+  highest of the three**. So the same rate level that makes SDG&E solar attractive is exactly
+  what disqualifies it from the incentive.
+- Corroborated by **D.23-11-068** (virtual NBT), which carries ACC Plus adders for PG&E and
+  SCE only.
+- URL: docs.cpuc.ca.gov/PublishedDocs/Published/G000/M500/K043/500043682.PDF (retrieved
+  2026-09-08). No eligibility conditions or vintage variation to model: the value is zero for
+  every application year 2023–2027 and both tiers.
+
+**Residual, recorded not hidden:** SDG&E's *own* Schedule NBT sheet was never located. Its
+tariff portal (`tariffsprd.sdge.com`) is a static Next.js app whose listing is fetched from an
+endpoint not discoverable in its bundles, and every `www.sdge.com/sites/default/files/...`
+name that works for other schedules (`elec_elec-scheds_<id>.pdf`, the `regulatory/` dir)
+404s for NBT. The adopting decision is the instrument that *sets* the number, so citing it is
+not a downgrade — but if the sheet turns up, add it as corroboration.
+
+### DECISION — encode the negative as a positive fact, not a raise
+`SDGE_ACC_PLUS` is an `AccPlusTable` of explicit zeros, 2023–2027, both tiers, carrying the
+full citation. `acc_plus_table` is now a dict lookup that still raises for any utility whose
+row has not been read (test pins `"SCE"`), so **"no table" and "a table of zeros" stay
+distinguishable** — which was the whole point of the old raise. The class docstring says so.
+
+**Consequence:** on SDG&E `acc_plus_eligible` no longer moves a dollar. `scripts/nem3_report.py`
+therefore sets it **True** (the demo household is eligible) instead of False-as-a-hedge, and a
+test asserts an eligible and an ineligible SDG&E customer settle to the identical
+`amount_due`. The "conservative path" comment is gone; it was hedging against a number we now
+have.
+
+### Honest-broker note added
+`netting._notes` now emits, whenever an eligible customer's adder resolves to zero: *"ACC Plus
+adder is $0.000/kWh for SDG&E applications in 2026. This is an adopted value, not a missing
+one … PG&E and SCE customers do receive one, so figures quoted from their tables do not
+transfer."* Silence would have read as an omission, and **this is a specific way a San Diego
+customer gets misled**: the widely-cited ACC Plus numbers are PG&E's and SCE's, and the
+low-income tier — $0.087–0.093/kWh there, the largest adder in the decision — is worth exactly
+nothing here. A calculator that generalises PG&E's table overstates a CARE SDG&E household's
+export value by ~9¢/kWh.
+
+### Side finding, not acted on
+SDCP publishes a **"San Diego Community Power Generation Adder"** for its NBT customers — a
+CCA-side export adder, entirely separate from ACC Plus, and *not* covered by the D.22-12-056
+zero. It plugs into the existing `cca_export_terms` hole (open item: "CCA export terms —
+netting excludes the CCA generation credit by default, so a CCA customer's result is a lower
+bound"). Sourcing it would turn that lower bound into a real number for SDCP customers.
+
 ## 2026-09-08 — Session 12 (the site stops looking generated: the tariff-sheet redesign)
 
 **418 tests green, ruff clean, golden bills untouched.** No engine work. Cameron: the session-11

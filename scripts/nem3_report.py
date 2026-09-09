@@ -142,7 +142,9 @@ def main() -> None:
         service=Service.BUNDLED,
         territory="coastal_basic",
         low_income=False,
-        acc_plus_eligible=False,  # SDG&E ACC Plus unconfirmed; conservative (see acc.py)
+        # Confirmed session 14: SDG&E's ACC Plus adder is $0.000/kWh for every residential
+        # segment (D.22-12-056 Table 7), so this flag no longer moves a dollar here.
+        acc_plus_eligible=True,
     )
     schedule = ExportRateSchedule(
         "SDG&E", Vintage(application_year=YEAR, pto_date=date(YEAR, 4, 1))

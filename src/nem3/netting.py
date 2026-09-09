@@ -432,6 +432,16 @@ def _notes(
         )
     if not settings.acc_plus_eligible:
         notes.append("ACC Plus adder excluded: customer is flagged ineligible (Sheet 57353-E).")
+    elif schedule.acc_plus_rate(low_income=settings.low_income) == 0.0:
+        # Not a missing input: D.22-12-056 adopted $0.000/kWh for every SDG&E segment. Say so,
+        # because the customer's alternative sources will quote PG&E's or SCE's adder at them.
+        notes.append(
+            f"ACC Plus adder is $0.000/kWh for {schedule.utility} applications in "
+            f"{schedule.vintage.application_year}. This is an adopted value, not a missing "
+            "one — CPUC D.22-12-056 Table 7 set the adder to zero for every SDG&E segment "
+            "because SDG&E paybacks were already under nine years without it. PG&E and SCE "
+            "customers do receive one, so figures quoted from their tables do not transfer."
+        )
     stranded = periods[-1].balance_carried if periods else {}
     for bucket, amount in stranded.items():
         if amount >= 1.0:

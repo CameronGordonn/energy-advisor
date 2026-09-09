@@ -69,8 +69,13 @@ has landed it outranks everything below.
 13-month interval export plus three itemised bills; be explicit that they are validating an
 engine, not buying a verdict. See the M5 warning for why this ordering is not optional.
 
-**2. Confirm SDG&E ACC Plus** from an SDG&E NBT sheet. `acc.acc_plus_table` deliberately raises
-for SDG&E; `acc_plus_eligible=False` is the conservative path until confirmed. Small, unblocked.
+**2. ~~Confirm SDG&E ACC Plus~~ — DONE, session 14. SDG&E's ACC Plus adder is $0.000/kWh for
+every residential segment**, adopted by CPUC D.22-12-056 Table 7 (and "-" for low-income in
+Table 11) because SDG&E paybacks were already inside the nine-year target without it.
+`acc_plus_table` returns a cited all-zero table instead of raising; `acc_plus_eligible` no
+longer moves a dollar on SDG&E, and an eligible customer is now *told* the adder is zero and
+why. Residual: SDG&E's own Schedule NBT sheet was never located (portal exposes no PDF path) —
+add it as corroboration if it surfaces.
 
 **3. Earlier 2026 vintages for TOU-DR2 and EV-TOU-5** — both exist only at 6/1/2026. Same
 method as session 8: fetch `N-1-26 Schedule <ID> Total Rates Table.pdf` and its `-CARE` twin,
@@ -351,7 +356,7 @@ cell for cell.
 
 ## M3 open items (recorded, none blocking)
 
-- SDG&E ACC Plus unconfirmed; settle with `acc_plus_eligible=False`.
+- ~~SDG&E ACC Plus unconfirmed~~ — RESOLVED session 14: $0.000/kWh, all segments, D.22-12-056 Table 7. Encoded as a cited zero table, not a raise.
 - PG&E ACC tables not imported (PDFs, not MIDAS CSVs).
 - **LP dispatch is a marginal-price optimum, not a settled-dollar optimum** — under NBT caps it
   can settle below greedy. Documented and reported honestly; not a bug.

@@ -33,7 +33,7 @@ def _settle(load, production, delivery, schedule, periods, **kw):
         # bundled one does not. Supplying it is mandatory for CCA service (the biller
         # refuses to guess a vintage), and harmless for bundled.
         vintage=kw.pop("vintage", "2018"),
-        acc_plus_eligible=False,
+        acc_plus_eligible=kw.pop("acc_plus_eligible", False),
         **kw,
     )
     # Generation layer is not authored for SDG&E yet; reuse delivery so the mechanics are
@@ -97,6 +97,21 @@ def test_more_export_never_increases_amount_due(
     no_solar = _settle(load_series, production * 0.0, delivery, schedule, monthly_periods)
     solar = _settle(load_series, production, delivery, schedule, monthly_periods)
     assert solar.amount_due <= no_solar.amount_due
+
+
+def test_sdge_acc_plus_is_zero_so_eligibility_moves_no_money(
+    load_series, production, delivery, schedule, monthly_periods
+):
+    """On SDG&E the adder is $0.000/kWh (D.22-12-056 Table 7), so an eligible customer and
+    an ineligible one settle identically — and the eligible one is told why."""
+    ineligible = _settle(load_series, production, delivery, schedule, monthly_periods)
+    eligible = _settle(
+        load_series, production, delivery, schedule, monthly_periods, acc_plus_eligible=True
+    )
+    assert eligible.amount_due == ineligible.amount_due
+    assert all(p.acc_plus_accrued == 0.0 for p in eligible.periods)
+    note = next(n for n in eligible.notes if "ACC Plus" in n)
+    assert "$0.000/kWh" in note and "22-12-056" in note
 
 
 def test_lock_in_note_names_the_vintage_and_year(

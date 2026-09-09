@@ -100,9 +100,22 @@ def test_pge_acc_plus_matches_sheet_57353e():
     assert t.rate(2030, low_income=False) == 0.0
 
 
-def test_sdge_acc_plus_refuses_to_reuse_pge_values():
+def test_sdge_acc_plus_is_zero_for_every_residential_segment():
+    """D.22-12-056 Table 7 adopted $0.000/kWh for SDG&E; Table 11 gives its low-income row
+    as "-". Encoded as a positive fact, so nobody "fixes" it by copying PG&E's table."""
+    t = acc_plus_table(Utility.SDGE)
+    for year in range(2023, 2028):
+        assert t.rate(year, low_income=False) == 0.0
+        assert t.rate(year, low_income=True) == 0.0
+    # The low-income tier is where PG&E/SCE pay the most and SDG&E still pays nothing.
+    assert acc_plus_table(Utility.PGE).rate(2026, low_income=True) > 0.0
+    assert "22-12-056" in t.citation and "500043682" in t.citation
+
+
+def test_sdge_acc_plus_zeros_are_cited_not_a_placeholder():
+    assert acc_plus_table(Utility.SDGE).citation != acc_plus_table(Utility.PGE).citation
     with pytest.raises(ValueError, match="NOT safe to reuse"):
-        acc_plus_table(Utility.SDGE)
+        acc_plus_table("SCE")
 
 
 # --- rate resolution --------------------------------------------------------------------

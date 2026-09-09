@@ -29,7 +29,10 @@ misprice every year after the first.
 
 **ACC Plus** is a separate per-kWh export adder that decays 20%/yr for new applicants and
 then holds constant for nine years from PTO. Unlike the Export Compensation Rate it may
-offset *any* charge, including non-bypassable charges (Sheet 57359-E, SC 2.c).
+offset *any* charge, including non-bypassable charges (Sheet 57359-E, SC 2.c). Its value
+is set per utility by CPUC decision, not by each utility's own filing, and **it is
+$0.000/kWh in SDG&E territory for every residential segment** — see :data:`SDGE_ACC_PLUS`.
+That is a published number, not a gap in this repo's data.
 """
 
 from __future__ import annotations
@@ -186,6 +189,10 @@ class AccPlusTable(BaseModel):
     Not available to NEM/NEM2 transition customers, change-of-party customers,
     non-residential customers, or systems required by building code — so a caller that
     cannot assert eligibility must pass ``eligible=False`` rather than take the default.
+
+    An all-zero table is a legitimate, cited value (SDG&E), not a placeholder: a table
+    that has never been read is signalled by raising from :func:`acc_plus_table`, never
+    by returning zeros.
     """
 
     model_config = ConfigDict(frozen=True)
@@ -230,22 +237,59 @@ PGE_ACC_PLUS = AccPlusTable(
 )
 
 
+#: SDG&E gets **no ACC Plus adder at all**, and that is a decided fact rather than an
+#: unfiled one. D.22-12-056 set the adder per utility to hit a nine-year simple payback;
+#: its own modeling put SDG&E residential paybacks at 4.70-8.43 years *without* an adder
+#: (Table 6, at 153), so it adopted $0.000/kWh for every SDG&E segment (Table 7, at 158)
+#: and printed "-" for SDG&E in the low-income table (Table 11, at 177).
+#:
+#: Consequence for this engine: on SDG&E ``acc_plus_eligible`` no longer moves any dollar
+#: figure — the adder is zero whether or not the customer qualifies. It also means the
+#: low-income tier, worth $0.087-0.093/kWh on PG&E and SCE, is worth nothing here, which
+#: is the opposite of what a calculator that generalises PG&E's table would report.
+SDGE_ACC_PLUS = AccPlusTable(
+    citation=(
+        "CPUC D.22-12-056 (R.20-08-020, issued 2022-12-15), Table 7 'Adopted Initial ACC "
+        "Plus Adders by Utility ($/kWh)' at 158: SDG&E $0.000 for Residential Non-CARE, "
+        "Residential CARE and Commercial; Table 11 'ACC Plus Adders and Payback Periods "
+        "for Low-Income Households' at 177 prints '-' for SDG&E. Decision text at 153: "
+        "'Since SDG&E residential customers already have a simple payback period of less "
+        "than nine years without the ACC Plus, SDG&E residential customers who "
+        "interconnect during the five-year glide path and transition period will not "
+        "receive an adder.' "
+        "docs.cpuc.ca.gov/PublishedDocs/Published/G000/M500/K043/500043682.PDF, "
+        "retrieved 2026-09-08. Corroborated by D.23-11-068 (virtual NBT), which carries "
+        "ACC Plus adders for PG&E and SCE only. SDG&E's own Schedule NBT sheet was not "
+        "located — its tariff portal is a JS app that exposes no direct PDF path — and "
+        "the adopting decision is the instrument that sets the value, so it is cited "
+        "instead."
+    ),
+    residential=dict.fromkeys(
+        range(FIRST_NBT_APPLICATION_YEAR, LAST_LOCK_IN_APPLICATION_YEAR + 1), 0.0
+    ),
+    residential_low_income=dict.fromkeys(
+        range(FIRST_NBT_APPLICATION_YEAR, LAST_LOCK_IN_APPLICATION_YEAR + 1), 0.0
+    ),
+)
+
+_ACC_PLUS_TABLES = {Utility.PGE: PGE_ACC_PLUS, Utility.SDGE: SDGE_ACC_PLUS}
+
+
 def acc_plus_table(utility: str | Utility) -> AccPlusTable:
     """ACC Plus adder table for a utility.
 
-    Only PG&E's sheet has been read. The adder values are set statewide by D.22-12-056,
-    so SDG&E's are very likely identical — but "very likely" is not a citation, so this
-    raises for SDG&E rather than reusing PG&E's numbers under SDG&E's name.
+    SDG&E's zeros are a cited value, not a missing one — do not "fix" them by reusing
+    PG&E's. A utility whose row has not been read raises rather than defaulting either way.
     """
-    if Utility(utility) is Utility.PGE:
-        return PGE_ACC_PLUS
-    raise ValueError(
-        f"no ACC Plus table confirmed for {utility}. It is NOT safe to reuse PG&E's values: "
-        "although D.22-12-056 framed the adder statewide, secondary sources report SDG&E "
-        "residential customers may not receive ACC Plus at all. Confirm from the "
-        f"{utility} Schedule NBT sheet before pricing it; until then settle with "
-        "acc_plus_eligible=False (no adder), which is the conservative assumption."
-    )
+    try:
+        return _ACC_PLUS_TABLES[Utility(utility)]
+    except (KeyError, ValueError):
+        raise ValueError(
+            f"no ACC Plus table confirmed for {utility}. It is NOT safe to reuse another "
+            "utility's values: D.22-12-056 adopted a different adder per utility, "
+            "including $0.000 for SDG&E. Read that utility's row before pricing it; until "
+            "then settle with acc_plus_eligible=False, the conservative assumption."
+        ) from None
 
 
 # --- vintage / lock-in -----------------------------------------------------------------
