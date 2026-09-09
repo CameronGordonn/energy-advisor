@@ -11,16 +11,14 @@ data that does not exist yet. Do not fabricate a load or a bill to "finish" eith
 **1,525 tests green · ruff clean · 11/11 PG&E golden bills within ±$2 (worst +$0.22) · working
 tree clean · both CI jobs green.**
 
-> **⚠ `main` is 8 commits AHEAD of `origin/main`.** `origin/main` is at `6f571b6`
-> ("Reconcile the docs after four parallel sessions"), so **sessions 13-17 ARE pushed** and
-> only **sessions 18-21 are local**. Push before starting anything, or the next instance
-> re-derives work that exists.
+> **⚠ `main` is 2 commits ahead of `origin/main`** (`e32c4f0`) as of 2026-09-09, end of
+> session 23 — session 23's own two commits. **Sessions 13-22 are all pushed.**
 >
-> Two corrections worth carrying, because this warning has been wrong in both directions:
-> the version of it inherited on 2026-09-09 claimed "6 commits ahead, sessions 13-16 landed
-> locally" when those commits had in fact been pushed — **verify with
-> `git rev-list --count origin/main..main` rather than trusting this line.** And nothing is
-> left uncommitted: sessions 18-21 were reconciled into lane-scoped commits on 2026-09-09.
+> **This line has now been wrong three times running, in both directions**, because each
+> session copies it forward instead of measuring. It is not documentation; it is a cached
+> value with no invalidation. **Run `git fetch -q origin && git rev-list --count
+> origin/main..main` and believe that, not this sentence.** Session 22 said "8 commits ahead,
+> origin at `6f571b6`" and had pushed by the time session 23 read it.
 
 | Milestone | State | What is missing |
 |---|---|---|
