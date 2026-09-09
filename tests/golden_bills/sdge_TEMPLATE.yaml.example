@@ -1,0 +1,85 @@
+# SDG&E golden-bill fixture TEMPLATE — copy to `sdge_<MM-DD-YYYY>.yaml` and fill in.
+#
+# NOT A FIXTURE. The extension is `.yaml.example` deliberately: the reconciliation gate
+# globs `*.yaml`, so this file is documentation and cannot be mistaken for evidence.
+# It carries NO dollar figures. Every number below must be transcribed off a real
+# itemised SDG&E statement — invariant 1 is reconciliation-gated, and a fabricated
+# expectation would turn the merge gate into a mirror.
+#
+# `tests/golden_bills/test_reconciliation.py` asserts that this template declares every
+# customer fact the committed SDG&E specs demand, so it fails loudly rather than going
+# stale when a spec adds one.
+#
+# ---------------------------------------------------------------------------------------
+# WHAT TO READ OFF THE BILL, and where each thing goes:
+#
+#   schedule           -> specs.delivery / specs.generation      (e.g. TOU-DR1, EV-TOU-5)
+#   who supplies power -> specs.generation_provider + customer.service
+#   climate zone       -> customer.territory
+#   PCIA vintage       -> customer.vintage       (CCA customers only; it is printed)
+#   CARE / FERA        -> customer_class
+#   every $ line       -> expected.*
+# ---------------------------------------------------------------------------------------
+
+statement_date: MM-DD-YYYY
+period_start: 'YYYY-MM-DD' # first day of the billing period, inclusive
+period_end: 'YYYY-MM-DD' # last day, inclusive
+
+utility: SDG&E # selects the interval export in data/ AND the parser that reads it
+customer_class: standard # or CARE
+
+customer:
+  # Facts about the HOUSEHOLD that no tariff can supply. The harness asks the loaded
+  # specs which of these they need and refuses the fixture, by name, if one is missing.
+  # There is deliberately no default for any of them.
+
+  # bundled = SDG&E supplies generation; cca = San Diego Community Power or Clean Energy
+  # Alliance does. Decides whether the PCIA and the generation credit are billed at all.
+  # The CCA case is shown because it needs strictly more facts: on `bundled`, drop the
+  # `vintage` below (a bundled household never pays the PCIA and has no vintage to give)
+  # and set generation_provider to SDG&E.
+  service: cca
+
+  # SDG&E climate zone + Basic/All-Electric, from Schedule DR SC 3. This scales the
+  # baseline credit, the largest single credit on a CA residential bill; a wrong zone
+  # misprices every statement without any one line looking wrong.
+  # Keys published by the specs: coastal_basic, coastal_all_electric, inland_basic,
+  # inland_all_electric, mountain_basic, mountain_all_electric, desert_basic,
+  # desert_all_electric.
+  territory: coastal_basic # EXAMPLE — replace with the zone printed on the bill
+
+  # PCIA vintage — the year this account's load departed bundled service. CCA customers
+  # only; required whenever the delivery spec publishes a per-vintage PCIA table. The
+  # 2026 spread is ~0.035 $/kWh, about $210/yr on a 6,000 kWh household.
+  vintage: '2018' # EXAMPLE — replace with the vintage printed on the bill
+
+  # Event days actually called by SDG&E in this period. Required ONLY on TOU-DR-P, which
+  # carries the RYU adder. `[]` prices the explicit zero-event case, which is a decision
+  # on the record rather than a silent default.
+  # event_days: []
+
+specs:
+  delivery: TOU-DR1
+  generation: TOU-DR1
+  # Four providers author TOU-DR1 generation (SDG&E bundled EECC, CEA, SDCP-2021V,
+  # SDCP-2022V) and their rates differ by up to 20 c/kWh in a period, so the loader
+  # raises unless one is named. Provider strings are the specs' own `provider:` values.
+  generation_provider: SDCP-2021V # EXAMPLE — SDG&E | CEA | SDCP-2021V | SDCP-2022V
+
+expected:
+  # TRANSCRIBE, do not compute. Line names must match the engine's own line names — run
+  # the reconciliation once with a placeholder and read the modeled column for the exact
+  # spelling, then fill the bill column from the statement.
+  delivery:
+    line_items: {} # "<line name>": <dollars from the statement>
+    total: # delivery subtotal as printed
+  generation:
+    line_items: {}
+    total:
+  # Lines the engine does not model and takes as given (climate credit, observed
+  # adjustments). Each one is an admission, not a fit — keep the list short and say why.
+  observed_adjustments: {}
+  electric_net_total: # the statement's electric total
+
+tolerance_dollars: 2.0
+source: # e.g. "SDG&E statement MM/DD/YYYY (anonymized; no PII)."

@@ -3,6 +3,10 @@ period_start: '2025-08-26'
 period_end: '2025-09-24'
 utility: PG&E
 customer_class: CARE
+customer:
+  # Household facts no tariff can supply. The harness asks the loaded specs which
+  # of these they need and refuses the fixture, by name, if one is missing.
+  service: cca  # 3CE supplies generation; PG&E delivery bills the PCIA + E-FFS lines
 specs:
   delivery: E-TOU-C
   generation: MBRETCH1

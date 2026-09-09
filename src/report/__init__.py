@@ -10,17 +10,37 @@ PyYAML and the whole tariff engine just to describe a usage file. Eagerly import
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:  # pragma: no cover - import-time typing only
-    from .reconcile import ReconResult, Row, format_comparison, load_fixture, reconcile
+    from .reconcile import (
+        MissingCustomerFactError,
+        ReconResult,
+        Row,
+        customer_facts,
+        fixture_utility,
+        format_comparison,
+        interval_file_for,
+        load_fixture,
+        load_interval_series,
+        parse_interval_file,
+        reconcile,
+        required_customer_facts,
+    )
 
-__all__ = ["ReconResult", "Row", "format_comparison", "load_fixture", "reconcile"]
+__all__ = [
+    "MissingCustomerFactError",
+    "ReconResult",
+    "Row",
+    "customer_facts",
+    "fixture_utility",
+    "format_comparison",
+    "interval_file_for",
+    "load_fixture",
+    "load_interval_series",
+    "parse_interval_file",
+    "reconcile",
+    "required_customer_facts",
+]
 
-_LAZY = {
-    "ReconResult": "reconcile",
-    "Row": "reconcile",
-    "format_comparison": "reconcile",
-    "load_fixture": "reconcile",
-    "reconcile": "reconcile",
-}
+_LAZY = dict.fromkeys(__all__, "reconcile")
 
 
 def __getattr__(name: str):
