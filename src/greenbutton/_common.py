@@ -1,20 +1,30 @@
 """Shared primitives for Green Button interval parsers (PG&E, SDG&E, ...).
 
-Both IOUs export via the same Opower "Download My Data" platform, so the file
-skeleton (``Name``/``Address``/``Account Number`` metadata rows, then a
-``TYPE,DATE,START TIME,END TIME,...`` interval table) and *all* the timezone / DST /
-gap / PII handling are identical. Only per-cell details differ between utilities —
-SDG&E writes ``M/D/YYYY`` dates and can split usage into ``IMPORT``/``EXPORT``
-columns — and those differences live in the per-utility modules. Everything a parser
-would otherwise duplicate lives here, so there is one source of truth for the tricky
-parts (interval inference, DST folding, the canonical assembly).
+Both IOUs write a ``Key,Value`` metadata preamble followed by one interval table, and
+the timezone / gap / PII handling is common to both. **The formats are otherwise less
+alike than they look**, and two differences reach into this module:
+
+* **The table header is not a fixed string.** PG&E writes
+  ``TYPE,DATE,START TIME,END TIME,...``; SDG&E's real export writes
+  ``Meter Number,Date,Start Time,Duration,Consumption,Generation,Net``. The table is
+  therefore located by *signature* — a row carrying a date column and a start-time
+  column — not by a leading literal. See :func:`split_header_and_table`.
+* **DST is exported differently.** PG&E writes 24 nominal hour labels on the fall-back
+  day and sums both physical 01:00 hours into one reading. SDG&E writes the true
+  25-hour day, with ``1:00 AM`` appearing twice. :func:`localize` resolves the fold
+  from *file order* so both are correct; see its docstring for what remains unverified.
+
+Everything a parser would otherwise duplicate lives here, so there is one source of
+truth for the tricky parts (interval inference, DST folding, the canonical assembly).
 """
 
 from __future__ import annotations
 
 import csv
+import re
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 
 from .models import (
@@ -48,20 +58,47 @@ def decode(path: Path) -> list[str]:
     return path.read_text(encoding="utf-8-sig").splitlines()
 
 
+def _is_table_header(fields: list[str]) -> bool:
+    """Whether a CSV row is the table header, by signature rather than a leading literal.
+
+    Both real export shapes have to match, and so does the *wrong* file, so that
+    :func:`check_not_billing_summary` can produce its specific message rather than a
+    generic "no table found"::
+
+        TYPE,DATE,START TIME,END TIME,USAGE (kWh),COST,NOTES     PG&E interval
+        Meter Number,Date,Start Time,Duration,Consumption,...    SDG&E interval
+        TYPE,START DATE,END DATE,USAGE (kWh),COST,NOTES          billing history (rejected)
+
+    Metadata rows are ``Key,Value`` pairs, so the >=3-field floor keeps a preamble row
+    from matching. That floor matters more than it looks: SDG&E's preamble contains a
+    literal ``Meter Number,00000000`` row *above* a header that also begins with
+    ``Meter Number``, so a leading-token test would stop at the wrong line.
+    """
+    if len(fields) < 3:
+        return False
+    upper = {f.strip().upper() for f in fields}
+    if "DATE" in upper and "START TIME" in upper:
+        return True
+    return "START DATE" in upper and "END DATE" in upper
+
+
 def split_header_and_table(lines: list[str]) -> tuple[dict[str, str], list[str]]:
-    """Return (metadata dict, table lines). The table begins at the ``TYPE,`` row."""
+    """Return (metadata dict, table lines), locating the table by header signature."""
     meta: dict[str, str] = {}
     for i, line in enumerate(lines):
-        if line.strip().upper().startswith("TYPE,"):
-            return meta, lines[i:]
         if not line.strip():
             continue
-        # metadata rows are "Key,Value"; use csv to respect quoted commas in Address.
+        # Rows are "Key,Value" (metadata) or the table header; use csv either way so a
+        # quoted comma inside an Address or Disclaimer cell does not split the row.
         row = next(csv.reader([line]), [])
+        if _is_table_header(row):
+            return meta, lines[i:]
         if len(row) >= 2 and row[0]:
             meta[row[0].strip()] = row[1].strip()
     raise GreenButtonParseError(
-        "no interval table found: expected a 'TYPE,DATE,START TIME,END TIME,...' header row"
+        "no interval table found: expected a header row carrying a date column and a "
+        "start-time column, e.g. 'TYPE,DATE,START TIME,END TIME,...' (PG&E) or "
+        "'Meter Number,Date,Start Time,Duration,Consumption,...' (SDG&E)"
     )
 
 
@@ -85,10 +122,41 @@ def zip_from_address(meta: dict[str, str]) -> str | None:
     return None
 
 
+# "0:00", "00:00", "12:00 AM", "1:00 p.m." -> hour, minute, optional meridiem.
+_TIME_RE = re.compile(r"^\s*(\d{1,2}):(\d{2})(?:\s*([AaPp])\.?[Mm]\.?)?\s*$")
+
+
 def to_minutes(s: pd.Series) -> pd.Series:
-    """ "H:MM"/"HH:MM" -> minutes since midnight (handles SDG&E's unpadded hours)."""
-    parts = s.str.split(":", expand=True).astype(int)
-    return parts[0] * 60 + parts[1]
+    """Clock time -> minutes since midnight, for both exports' time formats.
+
+    PG&E writes 24-hour ``HH:MM``; SDG&E's real export writes 12-hour ``h:MM AM/PM``
+    (and its documented shape writes unpadded 24-hour ``H:MM``). All three parse here,
+    so neither parser has to carry a time format of its own.
+    """
+    parts = s.str.extract(_TIME_RE)
+    bad = parts[0].isna()
+    if bad.any():
+        raise GreenButtonParseError(
+            f"unparseable clock time {s[bad].iloc[0]!r}; expected 'H:MM' or 'h:MM AM/PM'"
+        )
+
+    hour = parts[0].astype(int)
+    minute = parts[1].astype(int)
+    meridiem = parts[2].str.upper()
+    has_meridiem = meridiem.notna()
+
+    if minute.gt(59).any():
+        raise GreenButtonParseError(f"minute out of range in {s[minute.gt(59)].iloc[0]!r}")
+    limit = has_meridiem.map({True: 12, False: 23})
+    if hour.gt(limit).any():
+        raise GreenButtonParseError(f"hour out of range in {s[hour.gt(limit)].iloc[0]!r}")
+
+    if has_meridiem.any():
+        # 12 AM -> 00, 12 PM -> 12, 1-11 PM -> +12. Order matters: fold midnight first.
+        hour = hour.where(~(has_meridiem & meridiem.eq("A") & hour.eq(12)), 0)
+        hour = hour.where(~(has_meridiem & meridiem.eq("P") & hour.ne(12)), hour + 12)
+
+    return hour * 60 + minute
 
 
 def interval_minutes(start_min: pd.Series, end_min: pd.Series, naive: pd.DatetimeIndex) -> int:
@@ -120,27 +188,59 @@ def interval_minutes(start_min: pd.Series, end_min: pd.Series, naive: pd.Datetim
     return interval
 
 
+def _fold_flags(naive: pd.DatetimeIndex) -> np.ndarray | bool:
+    """Per-row DST fold assignment for the ambiguous fall-back hour, from file order.
+
+    ``True`` means the earlier (DST/PDT) reading, ``False`` the later (PST) one — pandas'
+    ``ambiguous=`` convention. The two utilities need different answers and neither
+    announces which it is, so it is inferred from whether the label repeats:
+
+    * **PG&E writes 24 labels for the 25-hour day**, having summed both physical 01:00
+      hours into one reading. Nothing repeats, every flag is ``True``, and the second
+      physical hour surfaces as a single expected-grid gap. Unchanged behaviour.
+    * **SDG&E writes the true 25-hour day** — ``1:00 AM`` appears twice, in real-time
+      order. The first occurrence is PDT and the second PST, so there is no gap and no
+      energy is merged. Confirmed against a real export (SESSION_NOTES 2026-09-08).
+
+    A label repeating three or more times is not a fold — a fold is exactly two — so it
+    is rejected here rather than silently mis-assigned.
+    """
+    if not naive.duplicated().any():
+        return True  # scalar: the common path, no allocation
+    labels = pd.Series(naive)
+    occurrence = labels.groupby(labels, sort=False).cumcount().to_numpy()
+    if (occurrence > 1).any():
+        label = naive[occurrence > 1][0]
+        raise AmbiguousDSTError(
+            f"timestamp label {label} appears more than twice; a DST fall-back fold is "
+            "exactly two readings, so this file has duplicated or malformed rows"
+        )
+    return occurrence == 0
+
+
 def localize(naive: pd.DatetimeIndex) -> pd.DatetimeIndex:
-    """Localize the portal's nominal wall-clock labels to true LA time.
+    """Localize the export's wall-clock labels to true LA time.
 
-    The portal does not export true wall-clock local time across DST; it writes a nominal
-    hourly sequence. Two quirks, resolved by policy rather than trusting the label:
-
-    * **Fall-back** (e.g. 2025-11-02): 24 labels for a 25-hour day. The lone, ambiguous
-      ``01:00`` is assigned the DST/earlier fold (``ambiguous=True`` -> PDT). Both physical
-      01:00 hours' energy is already summed into that one reading, so the second physical
-      hour shows up as a single expected-grid gap.
-    * **Spring-forward** (e.g. 2026-03-08): the file labels the transition slot ``02:00``
+    * **Fall-back** (e.g. 2025-11-02): the ambiguous ``01:00`` label is resolved by
+      :func:`_fold_flags`, which handles both a summed single reading (PG&E) and a true
+      repeated pair (SDG&E).
+    * **Spring-forward** (e.g. 2026-03-08): PG&E labels the transition slot ``02:00``
       (which does not exist in LA) and omits ``03:00`` (which does).
-      ``nonexistent='shift_forward'`` maps that label to ``03:00``, yielding the correct
-      contiguous real-time sequence with no collision.
+      ``nonexistent='shift_forward'`` maps that label to ``03:00``, giving a contiguous
+      real-time sequence with no collision. **UNVERIFIED for SDG&E** — the real export on
+      hand covers November only, so whether SDG&E labels the missing hour or omits it is
+      unknown. Both conventions happen to survive this policy (an omitted label simply
+      never triggers ``shift_forward``), but that is luck, not evidence: check it against
+      the first SDG&E export spanning March.
 
     Both quirks fall in the early-morning super-off-peak window, so the sub-hour of energy
     they can misplace is TOU-neutral. Flagged billing decision (see SESSION_NOTES.md);
     revisit if a schedule ever prices 01:00-03:00 specially, or for a 15-min meter.
     """
     try:
-        return naive.tz_localize(LOCAL_TZ, ambiguous=True, nonexistent="shift_forward")
+        return naive.tz_localize(
+            LOCAL_TZ, ambiguous=_fold_flags(naive), nonexistent="shift_forward"
+        )
     except ValueError as e:
         raise AmbiguousDSTError(f"could not localize interval timestamps to {LOCAL_TZ}: {e}") from e
 
