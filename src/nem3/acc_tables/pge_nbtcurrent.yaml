@@ -1,0 +1,27 @@
+utility: PG&E
+vintage: current
+citation: 'PG&E Solar Billing Plan Export Rates, pge.com/eecvalues -> pge.com/assets/pge/docs/vanities/PGE-Solar-Billing-Plan-Export-Rates.zip
+  (zip sha256 9b554698025ed0cdaea0d48ab1ed1a58834f30d4af4e2cad2b879349626356d3, member
+  files dated 2024-12-18), retrieved 2026-09-09. Published under CPUC Resolution E-5301,
+  which requires 20 years posted; only the 9 years from PTO are effective rates, the
+  rest illustrative (see ''Solar Billing Plan Export Rates Readme.txt'' in the zip).
+  Methodology: PG&E Schedule NBT Cal. P.U.C. Sheet 57352-E. Delivery = RateLookupID
+  USCA-PGXX, generation = USCA-XXPG; generation applies only to customers taking bundled
+  generation from PG&E (CCA/DA customers must look to their own provider). NBT00 is
+  the floating (non-locked-in) table: per the readme, only PST calendar 2025 and 2026
+  are effective rates and everything after is illustrative. PG&E publishes no printed
+  price sheet for NBT00, so this table has no PDF cross-check; it is instead pinned
+  against NBT26, which it currently equals cell-for-cell on every overlapping year.'
+retrieved: '2026-09-09'
+source_file: PG&E NBT EEC Values Floating Vintage.csv
+source_sha256: 6e93d289a54c0d0f253bdaa2c7560555047cf91db85dc1810cc9ec1e9a003f6d
+years:
+- 2025
+- 2044
+components:
+- delivery
+- generation
+day_types:
+- weekday
+- weekend
+rows: 11520

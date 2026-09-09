@@ -11,6 +11,12 @@ rather than assuming it: if any (year, component, ValueName) cell carries more t
 distinct value, the file does not have the structure the tariff describes and the script
 raises instead of silently averaging.
 
+Both California IOUs modelled here publish this same MIDAS shape, so one parser serves
+both — only the RateLookupID prefix and the capitalisation of the unit differ. PG&E also
+publishes a per-vintage *printed* price sheet (pge.com/energyexportcredit), but that sheet
+carries a single calendar year of the horizon, so it is used as an independent
+cross-check on the import rather than as the source; see tests/nem3/test_acc_pge.py.
+
 Usage:
     PYTHONPATH=src python scripts/build_acc_tables.py \
         --utility SDG&E --vintage 2026 \
@@ -19,7 +25,12 @@ Usage:
 
 The source files are downloaded by hand (they are large and public):
     SDG&E: https://www.sdge.com/solar/solar-billing-plan/export-pricing
-    PG&E:  https://www.pge.com/energyexportcredit
+           -> one zip per vintage, "LY<year> NBT Pricing Upload MIDAS.zip"
+    PG&E:  https://www.pge.com/eecvalues
+           -> ONE 36 MB zip holding all five vintages as
+              "PG&E NBT EEC Values <2023|2024|2025|2026|Floating> Vintage.csv".
+           pge.com/energyexportcredit is a *different* zip — the printed PDF price
+           sheets. It is not the import source.
 """
 
 from __future__ import annotations
@@ -41,9 +52,22 @@ from nem3.acc import (
     table_stem,
 )
 
-# RateLookupID prefixes, from SDG&E "Understanding Export Pricing" and the readme shipped
-# inside the MIDAS zip: "USCA-SDXX" = Delivery Export Rates, "USCA-XXSD" = Generation.
-RIN_COMPONENT = {"USCA-SDXX": "delivery", "USCA-XXSD": "generation"}
+# RateLookupID prefixes, from the readmes shipped inside each utility's MIDAS zip. Both
+# utilities use the same convention: the letters in positions 6-7 name the delivery
+# issuer and positions 8-9 the generation issuer, with "XX" for the one this row is not
+# about. So "USCA-PGXX" is PG&E delivery and "USCA-XXPG" is PG&E generation. Prefixes are
+# matched, never derived, so an unrecognised utility raises instead of being guessed at.
+RIN_COMPONENT = {
+    "USCA-SDXX": "delivery",
+    "USCA-XXSD": "generation",
+    "USCA-PGXX": "delivery",
+    "USCA-XXPG": "generation",
+}
+
+#: Both utilities publish the same unit with different capitalisation: SDG&E writes
+#: "export $/kWh", PG&E "Export $/kWh". The unit is still *checked* — a file priced in
+#: $/MWh would misprice every export by 1000x — just not case-sensitively.
+EXPECTED_UNIT = "export $/kwh"
 
 
 def parse_midas(path: Path) -> pd.DataFrame:
@@ -56,7 +80,7 @@ def parse_midas(path: Path) -> pd.DataFrame:
     """
     raw = pd.read_csv(path, usecols=["RIN", "DateStart", "TimeStart", "ValueName", "Value", "Unit"])
     units = set(raw["Unit"].unique())
-    if units != {"export $/kWh"}:
+    if {u.strip().lower() for u in units} != {EXPECTED_UNIT}:
         raise ValueError(f"{path.name}: unexpected Unit value(s) {sorted(units)}; expected $/kWh")
 
     comp = raw["RIN"].str[:9].map(RIN_COMPONENT)

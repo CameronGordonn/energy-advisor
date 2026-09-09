@@ -135,3 +135,24 @@ def test_acc_plus_active_tracks_nine_years_from_pto():
     sched = ExportRateSchedule("SDG&E", Vintage(application_year=2026, pto_date=date(2026, 6, 1)))
     assert sched.acc_plus_active(date(2030, 1, 1))
     assert not sched.acc_plus_active(date(2036, 1, 1))
+
+
+def test_sdge_vintages_are_one_table_wearing_three_labels():
+    """NBT25, NBT26 and NBT00 are identical on every overlapping year, so SDG&E's
+    nine-year lock-in is currently worth exactly $0.
+
+    Stated in HANDOFF and relied on by ``test_payback.py``, but it was never asserted
+    directly — and it is the kind of fact that stops being true at the next ACC adoption
+    without anything else in the repo noticing. PG&E is the contrast: its vintages fork
+    into two genuinely different schedules (``test_acc_pge.py``), which is why "lock in
+    before rates drop" has to be answered per territory rather than once.
+    """
+    frames = {v: load_acc_table("SDG&E", v).frame.sort_index() for v in ("2025", "2026", CURRENT)}
+    for a, b in (("2025", "2026"), ("2026", CURRENT)):
+        years = sorted(
+            set(frames[a].index.get_level_values("year"))
+            & set(frames[b].index.get_level_values("year"))
+        )
+        left = frames[a][frames[a].index.get_level_values("year").isin(years)]
+        right = frames[b][frames[b].index.get_level_values("year").isin(years)]
+        assert left.equals(right), f"SDG&E NBT{a} and NBT{b} have diverged — re-check"
