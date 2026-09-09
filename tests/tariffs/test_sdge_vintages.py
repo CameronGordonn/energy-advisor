@@ -14,10 +14,13 @@ Two things make the transcription worth pinning rather than trusting:
 2. **The layer split has to keep reconstructing SDG&E's own printed totals** on every
    vintage, standard and CARE — the same gate `test_sdge_layers.py` applies to 6/1/2026.
 
-Sources, all retrieved 2026-09-07:
+Sources, retrieved 2026-09-07 (1/1, 4/1) and 2026-09-09 (8/1):
   "1-1-26 Schedule TOU-DR1 Total Rates Table.pdf" / "...TOU-DR1-CARE..."
   "4-1-26 Schedule TOU-DR1 Total Rates Table.pdf" / "...TOU-DR1-CARE..."
-  (there is no 5-1-26 sheet in that series; the URL returns HTTP 404)
+  "8-1-26 Schedule TOU-DR1 Total Rates Table.pdf" / "...TOU-DR1-CARE..."
+  (there is no 5-1-26 sheet in that series; the URL returns HTTP 404. Nor is there a
+  7-1-26, 9-1-26, 10-1-26 or 11-1-26 — all four 404 as of 2026-09-09, so 8/1 is the last
+  vintage of the year and governs August through December.)
 """
 
 from __future__ import annotations
@@ -47,6 +50,10 @@ VINTAGES = {
         "sdge_tou_dr1_delivery_2026-06-01.yaml",
         "sdge_tou_dr1_generation_2026-06-01.yaml",
     ),
+    date(2026, 8, 1): (
+        "sdge_tou_dr1_delivery_2026-08-01.yaml",
+        "sdge_tou_dr1_generation_2026-08-01.yaml",
+    ),
 }
 
 # (season, period) -> (Total Electric Rate, Total Adjusted CARE Rate), as printed.
@@ -67,6 +74,22 @@ PRINTED = {
         ("winter", "on_peak"): (0.62127, 0.39437),
         ("winter", "off_peak"): (0.53956, 0.34126),
         ("winter", "super_off_peak"): (0.44880, 0.28226),
+    },
+    date(2026, 6, 1): {
+        ("summer", "on_peak"): (0.68459, 0.43553),
+        ("summer", "off_peak"): (0.46392, 0.29209),
+        ("summer", "super_off_peak"): (0.37660, 0.23533),
+        ("winter", "on_peak"): (0.61014, 0.38713),
+        ("winter", "off_peak"): (0.52843, 0.33402),
+        ("winter", "super_off_peak"): (0.43767, 0.27503),
+    },
+    date(2026, 8, 1): {
+        ("summer", "on_peak"): (0.69135, 0.43992),
+        ("summer", "off_peak"): (0.46421, 0.29228),
+        ("summer", "super_off_peak"): (0.37433, 0.23386),
+        ("winter", "on_peak"): (0.61471, 0.39010),
+        ("winter", "off_peak"): (0.53060, 0.33543),
+        ("winter", "super_off_peak"): (0.43719, 0.27472),
     },
 }
 PRINTED[date(2026, 5, 1)] = PRINTED[date(2026, 4, 1)]
@@ -122,7 +145,7 @@ def test_the_two_layers_of_a_vintage_agree_on_structure(effective):
 
 @pytest.mark.parametrize("effective", sorted(VINTAGES))
 def test_delivery_is_period_flat_on_every_vintage(effective):
-    """TOU-DR1's UDC total is period- and season-flat on all four 2026 vintages, so 100%
+    """TOU-DR1's UDC total is period- and season-flat on all five 2026 vintages, so 100%
     of the schedule's TOU price signal lives in generation. If a future transcription
     breaks this, every SDG&E load-shift conclusion changes."""
     delivery, _ = _layers(effective)
@@ -148,7 +171,7 @@ def test_pre_may_vintages_restrict_daytime_super_off_peak_to_march_and_april(eff
         assert spec.tou.period_for(11, month, weekday=True) == expected
 
 
-@pytest.mark.parametrize("effective", [date(2026, 5, 1), date(2026, 6, 1)])
+@pytest.mark.parametrize("effective", [date(2026, 5, 1), date(2026, 6, 1), date(2026, 8, 1)])
 @pytest.mark.parametrize("month", range(1, 13))
 def test_post_may_vintages_apply_daytime_super_off_peak_year_round(effective, month):
     for spec in _layers(effective):
@@ -159,7 +182,7 @@ def test_post_may_vintages_apply_daytime_super_off_peak_year_round(effective, mo
 @pytest.mark.parametrize("month", range(1, 13))
 def test_the_windows_the_2026_filing_did_not_touch_are_identical_everywhere(effective, month):
     """Only the weekday 10:00-14:00 carve-out moved. Overnight, evening peak and the
-    weekend table are the same on all four vintages."""
+    weekend table are the same on all five vintages."""
     for spec in _layers(effective):
         assert spec.tou.period_for(3, month, weekday=True) == "super_off_peak"
         assert spec.tou.period_for(17, month, weekday=True) == "on_peak"
@@ -181,7 +204,9 @@ def test_the_windows_the_2026_filing_did_not_touch_are_identical_everywhere(effe
         (date(2026, 5, 1), date(2026, 5, 1)),
         (date(2026, 5, 31), date(2026, 5, 1)),
         (date(2026, 6, 1), date(2026, 6, 1)),
-        (date(2026, 12, 31), date(2026, 6, 1)),
+        (date(2026, 7, 31), date(2026, 6, 1)),
+        (date(2026, 8, 1), date(2026, 8, 1)),
+        (date(2026, 12, 31), date(2026, 8, 1)),
     ],
 )
 @pytest.mark.parametrize("layer", [Layer.DELIVERY, Layer.GENERATION])
@@ -196,7 +221,7 @@ def test_a_calendar_2026_sdge_run_is_now_covered_end_to_end():
     for layer in (Layer.DELIVERY, Layer.GENERATION):
         versions = load_spec_versions("TOU-DR1", layer, provider="SDG&E")
         assert min(v.effective_date for v in versions) <= date(2026, 1, 1)
-        assert len(versions) == 4
+        assert len(versions) == 5
 
 
 def test_generation_held_across_the_june_delivery_change():
@@ -230,6 +255,56 @@ def test_may_and_april_vintages_differ_only_in_their_period_definitions():
     assert april_d.fixed_per_day == may_d.fixed_per_day
 
 
+def test_the_august_filing_moved_both_layers_in_opposite_directions():
+    """The counterpoint to `test_generation_held_across_the_june_delivery_change`, and the
+    reason "the SDG&E rate changed" is never a single fact. On 8/1/2026 delivery went DOWN
+    (UDC total 0.32948 -> 0.32601) while generation went UP in every period (summer
+    on-peak EECC 0.34920 -> 0.35943), so the all-in summer on-peak rate ROSE even though
+    the delivery rate fell. A blended single-rate model gets the sign wrong on one of them
+    no matter which way it rounds."""
+    june_d, june_g = _layers(date(2026, 6, 1))
+    aug_d, aug_g = _layers(date(2026, 8, 1))
+    for season in (Season.SUMMER, Season.WINTER):
+        for period in june_g.tou.periods:
+            june_delivery = june_d.energy_rate(season, period).for_customer(care=False)
+            aug_delivery = aug_d.energy_rate(season, period).for_customer(care=False)
+            june_gen = june_g.energy_rate(season, period).for_customer(care=False)
+            aug_gen = aug_g.energy_rate(season, period).for_customer(care=False)
+            assert aug_delivery < june_delivery, (season, period)
+            assert aug_gen > june_gen, (season, period)
+    assert (
+        PRINTED[date(2026, 8, 1)][("summer", "on_peak")][0]
+        > (PRINTED[date(2026, 6, 1)][("summer", "on_peak")][0])
+    )
+
+
+def test_the_august_filing_moved_the_pcia_too():
+    """Invisible from the energy rates, and it lands on CCA customers only: every PCIA
+    vintage fell ~0.00216/kWh on the 8/1 sheet (2018: 0.03670 -> 0.03454). An Aug-Dec CCA
+    bill priced with the 6/1 sheet is wrong in a way no bundled test would catch, which is
+    why this is pinned rather than left to the layer-sum gate."""
+    june_d, _ = _layers(date(2026, 6, 1))
+    aug_d, _ = _layers(date(2026, 8, 1))
+    (june_pcia,) = june_d.adders
+    (aug_pcia,) = aug_d.adders
+    assert set(aug_pcia.per_kwh_by_vintage) == set(june_pcia.per_kwh_by_vintage)
+    for vintage, rate in aug_pcia.per_kwh_by_vintage.items():
+        assert rate < june_pcia.per_kwh_by_vintage[vintage], vintage
+    assert aug_pcia.per_kwh_by_vintage["2018"] == pytest.approx(0.03454)
+    assert aug_pcia.per_kwh_by_vintage["2026"] == pytest.approx(0.04771)
+
+
+def test_the_baseline_credit_grew_on_the_august_sheet():
+    """(0.10663) -> (0.10702) standard, (0.06931) -> (0.06956) CARE — read off the printed
+    tables, and the largest single credit on a TOU-DR1 bill."""
+    june_d, _ = _layers(date(2026, 6, 1))
+    aug_d, _ = _layers(date(2026, 8, 1))
+    assert aug_d.baseline.credit_per_kwh.standard == pytest.approx(-0.10702)
+    assert aug_d.baseline.credit_per_kwh.care == pytest.approx(-0.06956)
+    assert aug_d.baseline.credit_per_kwh.standard < june_d.baseline.credit_per_kwh.standard
+    assert aug_d.baseline.allowances == june_d.baseline.allowances
+
+
 # =========================================================================================
 # TOU-DR2 and EV-TOU-5 — the other two rankable SDG&E residential schedules.
 #
@@ -246,14 +321,21 @@ def test_may_and_april_vintages_differ_only_in_their_period_definitions():
 #    time-differentiated in summer. A load-shift analysis that varied only generation
 #    would be right on TOU-DR1 and wrong here.
 #
-# Sources, all retrieved 2026-09-08, same series as above:
-#   "{1,4,6}-1-26 Schedule TOU-DR2 Total Rates Table.pdf"    / "...TOU-DR2-CARE..."
-#   "{1,4,6}-1-26 Schedule EV-TOU-5 Total Rates Table.pdf"   / "...EV-TOU-5-CARE..."
-#   (no 5-1-26 sheet exists for either schedule; both URLs return HTTP 404)
+# Sources, retrieved 2026-09-08 (1/1, 4/1, 6/1) and 2026-09-09 (8/1), same series as above:
+#   "{1,4,6,8}-1-26 Schedule TOU-DR2 Total Rates Table.pdf"  / "...TOU-DR2-CARE..."
+#   "{1,4,6,8}-1-26 Schedule EV-TOU-5 Total Rates Table.pdf" / "...EV-TOU-5-CARE..."
+#   (no 5-1-26 sheet exists for either schedule; both URLs return HTTP 404. 8/1 is the last
+#   2026 vintage in the series and governs August through December.)
 # =========================================================================================
 
-DR2_VINTAGES = [date(2026, 1, 1), date(2026, 4, 1), date(2026, 6, 1)]
-EV_VINTAGES = [date(2026, 1, 1), date(2026, 4, 1), date(2026, 5, 1), date(2026, 6, 1)]
+DR2_VINTAGES = [date(2026, 1, 1), date(2026, 4, 1), date(2026, 6, 1), date(2026, 8, 1)]
+EV_VINTAGES = [
+    date(2026, 1, 1),
+    date(2026, 4, 1),
+    date(2026, 5, 1),
+    date(2026, 6, 1),
+    date(2026, 8, 1),
+]
 
 # (season, period) -> (Total Electric Rate, Total Adjusted CARE Rate), as printed.
 DR2_PRINTED = {
@@ -274,6 +356,12 @@ DR2_PRINTED = {
         ("summer", "off_peak"): (0.41773, 0.26207),
         ("winter", "on_peak"): (0.61014, 0.38713),
         ("winter", "off_peak"): (0.47316, 0.29810),
+    },
+    date(2026, 8, 1): {
+        ("summer", "on_peak"): (0.69597, 0.44292),
+        ("summer", "off_peak"): (0.41666, 0.26137),
+        ("winter", "on_peak"): (0.61471, 0.39010),
+        ("winter", "off_peak"): (0.47372, 0.29846),
     },
 }
 
@@ -301,6 +389,14 @@ EV_PRINTED = {
         ("winter", "on_peak"): (0.52292, 0.33044),
         ("winter", "off_peak"): (0.46639, 0.29370),
         ("winter", "super_off_peak"): (0.12115, 0.06929),
+    },
+    date(2026, 8, 1): {
+        ("summer", "on_peak"): (0.80205, 0.51188),
+        ("summer", "off_peak"): (0.49627, 0.31312),
+        ("summer", "super_off_peak"): (0.13090, 0.07563),
+        ("winter", "on_peak"): (0.52383, 0.33103),
+        ("winter", "off_peak"): (0.46566, 0.29322),
+        ("winter", "super_off_peak"): (0.12332, 0.07070),
     },
 }
 # The 5/1 vintage is the 4/1 sheet's rates (no 5/1 sheet exists), so it shares that table.
@@ -377,13 +473,13 @@ def test_other_schedules_two_layers_agree_on_structure(schedule, effective):
     assert delivery.tou == generation.tou
 
 
-@pytest.mark.parametrize(("schedule", "expected"), [("TOU-DR2", 3), ("EV-TOU-5", 4)])
+@pytest.mark.parametrize(("schedule", "expected"), [("TOU-DR2", 4), ("EV-TOU-5", 5)])
 @pytest.mark.parametrize("layer", [Layer.DELIVERY, Layer.GENERATION])
 def test_other_schedules_cover_calendar_2026_from_january(schedule, expected, layer):
     """The concrete thing these specs unblock: `marginal_energy_price` refuses dates no
     spec covers, so with 6/1 alone neither schedule could be ranked over a calendar year
-    against TOU-DR1. EV-TOU-5 gets FOUR vintages (the 5/1 window split); TOU-DR2 gets
-    three, because it has no super-off-peak window for that filing to move."""
+    against TOU-DR1. EV-TOU-5 gets FIVE vintages (the 5/1 window split); TOU-DR2 gets
+    four, because it has no super-off-peak window for that filing to move."""
     versions = load_spec_versions(schedule, layer, provider="SDG&E")
     assert len(versions) == expected
     assert min(v.effective_date for v in versions) <= date(2026, 1, 1)
@@ -451,7 +547,7 @@ def test_ev_tou_5_pre_may_vintages_restrict_daytime_super_off_peak_to_march_and_
         assert spec.tou.period_for(11, month, weekday=True) == expected
 
 
-@pytest.mark.parametrize("effective", [date(2026, 5, 1), date(2026, 6, 1)])
+@pytest.mark.parametrize("effective", [date(2026, 5, 1), date(2026, 6, 1), date(2026, 8, 1)])
 @pytest.mark.parametrize("month", range(1, 13))
 def test_ev_tou_5_post_may_vintages_apply_daytime_super_off_peak_year_round(effective, month):
     for spec in _other_layers("EV-TOU-5", effective):
@@ -462,7 +558,7 @@ def test_ev_tou_5_post_may_vintages_apply_daytime_super_off_peak_year_round(effe
 @pytest.mark.parametrize("month", range(1, 13))
 def test_ev_tou_5_windows_the_2026_filing_did_not_touch_are_identical_everywhere(effective, month):
     """Only the weekday 10:00-14:00 carve-out moved. Overnight, evening peak and the
-    weekend table are the same on all four vintages."""
+    weekend table are the same on all five vintages."""
     for spec in _other_layers("EV-TOU-5", effective):
         assert spec.tou.period_for(3, month, weekday=True) == "super_off_peak"
         assert spec.tou.period_for(17, month, weekday=True) == "on_peak"
@@ -506,12 +602,46 @@ def test_ev_tou_5_has_no_baseline_credit_on_any_vintage():
         (date(2026, 5, 1), date(2026, 5, 1)),
         (date(2026, 5, 31), date(2026, 5, 1)),
         (date(2026, 6, 1), date(2026, 6, 1)),
-        (date(2026, 12, 31), date(2026, 6, 1)),
+        (date(2026, 7, 31), date(2026, 6, 1)),
+        (date(2026, 8, 1), date(2026, 8, 1)),
+        (date(2026, 12, 31), date(2026, 8, 1)),
     ],
 )
 @pytest.mark.parametrize("layer", [Layer.DELIVERY, Layer.GENERATION])
 def test_ev_tou_5_selects_the_right_vintage_for_a_date(on, expected, layer):
     assert load_specs("EV-TOU-5", layer, on=on, provider="SDG&E").effective_date == expected
+
+
+def test_the_august_filing_froze_ev_tou_5_super_off_peak_delivery_and_cut_the_rest():
+    """⭐ One filing, three different behaviours on one schedule. On 8/1/2026 EV-TOU-5's
+    on/off-peak UDC total fell 0.31711 -> 0.31218 while its SUPER-OFF-PEAK UDC total did
+    not move at all, holding at 0.04114 for a third consecutive vintage — and generation
+    rose in every period. So the delivery discount in the battery-charging window did not
+    deepen; only the windows it is measured against got cheaper."""
+    june_d, _ = _other_layers("EV-TOU-5", date(2026, 6, 1))
+    aug_d, _ = _other_layers("EV-TOU-5", date(2026, 8, 1))
+    for season in (Season.SUMMER, Season.WINTER):
+        assert aug_d.energy_rate(season, "super_off_peak").for_customer(
+            care=False
+        ) == pytest.approx(june_d.energy_rate(season, "super_off_peak").for_customer(care=False))
+        for period in ("on_peak", "off_peak"):
+            assert aug_d.energy_rate(season, period).for_customer(care=False) < june_d.energy_rate(
+                season, period
+            ).for_customer(care=False)
+
+
+@pytest.mark.parametrize("schedule", ["TOU-DR2", "EV-TOU-5"])
+def test_the_august_filing_moved_generation_on_every_schedule(schedule):
+    """The 6/1 filing moved delivery only on all three schedules; 8/1 moved generation on
+    all three, upward in every period. Pinned per-schedule so a future transcription that
+    copies one schedule's EECC table onto another fails here."""
+    _, june_g = _other_layers(schedule, date(2026, 6, 1))
+    _, aug_g = _other_layers(schedule, date(2026, 8, 1))
+    for season in (Season.SUMMER, Season.WINTER):
+        for period in june_g.tou.periods:
+            assert aug_g.energy_rate(season, period).for_customer(care=False) > june_g.energy_rate(
+                season, period
+            ).for_customer(care=False), (schedule, season, period)
 
 
 # --- the structural gap that let two schedules ship half-authored -------------------------

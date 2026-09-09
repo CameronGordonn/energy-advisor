@@ -2,6 +2,114 @@
 
 Running log of decisions made and decisions pending. Newest first.
 
+## 2026-09-09 — Session 18 (the 8/1/2026 SDG&E vintage, all three schedules in one pass)
+
+**860 tests green (was 719), ruff clean, golden bills untouched.** HANDOFF action 2. Six new
+spec files, no existing spec edited. Every SDG&E spec previously stopped at 6/1, so August
+through December — five months of any calendar-year run — were priced with June rates on
+TOU-DR1, TOU-DR2 and EV-TOU-5 alike. All three are done together, per session 16's rule that
+a partial fix is worse than a consistent lag.
+
+### DONE — the vintage, from the primary sheets
+`curl` reaches sdge.com fine (the 403 field note is specific to sdcommunitypower.org), so all
+six Total Rates Tables — three schedules x standard/CARE — came straight from
+`sdge.com/sites/default/files/regulatory/`, `pdftotext -layout`, delivery and generation
+transcribed as separate layers. **All 32 layer-sum cells reconcile to SDG&E's printed Total
+Electric Rate and Total Adjusted CARE Rate**, worst residual 6e-6 and that only from the
+sheet's own 5-dp rounding. The CARE split derived on TOU-DR1 back in session 6 — delivery
+keeps the 0.00864 exemption, both layers take the 35% — still rebuilds the printed CARE total
+on a fifth vintage it was never fitted to.
+
+**8/1 is the LAST 2026 vintage.** 7-1-26, 9-1-26, 10-1-26 and 11-1-26 all 404 in the same
+series as of today, and sdge.com's live plan pages quote "prices effective August 1, 2026".
+So calendar 2026 is now covered end to end with no stale tail.
+
+### ⭐ FINDING — one filing, and the two layers moved in OPPOSITE directions
+The 6/1 filing moved delivery only. The 8/1 filing moved both, and not the same way:
+
+| | 6/1 | 8/1 |
+|---|---|---|
+| TOU-DR1 UDC Total | 0.32948 | **0.32601** (down) |
+| TOU-DR1 summer on-peak EECC | 0.34920 | **0.35943** (up) |
+| all-in summer on-peak | 0.68459 | **0.69135** (up) |
+
+So "SDG&E delivery rates went down in August" is true, and for a summer on-peak kWh entirely
+misleading — the all-in rate rose. A tool carrying one blended 2026 SDG&E rate gets the
+magnitude wrong on both halves and **the sign wrong on delivery**. This is the sharpest
+instance yet of the ⭐ fact already in HANDOFF, and it is now pinned by
+`test_the_august_filing_moved_both_layers_in_opposite_directions`.
+
+### ⭐ FINDING — the PCIA moved too, and only a CCA customer would ever feel it
+Every residential PCIA vintage fell ~0.00216/kWh (2018: 0.03670 → **0.03454**; 2026: 0.04987
+→ **0.04771**), identically on all three schedules' sheets. That is ~$13/yr on a 6,000 kWh
+CCA household, and it lands on **nothing a bundled test would catch** — the layer-sum gate
+never touches the adder. Pinned separately by `test_the_august_filing_moved_the_pcia_too`.
+The baseline credit also grew, (0.10663) → **(0.10702)**, likewise pinned.
+
+### ⭐ FINDING — EV-TOU-5's super-off-peak delivery rate did not move at all
+Its on/off-peak UDC fell 0.31711 → 0.31218 while super-off-peak UDC held at **0.04114** for a
+third consecutive vintage. So the delivery discount in the battery-charging window did not
+deepen; only the windows it is measured against got cheaper. The NBC share of that window's
+delivery charge therefore holds at ~45% while rising 6.5% → 6.6% elsewhere — the ~2x
+overstatement trap for anyone netting exports against a headline rate is unchanged in size.
+
+### CHECKED, NOT ASSUMED — the windows did not move
+`sdge.com/super-off-peak-residential`, retrieved today, still prints "Weekdays: 12 a.m. to
+6 a.m. / 10 a.m. to 2 p.m. Weekends: 12 a.m. to 2 p.m." and "now ... all year long". So no
+5/1-style rate/window split is needed for this vintage (open decision 8) and the 8/1 specs
+inherit the 6/1 rules verbatim. TOU-DR2 still has no super-off-peak period at all.
+
+### THE POINT OF THE EXERCISE — did anything reorder?
+**No, and one of the two answers is structural rather than empirical.**
+
+- **`scripts/rate_optimizer.py` is unchanged, byte for byte.** Verdict still SWITCH to
+  E-TOU-C + PG&E, $933.50/yr vs $1,104.22 current, −$170.72. That is not a coincidence the
+  8/1 rates survived: **the optimizer prices the PG&E household on PG&E schedules only**, so
+  no SDG&E spec can reach it. There is still no SDG&E household to rank — the binding
+  constraint, unchanged.
+- **`scripts/nem3_report.py` (real SDG&E rates, synthetic load) moves ~0.1% and reorders
+  nothing.** Baseline $3,052 → **$3,056**/yr; solar only $1,867 → **$1,870**; +battery greedy
+  $514 → **$512**, LP $436 → **$433**. Savings, paybacks (8.9 / 7.4 / 7.2 yr), the P10/P50/P90
+  bands and the NBC floor ($86/yr) are all unchanged. The baseline rose *despite* delivery
+  falling, because this load is summer- and peak-weighted and generation rose more — the
+  opposite-directions finding showing up in dollars.
+
+**So the fix was worth making for correctness, not for its effect on any current answer.**
+Five months of the year were priced wrong; they now are not. Nothing downstream changes,
+which is exactly what one wants to be able to *say* rather than assume.
+
+### Test counts
+719 → 860. The growth is parametrization, not new assertions of new kinds: a fifth vintage
+multiplies through the existing per-cell layer-identity and window tables. Five hand-written
+tests are genuinely new (opposite-direction layers, PCIA move, baseline-credit move,
+EV-TOU-5 frozen super-off-peak, generation moved on every schedule). Stale `719` counts in
+README.md, docs/METHODOLOGY.md and the published docs/methodology.html updated in the same
+commit — the drift session 17 had to clean up twice.
+
+### Incidental correction
+The TOU-DR1 printed-total table in `test_sdge_vintages.py` gained its 6/1 row, which had
+never been there (6/1 was covered only by `test_sdge_layers.py`). Four of its CARE cells were
+first written from the layer sums rather than the sheet and were wrong in the 5th decimal;
+the 6/1 CARE table was fetched and they now come off the sheet. Worth recording because it
+is the exact failure mode the printed-total gate exists to catch, and it caught it.
+
+### ⚠ COORDINATION — another session is writing this same tree, right now
+`git status` at commit time showed in-flight work that is not mine: PG&E ACC tables
+(`src/nem3/acc_tables/pge_nbt*.{csv.gz,yaml}`, `tests/nem3/test_acc_pge.py`), a TOU-DR-P test,
+and a **full rewrite of `docs/methodology.html`** onto the shared chrome. Per session 17's
+lesson I committed with an explicit pathspec (`git commit -- <my files>`), so the shared index
+could not fold their work into my commit.
+
+Two consequences for whoever reads this next:
+- **My 719 → 860 edit inside `docs/methodology.html` is NOT in my commit** — that file belongs
+  to the other lane and I only sed'd the one number. If their rewrite lands without it, the
+  published page will claim 719 again. README.md and docs/METHODOLOGY.md *are* in my commit.
+- **The HANDOFF action list was renumbered by me** (old action 2, the 8/1 vintage, is done and
+  gone; 3-5 became 2-4). The other lane is working what is now action 2 and action 3. Expect
+  to renumber again, and reconcile rather than re-derive.
+- The **860** figure was measured in a clean `git archive HEAD` checkout with only my six
+  specs and my test file applied, precisely so it is not inflated by the other lane's tests.
+
 ## 2026-09-09 — Session 17 (reconciling four parallel sessions' docs)
 
 Housekeeping, no engine change. **719 tests green, ruff clean, wasm parity and render checks

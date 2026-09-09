@@ -3,15 +3,15 @@
 _Rewrite this whole file whenever you finish a milestone or pause. Keep it current: state,
 how to run, open decisions, exact next action._
 
-## Status _(2026-09-09, end of session 16)_
+## Status _(2026-09-09, end of session 18)_
 
 **M0, M2 and M4 are done. M1 and M3 have complete, tested engines whose DoDs are blocked on
 data that does not exist yet. Do not fabricate a load or a bill to "finish" either.**
 
-**719 tests green · ruff clean · 11/11 PG&E golden bills within ±$2 (worst +$0.22) · working
+**860 tests green · ruff clean · 11/11 PG&E golden bills within ±$2 (worst +$0.22) · working
 tree clean · both CI jobs green.**
 
-> **⚠ `main` is 6 commits AHEAD of `origin/main` and has not been pushed.** Sessions 13-16 all
+> **⚠ `main` is 8 commits AHEAD of `origin/main` and has not been pushed.** Sessions 13-18 all
 > landed locally. Push before starting anything, or the next instance re-derives work that
 > exists.
 
@@ -77,38 +77,22 @@ has landed it outranks everything below.
 13-month interval export plus three itemised bills; be explicit that they are validating an
 engine, not buying a verdict. See the M5 warning for why this ordering is not optional.
 
-**2. THE 8/1/2026 VINTAGE IS MISSING FOR EVERY SDG&E SCHEDULE.** _(Session 16 found this while
-finishing the earlier-vintage action, now done — TOU-DR1, TOU-DR2 and EV-TOU-5 all
-price calendar 2026 from January.)_ Every SDG&E spec in this repo stops at 6/1, but
-`8-1-26 Schedule <ID> Total Rates Table.pdf` **exists** on sdge.com (7-1, 9-1 and 10-1 all
-404), and it is a real move, not a reprint: TOU-DR1 UDC Total 0.32948 → **0.32601**, summer
-on-peak EECC 0.34920 → **0.35943**, baseline credit (0.10663) → **(0.10702)**. SDG&E's live
-plan pages now quote "prices effective August 1, 2026".
-  **So Aug-Dec 2026 is currently priced with stale rates on every SDG&E schedule, TOU-DR1
-  included** — about five months of any calendar-year run. Session 16 deliberately did not fix
-  it for only the two schedules it touched, because that would make them more current than
-  TOU-DR1 and produce an apples-to-oranges ranking; the lag is at least consistent today.
-  Cheap and unblocked: same method as session 8 — fetch `8-1-26 Schedule <ID> Total Rates
-  Table.pdf` and its `-CARE` twin for TOU-DR1 / TOU-DR2 / EV-TOU-5, `pdftotext -layout`,
-  transcribe delivery and generation separately, extend the printed-total tables in
-  `tests/tariffs/test_sdge_vintages.py`. Check whether the window rules moved (they should
-  not have) and whether a 5/1-style split is needed (it should not be).
-
-**3. Migrate `docs/methodology.html` onto the shared chrome.** It took the new palette and type
+**2. Migrate `docs/methodology.html` onto the shared chrome.** It took the new palette and type
 in session 12 but still holds its own copy of the tokens and its own nav/footer rules, which
 must be reconciled with `site.css` first (`site.css` sets `th{width:44%}`, which would wreck
 its tables — that is why it links `fonts.css` only). Its heading order, `<th scope>` and
 200%/400% reflow have never been audited.
 
-**4. PG&E ACC tables** — per-vintage PDFs (pge.com/energyexportcredit), not the clean MIDAS
+**3. PG&E ACC tables** — per-vintage PDFs (pge.com/energyexportcredit), not the clean MIDAS
 CSVs SDG&E publishes, so a different parser. Low priority.
 
-**5. TOU-DR-P** — needs an events model before it can be ranked. See open decision 2.
+**4. TOU-DR-P** — needs an events model before it can be ranked. See open decision 2.
 
 > **⚠ READ BEFORE STARTING M5 — M1 and M5 are coupled.** M5 targets San Diego (SDG&E) users,
 > and **the engine has never reproduced a single real SDG&E bill.** (The *parser* has now met
 > one real export — session 13 — which is a different and much weaker claim.) The
-> rate specs are tariff-exact across four 2026 vintages, which is necessary but **not
+> rate specs are tariff-exact across all five 2026 vintages — calendar 2026 is now covered
+> end to end, 8/1 being the last vintage SDG&E published — which is necessary but **not
 > sufficient**: sending dollar figures to five strangers without a reconciled SDG&E bill would
 > violate invariant 1 (reconciliation-gated), which is the product's entire trust claim.
 > **The consequence is a sequencing rule, and it is good news:** the FIRST recruit who supplies
@@ -131,14 +115,16 @@ CSVs SDG&E publishes, so a different parser. Low priority.
   `MinimumBill`, per-kWh surcharges, `NonBypassable`, `period_codes`, and **`marginal_energy_price`**
   (version-aware per-interval retail price; refuses dates no spec covers; rejects layers that
   classify an hour differently).
-- **Specs — 44 files, 22 schedule-layers** (`src/tariffs/specs/`):
+- **Specs — 50 files, 22 schedule-layers** (`src/tariffs/specs/`):
   - **PG&E**: E-TOU-C (4 vintages) / E-TOU-D / EV2-A / E-1 delivery, each with matched 3CE and
     PG&E-bundled generation.
-  - **SDG&E — all three rankable residential schedules now have BOTH layers across 2026**
-    (session 16). TOU-DR1 delivery + generation in **four 2026 vintages** (1/1, 4/1, 5/1, 6/1);
-    **EV-TOU-5 likewise in four** (same 5/1 window split, sourced directly for that schedule);
-    **TOU-DR2 in three** — it has no super-off-peak period, so the 5/1 window filing cannot
-    touch it, and the absence of a 5/1 file is asserted by test rather than merely true.
+  - **SDG&E — all three rankable residential schedules have BOTH layers across ALL of 2026**
+    (sessions 16 and 18). TOU-DR1 delivery + generation in **five 2026 vintages** (1/1, 4/1,
+    5/1, 6/1, 8/1); **EV-TOU-5 likewise in five** (same 5/1 window split, sourced directly for
+    that schedule); **TOU-DR2 in four** — it has no super-off-peak period, so the 5/1 window
+    filing cannot touch it, and the absence of a 5/1 file is asserted by test rather than
+    merely true. **8/1 is the last vintage SDG&E published for 2026** — 7-1, 9-1, 10-1 and
+    11-1 all 404 as of 2026-09-09 — so there is no stale Aug-Dec tail any more.
     TOU-DR-P remains deliberately unloadable.
     ⚠ TOU-DR2 and EV-TOU-5 had shipped **delivery-only** since session 6 — a bundled customer
     could not be priced on either — and nothing failed, because every test named its files
@@ -169,10 +155,13 @@ CSVs SDG&E publishes, so a different parser. Low priority.
 Each of these is pinned by a test; none is obvious, and each is a way a generic calculator gets
 a California bill wrong.
 
-- **⭐ Delivery and generation change on DIFFERENT dates.** EECC moved 4/1/2026 then held; the
-  6/1 filing moved delivery only (UDC 0.34061 → 0.32948). A tool treating "the rate changed on
-  6/1" as one event misprices a layer on every bill spanning it.
-- **⭐ Four SDG&E vintages, not three.** Rates changed 1/1, 4/1 and 6/1, but the weekday
+- **⭐ Delivery and generation change on DIFFERENT dates, and can move in OPPOSITE
+  DIRECTIONS.** EECC moved 4/1/2026 then held; the 6/1 filing moved delivery only (UDC
+  0.34061 → 0.32948). Then the **8/1 filing moved both, opposite ways**: UDC 0.32948 →
+  0.32601 (down) while summer on-peak EECC 0.34920 → 0.35943 (up), so the all-in rate ROSE
+  0.68459 → 0.69135 on a filing that cut the delivery rate. A tool treating "the rate changed"
+  as one event misprices a layer on every bill spanning it and gets the *sign* wrong here.
+- **⭐ FIVE SDG&E vintages, not three.** Rates changed 1/1, 4/1, 6/1 and 8/1, but the weekday
   10:00–14:00 super-off-peak window went year-round **2026-05-01**, *inside* the 4/1 rate
   vintage, and SDG&E published **no 5/1 table** (that URL 404s). So the 4/1 rates are committed
   twice — with the March/April window (governs April) and the year-round one (governs May).
@@ -188,11 +177,36 @@ a California bill wrong.
   providers, so the loader cannot guess.
 - **⭐ The PCIA, not the CCA's rates, decides.** SDCP undercuts SDG&E in every period, but a
   2018-vintage exit fee flips exactly summer super-off-peak — the battery-charging window — and
-  a 2024 vintage flips 5 of 6.
+  a 2024 vintage flips 5 of 6. **And the PCIA moves on its own schedule:** every vintage fell
+  ~0.00216/kWh on the 8/1/2026 sheet (2018: 0.03670 → 0.03454), which is ~$13/yr on a 6,000 kWh
+  CCA household and which **no bundled test can catch** — the layer-sum gate never touches the
+  adder. Pinned by `test_the_august_filing_moved_the_pcia_too`. The CCA generation specs
+  themselves need no 8/1 vintage: a CCA files its own rates on its own dates, and the PCIA a
+  CCA customer pays rides on the SDG&E *delivery* spec, so it updated with this filing.
 - **⭐ SDG&E's NBT25 / NBT26 / NBT00 export tables are byte-identical** for every overlapping
   year, so the nine-year lock-in currently confers *zero* dollar advantage on SDG&E. "Lock in
-  before rates drop" is an empty pitch here — the opposite of the PG&E vintage story installers
-  cite.
+  before rates drop" is an empty pitch here. Now asserted directly by
+  `test_sdge_vintages_are_one_table_wearing_three_labels` rather than only stated here.
+- **⭐ PG&E's vintages DO differ — and the difference does not support the installer pitch.**
+  _(Session 19; this is the asymmetry the SDG&E line above was waiting on.)_ PG&E publishes
+  five vintage files that collapse to **two** distinct schedules: NBT23 ≡ NBT24, and
+  NBT25 ≡ NBT26 ≡ NBT00. The two clusters are far apart — over $1/kWh in the extreme cells —
+  so "which vintage" is a real question in PG&E territory and a non-question in SDG&E's. But
+  the gap is **structural by hour of day**, and read that way it inverts the pitch:
+  - **Midday 09:00–15:00, where a solar-only array actually exports:** the older NBT23/24 is
+    ahead in every published year, by only $0.005–$0.020/kWh. Near enough a wash.
+  - **Overnight 00:00–06:00, reachable only with a battery:** the newer NBT25/26 is ahead in
+    every year, and from 2030 by **more than $0.10/kWh** — an order of magnitude more than
+    the midday gap runs the other way.
+  - **Evening 17:00–21:00:** NBT23/24 leads through 2029 and NBT25/26 from 2030, so a
+    nine-year lock-in taken in 2023 spans the flip.
+
+  So the vintage question in PG&E territory is really a *battery* question, and where it has
+  a clear answer the answer is "later is better". Also note NBT26 ≡ NBT00: locking in the
+  2026 vintage buys exactly the floating table, so the lock-in's value today is not a gain
+  but **insurance against the floating table moving at the next ACC adoption** — which is a
+  defensible thing to want and a different claim from the one installers make. All pinned in
+  `tests/nem3/test_acc_pge.py`.
 - **⭐ EV-TOU-5 collapses its super-off-peak distribution charge but not its NBCs**, so ~45% of
   the delivery charge in that window is non-bypassable versus ~6.5% elsewhere. A calculator
   netting exports against the headline rate overstates load-shifting value there by ~2×.
@@ -235,7 +249,7 @@ Four pages in `docs/`, served by GitHub Pages: `index.html` (the tool), `methodo
 
 ```bash
 conda activate energy-advisor    # env prefix: /home/cameron/miniforge3/envs/energy-advisor
-pytest -q                                                   # 719 tests; golden tests skip if data/ absent
+pytest -q                                                   # 860 tests; golden tests skip if data/ absent
 ruff check . && ruff format --check .
 PYTHONPATH=src python scripts/reconcile_report.py           # 11 line-item comparisons (the trust artifact)
 PYTHONPATH=src python scripts/reconcile_report.py --write-readme
@@ -262,9 +276,11 @@ printed in the report: PG&E Rules 22.1/23.1 require six months' notice, with Sch
 between. Sensitivity: E-1 overtakes only if evening usage grew 353%, or 132% load-neutral.
 
 **M3 demo** (bundled SDG&E TOU-DR1, coastal_basic, **synthetic** 6,264 kWh load, 5 kW, calendar
-2026, four rate versions per layer): baseline $3,052/yr; solar only $1,867; +battery greedy
-$514; LP $436; NBC import floor $86/yr. **The dollar totals are real; the LOAD is not** — these
-figures are deliberately absent from every public document.
+2026, **five** rate versions per layer): baseline $3,056/yr; solar only $1,870; +battery greedy
+$512; LP $433; NBC import floor $86/yr. **The dollar totals are real; the LOAD is not** — these
+figures are deliberately absent from every public document. (Session 18's 8/1 vintage moved
+these ~0.1% and reordered nothing; paybacks 8.9 / 7.4 / 7.2 yr are unchanged. Worth noting the
+baseline rose while delivery *fell* — a summer-peaked load feels the generation increase more.)
 
 ## Publishing and CI
 

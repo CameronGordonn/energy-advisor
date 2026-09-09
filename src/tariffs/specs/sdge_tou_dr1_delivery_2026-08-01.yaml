@@ -1,0 +1,194 @@
+# SDG&E Schedule TOU-DR1 — DELIVERY layer (UDC + non-bypassable charges), 8/1/2026 vintage.
+#
+# THE FIFTH 2026 VINTAGE, and the one that governs the rest of the calendar year. Every
+# SDG&E spec in this repo previously stopped at 6/1, so August through December — five
+# months of any calendar-year run — were priced with June rates on all three rankable
+# residential schedules. The 8/1 filing is a real move, not a reprint:
+#
+#     UDC Total          0.32948 -> 0.32601   (Distr 0.15348, TRAC 0.06644)
+#     summer on-peak EECC 0.34920 -> 0.35943
+#     baseline credit    (0.10663) -> (0.10702)
+#     2018-vintage PCIA   0.03670 -> 0.03454   (2026 vintage 0.04987 -> 0.04771)
+#
+# so delivery went DOWN 0.00347/kWh while summer on-peak generation went UP 0.01023/kWh —
+# another instance of the ⭐ fact that the two layers move independently, here in opposite
+# directions inside a single filing. A tool carrying one blended "2026 SDG&E rate" gets both
+# halves wrong and the sign of the change wrong on delivery.
+#
+# 8/1/2026 IS THE LATEST PUBLISHED VINTAGE as of 2026-09-09: 7-1-26, 9-1-26, 10-1-26 and
+# 11-1-26 Total Rates Tables all return HTTP 404 in the same series, and sdge.com's live
+# plan pages quote "prices effective August 1, 2026".
+#
+# WINDOWS DID NOT MOVE, and this was checked rather than assumed. sdge.com/super-off-peak-
+# residential, retrieved 2026-09-09, still prints "Weekdays: 12 a.m. to 6 a.m. / 10 a.m. to
+# 2 p.m. Weekends: 12 a.m. to 2 p.m." and "now ... all year long". So this vintage inherits
+# the 6/1 rules verbatim and needs no 5/1-style rate/window split (open decision 8).
+#
+# Layer model, NBC set, minimum-bill vs NBC-floor resolution, baseline-allowance table and
+# the CARE derivation: all identical to the 6/1/2026 spec — see it for the full rationale.
+# Only the numbers below moved.
+schedule_id: TOU-DR1
+name: Residential Time-of-Use (SDG&E default) - Delivery
+provider: SDG&E
+layer: delivery
+effective_date: 2026-08-01
+citation: >-
+  SDG&E "Schedule TOU-DR1 - Residential Time of Use Service Effective 8/1/2026" Total
+  Rates Table (sdge.com/sites/default/files/regulatory/8-1-26 Schedule TOU-DR1 Total Rates
+  Table.pdf) and the matching "8-1-26 Schedule TOU-DR1-CARE Total Rates Table.pdf", both
+  retrieved 2026-09-09. Structure, Minimum Bill and Franchise Fee Differential from
+  Schedule TOU-DR1, Cal. P.U.C. Sheets 29952-29955-E (Advice 3167-E). Seasons from Schedule
+  EECC; holidays from Electric Rule 1. Super-off-peak window per
+  sdge.com/super-off-peak-residential, retrieved 2026-09-09 (unchanged from the 6/1 vintage).
+
+seasons:
+  # Schedule EECC: Summer June 1 - October 31, Winter November 1 - May 31. NOT PG&E's
+  # Jun-Sep summer.
+  summer_months: [6, 7, 8, 9, 10]
+  winter_months: [11, 12, 1, 2, 3, 4, 5]
+
+# Unchanged from 6/1/2026 — verified against sdge.com/super-off-peak-residential on
+# 2026-09-09, not inherited on faith.
+tou:
+  rules:
+    - {period: on_peak, hours: [[16, 21]]}
+    - {period: super_off_peak, hours: [[0, 6], [10, 14]], days: weekday}
+    - {period: super_off_peak, hours: [[0, 14]], days: weekend}
+  default_period: off_peak
+  holiday_calendar: sdge_residential
+  labels: {on_peak: On-Peak, off_peak: Off-Peak, super_off_peak: Super Off-Peak}
+
+# Unchanged on the 8/1 sheet (Base Services Charge 0.79343, CARE 0.19713; DRAH/FERA still
+# 0.39688 and still unmodelable — see the schema gap in HANDOFF).
+fixed_name: Base Services Charge
+fixed_per_day:
+  standard: 0.79343
+  care: 0.19713
+
+# Delivery $/kWh. UDC Total is 0.32601 for EVERY period and BOTH seasons on TOU-DR1 — still
+# period- and season-flat, so 100% of this schedule's TOU price signal remains in generation.
+#
+#   standard = UDC Total 0.32601 + WF-NBC/DWR-BC 0.00591              = 0.33192
+#   care     = 0.65 x (UDC Total 0.32601 - CARE surcharge exemption 0.00864) = 0.2062905
+#
+# The CARE values are kept at FULL precision rather than rounded to 5 dp: SDG&E prints only
+# the combined Total Adjusted CARE Rate, so the layer split is derived, and rounding each
+# layer independently pushes the reconstructed total further from the printed one for no
+# benefit. Check: 0.2062905 + 0.65 x 0.35943 = 0.43992 = the printed summer on-peak Total
+# Adjusted CARE Rate, exactly.
+energy:
+  summer_on_peak:        {standard: 0.33192, care: 0.2062905}
+  summer_off_peak:       {standard: 0.33192, care: 0.2062905}
+  summer_super_off_peak: {standard: 0.33192, care: 0.2062905}
+  winter_on_peak:        {standard: 0.33192, care: 0.2062905}
+  winter_off_peak:       {standard: 0.33192, care: 0.2062905}
+  winter_super_off_peak: {standard: 0.33192, care: 0.2062905}
+
+# "Up to 130% of Baseline Adjustment Credit" — the AB1X / SB695 rate cap, credited to 130%
+# of baseline where PG&E credits to 100%. The credit GREW on this sheet: (0.10663) ->
+# (0.10702) standard, (0.06931) -> (0.06956) CARE, both read off the printed tables
+# (0.65 x 0.10702 = 0.069563, consistent with the printed 0.06956).
+#
+# Allowances are a CUSTOMER fact (climate zone x Basic/All-Electric), come from Schedule DR
+# rather than the rate table, and are unchanged by this filing — see the 6/1 spec's header
+# for the source and the "omitting territory raises" rationale.
+baseline:
+  # Cal. P.U.C. Sheet 29294-E (Schedule DR, Sheet 5, Special Condition 3), kWh per day:
+  #                       Coastal  Inland  Mountain  Desert
+  #   Basic       Summer      9.0    10.4      13.6    15.9
+  #               Winter      9.2     9.6      12.9    10.9
+  #   All-Electric Summer     8.3    10.1      16.5    18.5
+  #               Winter     13.5    15.8      26.0    20.0
+  allowances:
+    coastal_basic:         {summer:  9.0, winter:  9.2}
+    inland_basic:          {summer: 10.4, winter:  9.6}
+    mountain_basic:        {summer: 13.6, winter: 12.9}
+    desert_basic:          {summer: 15.9, winter: 10.9}
+    coastal_all_electric:  {summer:  8.3, winter: 13.5}
+    inland_all_electric:   {summer: 10.1, winter: 15.8}
+    mountain_all_electric: {summer: 16.5, winter: 26.0}
+    desert_all_electric:   {summer: 18.5, winter: 20.0}
+  allowance_multiplier: 1.30
+  credit_per_kwh: {standard: -0.10702, care: -0.06956}
+
+minimum_bill:
+  per_day: {standard: 0.329, care: 0.164}
+  citation: >-
+    SDG&E Schedule TOU-DR1, Minimum Bill, Cal. P.U.C. Sheet 29955-E (Advice 3167-E).
+    NOTE the sheet's rate values are from the 2018 filing and the 8/1/2026 Total Rates
+    Table, like every one before it, does not restate the minimum bill; confirm the
+    $0.329/$0.164 figures are still current before shipping a dollar figure that depends
+    on the floor binding.
+
+# --- CCA / DIRECT ACCESS ONLY ------------------------------------------------------------
+# Note 2 of the 8/1/2026 Total Rates Table, unchanged in wording. See the 6/1 spec for why
+# the whole vintage table ships and the vintage is supplied at bill time rather than pinned.
+#
+# ⭐ THE PCIA MOVED ON THIS SHEET, and nobody would notice from the energy rates: every
+# vintage fell by ~0.00216/kWh (2018: 0.03670 -> 0.03454; 2026: 0.04987 -> 0.04771). On a
+# 6,000 kWh/yr CCA household that is ~$13/yr, and it lands only on CCA customers — so an
+# August-onward CCA bill priced with the 6/1 sheet is wrong in a way no bundled test would
+# catch. The 2001 Legacy vintage remains DA-only ($(0.00006), no CCA value) and so is
+# deliberately absent: a CCA customer cannot be on it.
+#
+# The identical PCIA table is printed on the 8/1 TOU-DR2 and EV-TOU-5 sheets, so it is a
+# residential-class fact rather than a TOU-DR1 fact; it is carried here because TOU-DR1 is
+# the only SDG&E schedule this repo currently overlays a CCA onto.
+#
+# CARE: the TOU-DR1-CARE table prints this same PCIA table with no CARE adjustment, so the
+# PCIA stays modeled as class-independent.
+adders:
+  - name: Power Charge Indifference Adjustment (vintaged)
+    applies_to: cca
+    per_kwh_by_vintage:
+      "2009": 0.01400
+      "2010": 0.01872
+      "2011": 0.02893
+      "2012": 0.03422
+      "2013": 0.03356
+      "2014": 0.03356
+      "2015": 0.03472
+      "2016": 0.03379
+      "2017": 0.03360
+      "2018": 0.03454
+      "2019": 0.03234
+      "2020": 0.03389
+      "2021": 0.03348
+      "2022": 0.02789
+      "2023": 0.02613
+      "2024": 0.04840
+      "2025": 0.04771
+      "2026": 0.04771
+    citation: >-
+      SDG&E "Schedule TOU-DR1 - Residential Time of Use Service Effective 8/1/2026" Total
+      Rates Table, RESIDENTIAL PCIA RATE table, CCA column (retrieved 2026-09-09).
+      Applicability per note 2 of the same sheet. Vintage is the year the customer's load
+      departed bundled service; see Schedules DA-CRS / CCA-CRS.
+
+# The non-bypassable charge set, billed on GROSS imports under the Net Billing Tariff and
+# NOT reducible by any export credit except ACC Plus (Schedule NBT SC 2.f). Every component
+# is UNCHANGED by the 8/1 filing — read off this sheet, not carried over on faith — so the
+# import floor holds at 0.02099/kWh standard while the delivery rate around it fell, which
+# raises the NBC share of the delivery charge from 6.4% to 6.5%.
+#   PPP 0.01515 + ND 0.00000 + CTC (0.00007) + WF-NBC/DWR-BC 0.00591 = 0.02099 (standard)
+#   CARE: 0.65 x (0.01515 + 0.00000 - 0.00007) = 0.00980, WF-NBC/DWR-BC exempt.
+# These are ALREADY inside the `energy` rates above, so `included_in_energy_rate: true`
+# tells NBT netting to CARVE THEM OUT of the offsettable amount, never to add a line.
+non_bypassable:
+  included_in_energy_rate: true
+  components:
+    Public Purpose Programs:       {standard:  0.01515, care: 0.00985}
+    Nuclear Decommissioning:       {standard:  0.00000, care: 0.00000}
+    Competition Transition Charge: {standard: -0.00007, care: -0.00005}
+    Wildfire Fund / DWR Bond:      {standard:  0.00591, care: 0.00000}
+  citation: >-
+    SDG&E Schedule TOU-DR1 Total Rates Table components (PPP, ND, CTC, WF-NBC/DWR-BC),
+    8/1/2026, retrieved 2026-09-09; classed non-bypassable per PG&E Schedule NBT Cal.
+    P.U.C. Sheet 57359-E SC 2.f. CARE WF-NBC exemption: Sheet 29953-E note 3 — the CARE
+    table's total is exactly 0.00591 below the standard total. CARE values = 0.65 x
+    standard per the printed "CARE Discount 35%".
+
+# NOT MODELED HERE, deliberately — unchanged from the 6/1 spec:
+#  - Franchise Fee Differential 5.78% (City of San Diego only; a customer fact).
+#  - California Climate Credit $(33.50) semi-annual per Schedule GHG-ARR.
+#  - The CARE surcharge exemption 0.00864/kWh is already netted into the `care` rates above.

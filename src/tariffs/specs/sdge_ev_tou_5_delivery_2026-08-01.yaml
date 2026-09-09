@@ -1,0 +1,127 @@
+# SDG&E Schedule EV-TOU-5 — DELIVERY layer (UDC + non-bypassable charges), 8/1/2026 vintage.
+# Whole-home EV schedule. See the TOU-DR1 spec for the layer model, the NBC set, and the
+# minimum-bill / NBC-floor resolution.
+#
+# WHAT MAKES THIS SCHEDULE DIFFERENT (unchanged by this filing, and still the reason it
+# matters for the M3 battery work):
+#  1. The DELIVERY rate itself is time-differentiated, drastically. Super-off-peak UDC is
+#     0.04114/kWh against 0.31218 in the other periods — SDG&E discounts distribution AND
+#     waives transmission entirely (Transm 0.00000) in the super-off-peak window.
+#  2. There is NO baseline credit. EV-TOU-5's rate table has no "Up to 130% of Baseline"
+#     row at all. Deliberately absent, not UNVERIFIED.
+#  3. ELIGIBILITY: residential customers with an electric vehicle only. Any ranking must
+#     flag it conditional (honest-broker invariant).
+#
+# ⭐ WHAT THE 8/1 FILING DID, and it is the sharpest instance of the delivery/generation
+# split in this repo: the on/off-peak UDC total fell 0.31711 -> 0.31218 (Distr 0.20609)
+# while the SUPER-OFF-PEAK UDC total did not move AT ALL, holding at 0.04114 for the third
+# consecutive vintage. Generation rose in every period on the same sheet (summer on-peak
+# EECC 0.47019 -> 0.48396). So one filing lowered peak delivery, froze off-peak delivery and
+# raised all generation.
+#
+# WINDOWS DID NOT MOVE — checked, not assumed: sdge.com/super-off-peak-residential
+# (retrieved 2026-09-09) still prints the year-round weekday 10 a.m.-2 p.m. window and names
+# EV-TOU-5, so this vintage inherits the 6/1 rules and needs no 5/1-style split.
+#
+# ⚠ SDG&E also files a separate monthly EV-TOU-5 basic service fee in some vintages. The
+#   8/1/2026 Total Rates Table lists only the $/day Base Services Charge tiers used below;
+#   if a real bill shows an extra monthly EV fee, add it as its own effective-dated line.
+schedule_id: EV-TOU-5
+name: Residential Time-of-Use for Electric Vehicle Customers - Delivery
+provider: SDG&E
+layer: delivery
+effective_date: 2026-08-01
+citation: >-
+  SDG&E "Service for Residential Customers with Electric Vehicles / SCHEDULE EV-TOU-5"
+  Total Rates Table effective 8/1/2026, and the matching "8-1-26 Schedule EV-TOU-5-CARE
+  Total Rates Table.pdf" (sdge.com/sites/default/files/regulatory/), both retrieved
+  2026-09-09. Time periods from sdge.com/super-off-peak-residential (retrieved 2026-09-09),
+  which names EV-TOU-5 and prints the year-round weekday window. Seasons from Schedule
+  EECC; holidays from Electric Rule 1.
+
+seasons:
+  summer_months: [6, 7, 8, 9, 10]      # Schedule EECC: Summer Jun 1 - Oct 31
+  winter_months: [11, 12, 1, 2, 3, 4, 5]
+
+# SDG&E's published EV-TOU-5 windows, unchanged from the 6/1 vintage:
+#   Weekdays              super-off-peak 12 a.m.-6 a.m. and 10 a.m.-2 p.m. (year-round)
+#                         off-peak       6-10 a.m., 2-4 p.m., 9 p.m.-12 a.m.
+#                         on-peak        4 p.m.-9 p.m.
+#   Weekends & holidays   super-off-peak 12 a.m.-2 p.m.
+#                         off-peak       2-4 p.m., 9 p.m.-12 a.m.
+#                         on-peak        4 p.m.-9 p.m.
+# No seasonal difference in the windows (only in the rates).
+tou:
+  rules:
+    - {period: on_peak, hours: [[16, 21]]}
+    - {period: super_off_peak, hours: [[0, 6], [10, 14]], days: weekday}
+    - {period: super_off_peak, hours: [[0, 14]], days: weekend}
+  default_period: off_peak
+  holiday_calendar: sdge_residential
+  labels: {on_peak: On-Peak, off_peak: Off-Peak, super_off_peak: Super Off-Peak}
+
+fixed_name: Base Services Charge
+fixed_per_day:
+  standard: 0.79343
+  care: 0.19713
+
+# standard = UDC Total + WF-NBC/DWR-BC 0.00591
+# care     = 0.65 x (UDC Total - CARE surcharge exemption 0.00864)
+#   on-peak / off-peak  UDC 0.31218 -> std 0.31809, care 0.65 x 0.30354 = 0.1973010
+#   super-off-peak      UDC 0.04114 -> std 0.04705, care 0.65 x 0.03250 = 0.0211250 (held)
+# CARE kept at full precision — the split is derived, not printed; see the TOU-DR1 8/1 spec.
+#
+# ⭐ The NBC share of the super-off-peak delivery charge is UNCHANGED at ~45% standard
+# (0.02099 of 0.04705) / ~46% CARE (0.00980 of 0.02113), because neither that UDC total nor
+# any NBC component moved. In the other windows it ROSE, 6.5% -> 6.6% standard, purely
+# because the bypassable part shrank. See the closing note.
+energy:
+  summer_on_peak:        {standard: 0.31809, care: 0.1973010}
+  summer_off_peak:       {standard: 0.31809, care: 0.1973010}
+  summer_super_off_peak: {standard: 0.04705, care: 0.0211250}
+  winter_on_peak:        {standard: 0.31809, care: 0.1973010}
+  winter_off_peak:       {standard: 0.31809, care: 0.1973010}
+  winter_super_off_peak: {standard: 0.04705, care: 0.0211250}
+
+# No `baseline:` block — EV-TOU-5 has no baseline adjustment credit (see header note 2).
+# The 8/1 table, like every EV-TOU-5 table before it, prints no such row.
+
+minimum_bill:
+  per_day: {standard: 0.329, care: 0.164}
+  citation: >-
+    SDG&E Minimum Bill $0.329/day, 50% discount for CARE/FERA -> $0.164/day, per Schedule
+    TOU-DR1 Cal. P.U.C. Sheet 29955-E (Advice 3167-E); the 8/1/2026 Total Rates Table does
+    not restate it. Confirm currency before relying on the floor binding.
+
+# EECC (generation) for reference, 8/1/2026 bundled: summer 0.48396 / 0.17818 / 0.08385;
+# winter 0.20574 / 0.14757 / 0.07627 (on / off / super-off). Authored as its own layer in
+# sdge_ev_tou_5_generation_2026-08-01.yaml — this comment is a cross-check, not the source.
+
+# The non-bypassable charge set, billed on GROSS imports under the Net Billing Tariff and
+# not reducible by any export credit except ACC Plus (Schedule NBT SC 2.f). Component values
+# are identical to TOU-DR1 and TOU-DR2 and did not move on this filing — verified against
+# EV-TOU-5's own 8/1/2026 table, not copied on faith.
+#   PPP 0.01515 + ND 0.00000 + CTC (0.00007) + WF-NBC/DWR-BC 0.00591 = 0.02099 (standard)
+#   CARE: 0.65 x (0.01515 + 0.00000 - 0.00007) = 0.00980, WF-NBC/DWR-BC exempt.
+#
+# ⭐ WHY THIS SCHEDULE IS THE INTERESTING ONE FOR NEM. EV-TOU-5 collapses its super-off-peak
+# distribution charge (UDC 0.04114 vs 0.31218 in every other window) but does NOT discount
+# the NBCs, which are period- and season-invariant. So in super-off-peak the floor is
+# roughly HALF the entire delivery charge — 0.02099 of 0.04705 standard (45%), 0.00980 of
+# 0.02113 CARE (46%) — against ~6.6% in the on-peak and off-peak windows. A NEM analysis
+# that nets exports against a headline delivery rate will overstate the value of shifting
+# imports into super-off-peak on this schedule by about a factor of two.
+non_bypassable:
+  included_in_energy_rate: true
+  components:
+    Public Purpose Programs:       {standard:  0.01515, care: 0.00985}
+    Nuclear Decommissioning:       {standard:  0.00000, care: 0.00000}
+    Competition Transition Charge: {standard: -0.00007, care: -0.00005}
+    Wildfire Fund / DWR Bond:      {standard:  0.00591, care: 0.00000}
+  citation: >-
+    SDG&E "Schedule EV-TOU-5 - Domestic Time-of-Use for Households with Electric Vehicles,
+    Effective 8/1/2026" Total Rates Table, PPP / ND / CTC and WF-NBC + DWR-BC columns, and
+    the matching EV-TOU-5-CARE table, both retrieved 2026-09-09. Classed non-bypassable per
+    PG&E Schedule NBT Cal. P.U.C. Sheet 57359-E SC 2.f. CARE WF-NBC exemption: Schedule
+    TOU-DR1 Cal. P.U.C. Sheet 29953-E note 3. CARE values = 0.65 x standard per the printed
+    "CARE Discount 35%".
