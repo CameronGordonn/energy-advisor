@@ -3,17 +3,18 @@
 _Rewrite this whole file whenever you finish a milestone or pause. Keep it current: state,
 how to run, open decisions, exact next action._
 
-## Status _(2026-09-09, end of session 18)_
+## Status _(2026-09-09, end of session 21)_
 
 **M0, M2 and M4 are done. M1 and M3 have complete, tested engines whose DoDs are blocked on
 data that does not exist yet. Do not fabricate a load or a bill to "finish" either.**
 
-**860 tests green · ruff clean · 11/11 PG&E golden bills within ±$2 (worst +$0.22) · working
+**1,519 tests green · ruff clean · 11/11 PG&E golden bills within ±$2 (worst +$0.22) · working
 tree clean · both CI jobs green.**
 
-> **⚠ `main` is 8 commits AHEAD of `origin/main` and has not been pushed.** Sessions 13-18 all
-> landed locally. Push before starting anything, or the next instance re-derives work that
-> exists.
+> **⚠ `main` is 9 commits AHEAD of `origin/main` and has not been pushed.** Sessions 13-21 all
+> landed locally. **Push before starting anything**, or the next instance re-derives work that
+> exists. (Nothing is left uncommitted: sessions 18-21 were reconciled and committed in
+> lane-scoped commits on 2026-09-09 — see SESSION_NOTES for the two that had drifted.)
 
 | Milestone | State | What is missing |
 |---|---|---|
@@ -77,16 +78,16 @@ has landed it outranks everything below.
 13-month interval export plus three itemised bills; be explicit that they are validating an
 engine, not buying a verdict. See the M5 warning for why this ordering is not optional.
 
-**2. ~~Migrate `docs/methodology.html` onto the shared chrome.~~** DONE, session 20. All four
-pages now link `site.css`; methodology carries page-specific rules only and no palette tokens.
-The feared `th{width:44%}` collision did not exist any more — that rule is scoped `.ledger th`
-with `width:auto`, so the real conflicts were a `.masthead` class-name clash and a duplicate
-`--warn` hue with no shared token. Heading order, `<th scope>` and captions audited and fixed;
-200%/400% reflow audited and **two real horizontal-scroll defects fixed** (see SESSION_NOTES).
+**2. Wire TOU-DR-P into a ranking — but decide the day-selection rule first.** The engine
+half is done (session 21: it loads, bills, and refuses to price without an explicit event
+assumption). What is missing is (b), the reporting band, and it is blocked on a modeling
+decision rather than on code: a forecast has to choose WHICH days to assume, and "hottest N
+days", "last year's actual dates" and "Monte Carlo over count and timing" give materially
+different answers. Surface it as a decision. Note this is gated behind the SDG&E candidate
+set anyway — `ALL_PGE_CANDIDATES` is still the only one — which is itself gated on a real
+household. See open decision 2.
 
-**3. TOU-DR-P** — needs an events model before it can be ranked. See open decision 2.
-
-**4. The 2027 ACC vintage, when either utility publishes it.** 2027 is the last application
+**3. The 2027 ACC vintage, when either utility publishes it.** 2027 is the last application
 year that earns a nine-year lock-in, so it is the last vintage the "when to install" question
 can ever turn on — and neither utility's 2027 table exists yet. Until it does,
 `Vintage(application_year=2027, ...)` raises `MissingAccTableError`, which is the correct
@@ -131,7 +132,10 @@ table since then.
     filing cannot touch it, and the absence of a 5/1 file is asserted by test rather than
     merely true. **8/1 is the last vintage SDG&E published for 2026** — 7-1, 9-1, 10-1 and
     11-1 all 404 as of 2026-09-09 — so there is no stale Aug-Dec tail any more.
-    TOU-DR-P remains deliberately unloadable.
+    **TOU-DR-P now has both layers too** (session 21, 6/1 only): delivery from Schedule
+    TOU-DR's UDC — byte-identical to TOU-DR1's — plus Schedule EECC-TOU-DR-P generation
+    carrying the RYU event adder. It is no longer excluded from any gate. Its 8/1 vintage
+    is NOT authored; it is in no candidate set, so the lag cannot misrank anything yet.
     ⚠ TOU-DR2 and EV-TOU-5 had shipped **delivery-only** since session 6 — a bundled customer
     could not be priced on either — and nothing failed, because every test named its files
     explicitly. Both pairs are complete now, and `test_every_sdge_delivery_vintage_has_a_
@@ -255,7 +259,7 @@ Four pages in `docs/`, served by GitHub Pages: `index.html` (the tool), `methodo
 
 ```bash
 conda activate energy-advisor    # env prefix: /home/cameron/miniforge3/envs/energy-advisor
-pytest -q                                                   # 860 tests; golden tests skip if data/ absent
+pytest -q                                                   # 1,519 tests; golden tests skip if data/ absent
 ruff check . && ruff format --check .
 PYTHONPATH=src python scripts/reconcile_report.py           # 11 line-item comparisons (the trust artifact)
 PYTHONPATH=src python scripts/reconcile_report.py --write-readme
@@ -359,10 +363,37 @@ cell for cell.
      May 1, 2026", is the strongest single document).
    Our per-vintage split is right *because* it survives being wrong about the date: one file
    changes. Full detail in `notes/spec_crosscheck_2026-09.md`.
-2. **TOU-DR-P is deliberately unloadable.** Period windows unsourced, and the **RYU Event Adder
-   ($1.16/kWh, 4–9 p.m. on event days)** is event-contingent with no engine concept. **Do not
-   default it to zero events.** Preferred: caller-supplied event days, report as a range, or
-   exclude and say why.
+2. **TOU-DR-P — RESOLVED session 21, both halves.** It loads and bills; the schedule now has
+   delivery *and* generation layers and is inside every structural gate.
+   - **Windows: sourced, not inferred.** The old note said the sheet was undiscoverable. It
+     was the wrong filename: TOU-DR-P is not its own UDC schedule. Its rate table's note 1
+     says "the UDC rates associated with service under **Schedule TOU-DR** and the generation
+     rates associated with **Schedule EECC-TOU-DR-P**", and both sheets are public
+     (`elec_elec-scheds_tou-dr.pdf`, `elec_elec-scheds_eecc-tou-dr-p.pdf`). They agree with
+     each other and turn out to equal TOU-DR1's; all 576 hour-cells are pinned.
+   - **Events: option (a)+(b).** `EventAdder` on the generation layer, and `event_days` is a
+     **required** argument to `compute_bill` that raises `MissingEventDaysError` when
+     omitted — the `territory`/`vintage` pattern. `[]` prices the zero-event case explicitly.
+     Supplying more than the tariff's 18/year cap also raises.
+   - ⚠ **The tariff book's RYU hours are STALE.** Sheets 29436-E / 29437-E still print
+     2–6 p.m.; the window moved to **4–9 p.m. on 2022-06-01**. Confirmed by SDG&E's
+     pricing-plans page and by every TOU-DR-P event row in its monthly CPUC DR filings. Do
+     not "correct" `hours: [[16, 21]]` off the sheet — a test fails if you do.
+   - ⭐ **What SDG&E actually called**, from its own year-end CPUC filings: 2020 **9**, 2021
+     **0**, 2022 **0**, 2023 **0**, 2024 **3** (Sep 5/6/9), 2025 **0**, 2026 **0** through
+     July. Against a cap of 18. That gap *is* the modeling problem: zero is both the most
+     likely single year and the assumption that makes the schedule look free.
+   - ⭐ **The event count decides the verdict, not the rates.** One summer event day cancels
+     ~6.7 ordinary summer days of on-peak saving (1.00928 / 0.15072 per kWh); a winter one
+     cancels ~47. On a flat load over one summer, TOU-DR-P beats TOU-DR1 at zero events and
+     loses by >10× that margin at the cap. Pinned by test.
+   - ⭐ **TOU-DR-P is bundled-only** (EECC-TOU-DR-P is closed to DA/CCA), so it must be
+     dropped for any SDCP/CEA customer *before* any event modeling. And **no Bill
+     Protection** for anyone enrolling now — SC 1 closed to new requests on 2015-12-31.
+   - **STILL OPEN, and it is a new decision, not this one:** *which* days a forecast should
+     assume. Reporting the band (b) needs a day-selection rule — hottest N days, the
+     historical dates, a Monte Carlo over count and timing — and that is a material modeling
+     choice nobody has made. It is not blocking: nothing ranks SDG&E yet.
 3. **SDG&E baseline allowances — RESOLVED, and re-verified session 15.** Full climate-zone table
    (Sheet 29294-E) in every TOU-DR1 vintage; `territory` supplied at bill time, and omitting it
    raises. All sixteen cells re-read off Schedule DR SC 3 on 2026-09-08 and matched exactly.

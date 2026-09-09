@@ -2,6 +2,195 @@
 
 Running log of decisions made and decisions pending. Newest first.
 
+## 2026-09-09 — Session 22 (committing what four parallel lanes left in the tree)
+
+No engine change. **1,519 tests green, ruff clean, wasm parity and both render checks pass.**
+The working tree held two lanes' finished work that had never been committed, and four
+different published claims about how many tests this repo has. Both are the same root cause
+session 17 named: parallel lanes sharing one working tree and one git index.
+
+### What was actually uncommitted, and why it was not obvious
+- **Session 20's entire code half** — `docs/methodology.html` migrated onto `site.css`,
+  `site.css` itself, `index.html`, `privacy.html`, `terms.html`, and both project skills.
+  **Its HANDOFF and SESSION_NOTES entries had been on `main` since `4c420f9`**, swept into
+  session 19's docs commit by the index race. So `main` spent the day *claiming* the
+  migration was done, with a struck-through DONE action and an updated skill file, while the
+  four pages that prove it sat unstaged. Anyone cloning would have read the claim and found
+  the old page.
+- **Session 21's loose end** — `98ec287` gave TOU-DR-P a generation layer but left the
+  `if "tou_dr_p" not in p.name` filter in the pair-completeness gate. The moment that
+  schedule got its second layer, the filter stopped describing the schedule and became a hole
+  in the gate, on the one schedule most recently at risk of the exact defect the gate exists
+  to catch.
+- **Session 21's prose** — HANDOFF + SESSION_NOTES entries, uncommitted.
+
+Committed as three lane-scoped commits (`git commit -- <paths>`, never a bare `git commit`,
+per session 17), so no lane's files could be folded into another's.
+
+### ⭐ FOUR published test counts, all different, all wrong
+`docs/index.html` said **418**, `docs/methodology.html` said **1,498**, and `README.md` /
+`docs/METHODOLOGY.md` / `HANDOFF.md` said **860**. Every one of them was honest when written
+and stale within hours, because five lanes were adding parametrized tests concurrently. The
+real number is **1,519**; all five files now say so.
+
+**This is the third session in a row to spend effort on this exact drift** (17, 20, 22). The
+number is a marketing claim on a public page and a trust claim in the README, and it has no
+single source. Worth fixing properly rather than re-reconciling every session: either derive
+it at build time (`scripts/build_web_engine.py` already generates `docs/engine.js`, so it
+could stamp the count too) or stop printing a number and say "every change runs the full
+suite". **Flagged, not done** — it is a judgement call about what the site should promise.
+
+### HANDOFF hygiene
+Dropped the struck-through DONE action that was still holding its number — the precise defect
+session 17 removed and warned about, back within two sessions. Actions renumbered 0-3. The
+push warning was also wrong in both directions at different times; it now states the measured
+count and, more usefully, that **nothing is left uncommitted**.
+
+### Still not pushed
+`main` is **9 commits ahead of `origin/main`** and has been for six sessions. Everything above
+is local. This is now the single largest operational risk in the project: nine commits of
+cited, tested tariff work exist on one machine. **Push.**
+
+## 2026-09-09 — Session 21 (TOU-DR-P: both gaps closed, and an events model in the engine)
+
+HANDOFF action 5 / open decision 2. **TOU-DR-P loads and bills for the first time**, and it
+still cannot produce a dollar figure without an explicit statement of how many RYU events
+were assumed. Two spec files (delivery rewritten, generation new), a schema concept, a
+billing path, and `tests/tariffs/test_tou_dr_p.py`. Ran concurrently with sessions 18, 19 and 20
+in the same tree — committed with an explicit pathspec, per the session-17 index lesson.
+
+### ⭐ FINDING — the "undiscoverable" tariff sheet was the wrong filename
+The spec had recorded that TOU-DR-P's sheet "is not published at a discoverable URL under
+`sites/default/files/elec_elec-scheds_*`" and that SDG&E's pricing page contradicted itself,
+so the windows were left UNVERIFIED. Both halves were wrong, and the rate table said so in
+its own note 1 the whole time:
+
+> "The total rates presented reflect the UDC rates associated with service under **Schedule
+> TOU-DR** and the generation rates associated with **Schedule EECC-TOU-DR-P**"
+
+TOU-DR-P is not its own UDC schedule. `elec_elec-scheds_tou-dr.pdf` and
+`elec_elec-scheds_eecc-tou-dr-p.pdf` both return 200, both print the full Time Periods
+table, and they agree with each other character for character — and with TOU-DR1. So the
+windows are **sourced, not inferred from the sibling schedule**, which is what the equality
+test asserts across all 576 hour-cells.
+
+**Generalise, and it is the session-9 field note again in a new costume:** "two sources
+disagree" was really "two *renderings of a marketing page* disagree". Marketing pages are not
+sources. Before recording a tariff detail as unobtainable, work out which SCHEDULE actually
+governs the line — the rate table names it.
+
+### DECISION — events model: (a)+(b), and (c) was rejected on evidence
+Put to Cameron with the numbers. Chosen: **require caller-supplied event days in the engine,
+report a band in any ranking.**
+- `EventAdder` lives on the **generation** layer, because the Total Rates Table prints the
+  RYU Adder in the EECC-TOU-DR-P column and SC 15 defines it there. That is not cosmetic:
+  EECC-TOU-DR-P is closed to DA/CCA, so the charge can never reach a customer who buys
+  commodity elsewhere, and TOU-DR-P must be dropped for any SDCP/CEA household before any
+  event modeling happens.
+- `event_days` is required and raises `MissingEventDaysError` when omitted — the third
+  instance of this repo's pattern for facts a tariff cannot know, after `territory` and the
+  PCIA `vintage`. `[]` prices the zero-event case *explicitly*; there is no default.
+- Supplying more than 18 days in a calendar year also raises. A 19-event stress case is not
+  conservative, it is impossible, and a band built on one overstates the downside.
+- **(c), excluding the schedule, was rejected on a fact rather than a preference**: TOU-DR-P
+  is cheaper than TOU-DR1 in *every* period for the seven winter months. Excluding it would
+  have hidden a real saving, not merely omitted a risky one.
+
+### ⭐ WHAT SDG&E ACTUALLY CALLED — the number that turns the range into a defensible one
+From SDG&E's own monthly "Report on Interruptible Load and Demand Response Programs" to the
+CPUC, whose Year-to-Date Event Summary page lists every RYU event by date, trigger and hours
+under "TOU-DR-P Voluntary Residential". Read off the year-end filing for each year:
+
+| Year | RYU events |
+|---|---|
+| 2020 | **9** (Aug 17,18,19,20; Sep 5,6,7,20; Oct 1) |
+| 2021 | 0 |
+| 2022 | 0 |
+| 2023 | 0 |
+| 2024 | **3** (Sep 5, 6, 9 — all 4:00pm-9:00pm, "Utility Trigger Met") |
+| 2025 | 0 |
+| 2026 | 0 through July (latest filing) |
+
+Against a tariff cap of **18**. **The gap between the realised mode (0) and the cap is the
+whole modeling problem**, and it is exactly why defaulting to zero is not a harmless
+simplification: zero is simultaneously the most likely single year *and* the assumption that
+makes the schedule look free. A default that is usually right and systematically flattering
+is the installer-tool failure mode invariant 2 exists to catch.
+
+*(Retrieval note: the Dec-2025 filing's Event Summary page carries no extractable text —
+`pdftotext` returns an empty page 8. It is a rendered image. `pdftoppm -png -f 8` and read
+it. Do not conclude "no events table" from an empty text extraction.)*
+
+### ⚠ FINDING — the tariff book's RYU HOURS are stale, and the spec deliberately departs
+Sheet 29436-E and SC 15 both print the RYU Event Period as **2:00 p.m. – 6:00 p.m.**, frozen
+at Advice 3130-E (2017). The window moved to **4–9 p.m. effective 2022-06-01**. Three
+corroborations, two of them SDG&E's own: the residential pricing-plans page ("...billed to
+customers from 4 p.m. - 9 p.m. during a RYU Event Day"), every TOU-DR-P event row in the CPUC
+monthly filings (all `4:00pm-9:00pm`), and contemporaneous customer notice of the change.
+This is the **same book-lags-reality pattern as the super-off-peak window** (open decision 1)
+— now seen twice on two unrelated provisions, which is worth treating as a rule about SDG&E's
+tariff book rather than a quirk of one sheet. A test fails if anyone "corrects" 16-21 back to
+14-18 off the sheet.
+
+### ⭐ THE DOLLAR FACT THAT NEEDED NO HOUSEHOLD
+At 6/1/2026 rates, an event hour costs **1.00928/kWh** more than the TOU-DR1 hour it replaces
+(summer; 1.13582 in winter), while an ordinary summer on-peak hour **saves 0.15072/kWh**. So
+at comparable load, **one summer event day cancels ~6.7 ordinary summer days of on-peak
+benefit** — one winter event day cancels ~47. That ratio is load-independent, which is why it
+could be established and pinned with no SDG&E interval data at all, against the binding
+constraint. Billed end to end on a flat synthetic load over one summer: TOU-DR-P wins at zero
+events and loses by more than 10x that margin at the cap. **The event count decides the
+recommendation; the rate table does not.**
+
+### ⭐ AND THE COUNTERINTUITIVE ONE — TOU-DR-P is a bad rate for a battery
+The marketing framing is "lower on-peak prices", which is a third of it. TOU-DR-P does not
+lower the summer bill so much as **flatten** it: on-peak −0.15072 but off-peak **+0.02670**
+and super-off-peak **+0.04126**. The summer on/super-off spread falls from 0.30799 to
+0.11601, a **62% cut in the price signal** a dispatch model arbitrages against. So TOU-DR-P
+suits a household that *cannot* shift load — right up until an event is called, which is
+precisely when a household that cannot shift is least able to respond. Winter is the
+uncomplicated half: cheaper in all three periods.
+
+### Also settled, off the CARE table
+The 6/1/2026 TOU-DR-P-CARE table prints the RYU row's own **Total Adjusted CARE Rate of
+0.75** beside a 35% discount column of (0.41), so the adder is CARE-discounted and the value
+is *printed* rather than derived (exact 0.65 × 1.16 = 0.754; the sheet carries that row at
+2 dp throughout). All twelve layer-sum cells reconcile to the printed Total Electric Rate and
+Total Adjusted CARE Rate, worst residual 1e-5 — the same gate session 16 applied.
+
+### Gates de-excluded, deliberately
+`test_every_sdge_delivery_spec_can_be_settled_under_nbt` and
+`test_every_sdge_delivery_vintage_has_a_matching_generation_vintage` both carried a
+`"tou_dr_p" not in p.name` filter. Both filters are gone, so TOU-DR-P is now inside the NBT
+import-floor gate and the pair-completeness gate like every other schedule — which also means
+an 8/1/2026 TOU-DR-P delivery vintage cannot land without its generation twin.
+
+### ⚠ COORDINATION — one hunk is deliberately NOT in session 21's commit
+`tests/tariffs/test_sdge_vintages.py` needed a three-line change (dropping the
+`"tou_dr_p" not in p.name` filter from
+`test_every_sdge_delivery_vintage_has_a_matching_generation_vintage`, now that the pair
+exists). **That file also holds session 18's uncommitted 8/1 work**, so committing it with a
+pathspec would have committed their unfinished changes too. The hunk is applied in the
+working tree and left for whoever commits that file next. Committed state is consistent
+either way: with the filter still in place the pair test simply skips TOU-DR-P and passes.
+Same for `HANDOFF.md` and this file — both are shared and were left uncommitted.
+
+This is the session-17 lesson biting again from the other side: the fix for a shared INDEX is
+`git commit -- <paths>`, but there is no pathspec that isolates two sessions inside **one
+file**. `git worktree add` per writing lane remains the actual answer.
+
+### Not done, and deliberately
+- **The 8/1/2026 TOU-DR-P vintage.** Both its tables exist and are quoted in the spec headers
+  (EECC summer 0.20500/0.16034/0.08518, winter 0.25881/0.18184/0.09636, UDC 0.32601, baseline
+  credit (0.10702), RYU adder unchanged). Left to the schedule-wide 8/1 sweep. TOU-DR-P is in
+  no candidate set, so the lag cannot misrank anything today.
+- **(b) wired into a ranking.** `ALL_PGE_CANDIDATES` is still the only candidate set, so there
+  is nothing to report a band *in*. More importantly it needs a decision nobody has made:
+  **which days a forecast should assume**. "Hottest N days", "last year's actual dates" and
+  "Monte Carlo over count and timing" give materially different answers on a $1.16/kWh charge,
+  so it is a decision point under CLAUDE.md's rule, not an implementation detail. Recorded as
+  the live half of open decision 2.
+
 ## 2026-09-09 — Session 20 (methodology.html onto the shared chrome)
 
 HANDOFF action 2. `docs/methodology.html` now links `docs/site.css` and carries **no palette
