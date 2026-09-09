@@ -56,9 +56,13 @@ eyeballing.
 
 ## Open defects
 
-⚠ **`docs/methodology.html` was not touched by the redesign.** It still carries the old
-`--ink-3` and `--accent`, so the contrast failure above is still live on that page. It is the
-first thing to fix there.
+`docs/methodology.html` now carries the corrected tokens, so the contrast failure is closed
+there too. Its heading order, table markup (`<th scope>`) and 200%/400% reflow have **not**
+been audited — it was not part of the redesign. That is the open work.
+
+`docs/privacy.html` and `docs/terms.html` are prose pages on the shared stylesheet; they were
+written with correct heading order and no colour-only signals, but have not been tested with a
+screen reader.
 
 ### 3. Unverified, check when auditing
 

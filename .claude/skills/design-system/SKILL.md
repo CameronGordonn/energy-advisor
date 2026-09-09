@@ -5,11 +5,19 @@ description: The visual system for this repo's two published pages (docs/index.h
 
 # Design system — energy-advisor site
 
-Two published pages, served from `docs/` on GitHub Pages:
+Four published pages, served from `docs/` on GitHub Pages:
 
-- **`docs/index.html`** — the tool. Drop a Green Button CSV, get load-shape analysis. Runs
-  the real Python parsers under Pyodide.
+- **`docs/index.html`** — the tool. Drop a usage CSV, get load-shape analysis. Runs the real
+  Python parsers under Pyodide.
 - **`docs/methodology.html`** — the M4 writeup.
+- **`docs/privacy.html`**, **`docs/terms.html`** — the legal pages, prose only.
+
+**`docs/site.css` is the shared stylesheet** and the single source of truth for the palette.
+`index.html`, `privacy.html` and `terms.html` link it and keep only page-specific rules
+inline. ⚠ `methodology.html` does NOT yet link it — it still carries its own copy of the
+token block (values are now in sync, but it will drift again). Migrating it is the next
+tidy-up, and the only reason it was not done alongside the others is that its inline nav and
+footer rules would need reconciling with the shared ones first.
 
 Pages is the canonical home. `docs/index.html` carries its own `<!doctype html>`, `<html
 lang>`, and `<head>`, so it is **not** an Artifact — do not route it through the Artifact
@@ -17,8 +25,8 @@ publisher without stripping the wrapper first, and prefer not to at all.
 
 ## The tokens
 
-Both pages open with a **byte-identical** `:root` token block. Treat it as one system that
-happens to be stored twice.
+The palette lives in **`docs/site.css`**. `methodology.html` still repeats it inline; those
+values are in sync today and must be kept so until it is migrated.
 
 ```
 --ground --surface --surface-2      surfaces, lightest to most recessed
@@ -34,9 +42,8 @@ happens to be stored twice.
 
 1. **Never hardcode a colour.** Every colour in either page resolves to a token. A raw hex
    outside the `:root` blocks is a bug.
-2. **A token added to one page must be added to the other**, or extracted to a shared
-   stylesheet first. They are duplicated verbatim today; that is the single biggest
-   maintenance hazard on the site and the most defensible thing to fix in a redesign.
+2. **Add tokens to `site.css`, never to a page.** The one exception is
+   `methodology.html`, which still has its own copy — change both until it is migrated.
 3. **Serif for display and prose, sans for UI, mono for eyebrows and labels.** `h1`, `.sub`,
    `#drop .big` and section headings are `--serif`; nav brand and small caps labels are
    `--mono` with `letter-spacing:.11em` and `text-transform:uppercase`.
@@ -77,8 +84,8 @@ and failed on every light surface (3.22-3.71) while carrying eight real usages, 
 **SVG axis labels at `font-size:10`**. It is now `#676C61` / `#888E7F`. `--accent` was
 `#0B7D52` (4.32 on `--surface-2`) and is now `#0B784F`. Both were solved for, not guessed.
 
-⚠ `docs/methodology.html` has NOT been retuned — it still carries the old `--ink-3` and
-`--accent`. Bring it across next time it is touched; the two pages are meant to be one system.
+`docs/methodology.html` has since been brought into line with these values, though it still
+holds its own copy of them rather than linking `site.css`.
 
 ## Contracts a redesign must not break
 

@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Privacy — Home Energy Advisor</title>
+<meta name="description" content="What this site does and does not collect. No accounts, no cookies, no analytics, and your usage file is never uploaded.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600&family=Public+Sans:ital,wght@0,400;0,500;0,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="./site.css">
+</head>
+<body>
+
+<nav><div class="wrap">
+  <a class="brand" href="./">Home Energy Advisor</a>
+  <div class="links">
+    <a href="./">The tool</a>
+    <a href="./methodology.html">How it works</a>
+    <a href="https://github.com/CameronGordonn/energy-advisor">Source code</a>
+  </div>
+</div></nav>
+
+<div class="wrap">
+<main class="doc">
+
+  <h1>Privacy</h1>
+  <p class="updated">Last updated 8 September 2026</p>
+
+  <div class="callout">
+    <p><strong>The short version.</strong> There are no accounts, no cookies, no analytics and
+    no tracking. Your electricity usage file is read inside your own browser and is never
+    uploaded, because there is no server to upload it to. Nobody — including the author of
+    this site — can see your file or your results.</p>
+  </div>
+
+  <h2>Your usage file</h2>
+  <p>When you drop a file onto this page, it is read by code running <strong>inside your
+  browser tab</strong>. The analysis is performed locally, the results are drawn on the page
+  you are already looking at, and nothing derived from your file is transmitted anywhere.</p>
+  <p>The file is held in your browser's memory for as long as the tab is open. It is not
+  written to disk by this site, not stored in cookies or local storage, and not retained
+  after you close or reload the tab. Reloading the page discards everything; there is no
+  history and nothing to delete.</p>
+  <p>You do not have to take this on trust. The site is a static page with no backend — open
+  your browser's network tab while you analyse a file and you will see that no request
+  carries your data, or read the <a href="https://github.com/CameronGordonn/energy-advisor/blob/main/docs/index.html">page
+  source</a>, which is public.</p>
+
+  <h2>What the page does request from other companies</h2>
+  <p>Being honest about this matters more than the marketing line. The page itself is static,
+  but loading it does cause your browser to make requests to three third parties. None of
+  them carries any part of your usage file or your results — they fetch code, fonts and the
+  page itself — but each necessarily sees your IP address, as any web request does.</p>
+
+  <h3>GitHub (site hosting)</h3>
+  <p>This site is served by GitHub Pages. GitHub receives the ordinary web-server information
+  that hosting requires, including your IP address and browser user-agent, and applies its own
+  privacy policy to it. This happens for every page on this site.</p>
+
+  <h3>Google Fonts</h3>
+  <p>The typefaces are loaded from Google's font service (<code>fonts.googleapis.com</code>
+  and <code>fonts.gstatic.com</code>) when the page opens, which discloses your IP address and
+  user-agent to Google under its privacy policy. No information about you or your file is
+  sent — only a request for font files.</p>
+
+  <h3>jsDelivr (the analysis engine)</h3>
+  <p>The analysis engine is real Python compiled to WebAssembly, downloaded from the jsDelivr
+  open-source CDN (<code>cdn.jsdelivr.net</code>). It is fetched <strong>only when you
+  actually analyse a file</strong>, is about 10&nbsp;MB, and is then cached by your browser.
+  jsDelivr sees your IP address and the fact that a download occurred. It does not receive
+  your file, any part of it, or any result — the download is one-way, and it happens
+  identically no matter what your file contains.</p>
+
+  <div class="callout">
+    <p>Because that download is triggered by your first analysis, the <em>timing</em> of a
+    request to jsDelivr could in principle reveal that someone at your IP address used a tool
+    of this kind. Its <em>contents</em> reveal nothing about you. If that distinction matters
+    to you, run the site locally from the source repository instead.</p>
+  </div>
+
+  <h2>What is not collected</h2>
+  <ul>
+    <li>No accounts, sign-ups, email addresses or passwords.</li>
+    <li>No cookies, local storage, session storage or fingerprinting.</li>
+    <li>No analytics, telemetry, error reporting, advertising or third-party trackers.</li>
+    <li>No copy of your usage file, your meter readings, or any figure computed from them.</li>
+    <li>No utility account numbers, addresses or names — the parser deliberately discards
+        identifying fields when it reads the file, so they never reach the analysis at all.</li>
+  </ul>
+
+  <h2>Children</h2>
+  <p>This is a tool for utility bill-payers and is not directed at children.</p>
+
+  <h2>If this ever changes</h2>
+  <p>If the project later adds anything that transmits your data — an optional report by
+  email, say, or a hosted comparison — it will be opt-in, described here before it ships, and
+  announced in the public repository. The commit history of this page is itself public, so
+  changes to this policy are auditable rather than merely promised.</p>
+
+  <h2>Contact</h2>
+  <p>Questions, corrections, or a privacy problem to report: open an issue at
+  <a href="https://github.com/CameronGordonn/energy-advisor/issues">github.com/CameronGordonn/energy-advisor/issues</a>.</p>
+
+  <p style="margin-top:2rem"><a href="./terms.html">Terms of use &rarr;</a></p>
+
+</main>
+</div>
+
+<footer><div class="wrap">
+  <p><strong>Home Energy Advisor</strong> — an independent decision engine for California
+  electricity customers. Not affiliated with PG&amp;E, SDG&amp;E, or any solar installer.</p>
+  <p class="legal">
+    <a href="./">Tool</a><a href="./methodology.html">Method</a>
+    <a href="./privacy.html">Privacy</a><a href="./terms.html">Terms</a>
+    <a href="https://github.com/CameronGordonn/energy-advisor">Source</a>
+  </p>
+</div></footer>
+
+</body>
+</html>

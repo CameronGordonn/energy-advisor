@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>Terms of use — Home Energy Advisor</title>
+<meta name="description" content="What this tool is, what it is not, and the limits of relying on it. Independent, open source, and not financial advice.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600&family=Public+Sans:ital,wght@0,400;0,500;0,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="./site.css">
+</head>
+<body>
+
+<nav><div class="wrap">
+  <a class="brand" href="./">Home Energy Advisor</a>
+  <div class="links">
+    <a href="./">The tool</a>
+    <a href="./methodology.html">How it works</a>
+    <a href="https://github.com/CameronGordonn/energy-advisor">Source code</a>
+  </div>
+</div></nav>
+
+<div class="wrap">
+<main class="doc">
+
+  <h1>Terms of use</h1>
+  <p class="updated">Last updated 8 September 2026</p>
+
+  <div class="callout">
+    <p><strong>The short version.</strong> This is a free, open-source tool that does
+    arithmetic on your own meter readings. It is not financial, legal or engineering advice,
+    it comes with no warranty, and decisions about your electricity plan, solar or battery
+    remain yours.</p>
+  </div>
+
+  <h2>What this is</h2>
+  <p>Home Energy Advisor is an independent project that reads the interval usage file your
+  California utility already keeps for you and shows you the shape of your own electricity
+  use. The wider project also contains a bill engine that models published utility tariffs.</p>
+  <p>It is <strong>not affiliated with, endorsed by, or operated on behalf of</strong> PG&amp;E,
+  SDG&amp;E, any Community Choice Aggregator, the CPUC, or any solar or battery installer.
+  Utility and company names appear only to identify whose published tariffs are being
+  described.</p>
+
+  <h2>Not advice</h2>
+  <p>Nothing here is financial, legal, tax or engineering advice, and using the tool creates
+  no professional relationship of any kind. Choosing a rate schedule, buying solar or storage,
+  or switching generation supplier are consequential decisions that depend on facts this tool
+  does not know about you. Verify anything that matters against your own bills and your
+  utility before acting on it.</p>
+
+  <h2>Accuracy, and its limits</h2>
+  <p>The project holds itself to a published accuracy standard and states plainly where that
+  standard has and has not been met — see <a href="./methodology.html">the methodology</a>.
+  That is a genuine commitment, and it is still not a guarantee. In particular:</p>
+  <ul>
+    <li><strong>Tariffs change.</strong> Rates in the engine are transcribed from public
+        regulatory filings that were current when they were read. California rates change
+        mid-year, and a figure can go stale without notice.</li>
+    <li><strong>Your file may be incomplete.</strong> Utility exports contain gaps, estimated
+        readings and clock-change artefacts. The tool reports what it finds, but it can only
+        work with what your utility gave you.</li>
+    <li><strong>Analysis is not a bill.</strong> Only your utility can tell you what you owe.
+        Where the engine has not reproduced real bills for a utility, this tool deliberately
+        shows you no dollar figure at all rather than a confident-looking guess.</li>
+    <li><strong>Errors are possible.</strong> The source is public specifically so that
+        mistakes can be found and reported. If you find one, please open an issue.</li>
+  </ul>
+
+  <h2>No warranty, and limits on liability</h2>
+  <p>The tool is provided <strong>as is</strong> and <strong>as available</strong>, without
+  warranty of any kind, express or implied, including any warranty of merchantability, fitness
+  for a particular purpose, accuracy, or non-infringement. You use it at your own risk.</p>
+  <p>To the fullest extent permitted by law, the author is not liable for any loss or damage
+  arising out of your use of, or inability to use, this site — including any decision you make
+  about a rate plan, supplier, solar array or battery. Nothing in these terms limits any
+  liability that cannot lawfully be limited.</p>
+  <p>The site is a personal project offered free of charge. It may change, break, or be taken
+  down at any time, and no particular availability is promised.</p>
+
+  <h2>Your data and your file</h2>
+  <p>Your usage file is read in your own browser and is never uploaded. You keep every right
+  in your own data; the project asks for none. See the <a href="./privacy.html">privacy
+  page</a> for exactly what the page does and does not request.</p>
+  <p>Please only upload data you are entitled to use. It is your own utility data, so
+  ordinarily you are.</p>
+
+  <h2>Licence and reuse</h2>
+  <p>The software is published under the <strong>GNU Affero General Public License v3.0</strong>.
+  You may read, run, modify and redistribute it under those terms, including the requirement
+  to publish source for a modified version you run as a network service. The full licence and
+  the source are at
+  <a href="https://github.com/CameronGordonn/energy-advisor">github.com/CameronGordonn/energy-advisor</a>.</p>
+  <p>The utility tariff sheets, avoided-cost tables and other regulatory filings the project
+  cites are public documents and are not covered by that licence.</p>
+
+  <h2>Changes to these terms</h2>
+  <p>These terms may be updated. Because the site is version-controlled in public, every
+  change is visible in the commit history rather than only in the date at the top of this
+  page.</p>
+
+  <h2>Contact</h2>
+  <p>Open an issue at
+  <a href="https://github.com/CameronGordonn/energy-advisor/issues">github.com/CameronGordonn/energy-advisor/issues</a>.</p>
+
+  <p style="margin-top:2rem"><a href="./privacy.html">&larr; Privacy</a></p>
+
+</main>
+</div>
+
+<footer><div class="wrap">
+  <p><strong>Home Energy Advisor</strong> — an independent decision engine for California
+  electricity customers. Not affiliated with PG&amp;E, SDG&amp;E, or any solar installer.</p>
+  <p class="legal">
+    <a href="./">Tool</a><a href="./methodology.html">Method</a>
+    <a href="./privacy.html">Privacy</a><a href="./terms.html">Terms</a>
+    <a href="https://github.com/CameronGordonn/energy-advisor">Source</a>
+  </p>
+</div></footer>
+
+</body>
+</html>
