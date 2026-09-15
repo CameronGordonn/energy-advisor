@@ -105,8 +105,8 @@ def _sdge_csv() -> str:
         "Title,Electric Usage\n"
         "\n"
         "Meter Number,Date,Start Time,Duration,Consumption,Generation,Net\n"
-        "06536861,1/1/2026,12:00 AM,60,0.5,0,0.5\n"
-        "06536861,1/1/2026,1:00 AM,60,0.4,0,0.4\n"
+        "00000000,1/1/2026,12:00 AM,60,0.5,0,0.5\n"
+        "00000000,1/1/2026,1:00 AM,60,0.4,0,0.4\n"
     )
 
 
