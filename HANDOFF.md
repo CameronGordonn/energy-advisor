@@ -12,9 +12,12 @@ data that does not exist yet. Do not fabricate a load or a bill to "finish" eith
 tree clean · both CI jobs green.**
 
 > **⚠ Do not read a commit count here.** Measure it: `git fetch -q origin && git rev-list
-> --count origin/main..main`. Every session that copied this line forward published a wrong
-> number — three times running, in both directions — because it is a cached value with no
-> invalidation. It was 4 when session 24 started. Nothing is uncommitted.
+> --count origin/main..main`. Every session that copied a number forward published a wrong one
+> — three times running, in both directions — because it was a cached value with no
+> invalidation. **So this line states no number.** What it states instead stays true as it
+> ages: **everything through session 24 is pushed**, and session 24 left nothing uncommitted.
+> A later session that has committed but not pushed makes that sentence stale in the one
+> direction a reader can detect by measuring.
 
 | Milestone | State | What is missing |
 |---|---|---|
