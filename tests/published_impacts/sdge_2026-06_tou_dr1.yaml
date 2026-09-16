@@ -1,0 +1,94 @@
+# TIER 2 fixture — see README.md. NOT a golden bill. Never counts toward the ±$2 claim.
+source:
+  publisher: SDG&E
+  document: "Bundled Electric Rate Decrease Alert / Unbundled Electric Rate Decrease Alert, RATE ALERT FOR JUNE 2026"
+  url: "https://www.sdge.com/sites/default/files/June%202026%20Electric%20Rate%20Change%20Alert.pdf"
+  proceeding: "CPUC Advice Letter 4843-E (filed May 2026) — FERC-ordered interim transmission-rate relief, not a routine annual filing"
+  retrieved: 2026-09-15
+  local_text: "data/sources/sdge_rate_change_alert_2026-06.layout.txt"   # gitignored; pdftotext -layout
+
+assumptions_stated_by_source:
+  schedule_id: TOU-DR1
+  monthly_kwh: 400
+  basis: annual_average_month
+  excludes: [california_climate_credit]
+  rounding: whole_dollars
+  tou_allocation: UNSTATED
+
+# Effective 2026-06-01. "Previous" column is April 2026 — the SAME vintage the April
+# fixture's "current" column tests, so the two fixtures share a testable anchor point.
+figures_usd_per_month:
+  bundled:
+    non_care: {previous_2026_04: 194, current_2026_06: 190}
+    care:     {previous_2026_04: 111, current_2026_06: 109}
+  delivery_only:
+    non_care: {previous_2026_04: 123, current_2026_06: 119}
+    care:     {previous_2026_04: 67,  current_2026_06: 64}
+  including_climate_credit:
+    bundled:
+      non_care: {previous_2026_04: 186, current_2026_06: 182}
+      care:     {previous_2026_04: 103, current_2026_06: 101}
+    delivery_only:
+      non_care: {previous_2026_04: 115, current_2026_06: 111}
+      care:     {previous_2026_04: 58,  current_2026_06: 56}
+
+derived:
+  generation_usd_non_care: 71      # 190 - 119
+  generation_usd_care: 45          # 109 - 64
+  implied_blended_generation_rate_non_care: 0.1775
+  implied_blended_generation_rate_care: 0.1125
+  climate_credit_usd_non_care: 8   # 190 - 182
+  climate_credit_usd_care: 8       # 109 - 101
+
+context_not_testable:
+  bundled_avg_rate_2026_04: 0.464
+  bundled_avg_rate_2026_06: 0.455
+  delivery_avg_rate_2026_04: 0.288
+  delivery_avg_rate_2026_06: 0.279
+
+# ---------------------------------------------------------------------------
+# Measured 2026-09-15, hand arithmetic off the spec YAML. Same method note as
+# the January fixture — kept for the method trail, the engine block below is
+# the one to trust for anything sharper than "which quarter".
+# ---------------------------------------------------------------------------
+measured_2026_09_15:
+  generation_envelope_non_care: [30.73, 122.31]   # implied 71 — identical to April's
+                                                   # envelope; EECC held 4/1 through 6/1.
+  generation_envelope_care: [19.98, 79.50]        # implied 45, feasible mid-range
+  bundled_reconstruction: 190.86    # ~119.86 delivery (coastal_basic) + 71 implied generation; published $190
+
+  # PCIA CHECK, same form as the other two fixtures:
+  #     no PCIA               119.86   (published $119)  <-- matches within model residual
+  #     + PCIA vintage 2026    139.81  (0.04987 * 400 = 19.95 added — this vintage's own
+  #                                     PCIA table, which moved again since January's)
+  #     + PCIA vintage 2018    134.54  (0.03670 * 400 = 14.68 added)
+  pcia_treatment: EXCLUDED_BY_INFERENCE   # settled cross-quarter — see
+                                          # notes/published_impacts_corpus.md
+
+# ---------------------------------------------------------------------------
+# Re-measured through compute_bill() 2026-09-15: 12 calendar months from the
+# spec's own effective date, 2026-06-01 .. 2027-05-31, by_hour_count shape.
+# ---------------------------------------------------------------------------
+measured_by_engine_2026_09_15:
+  window: [2026-06-01, 2027-05-31]
+  delivery_only_by_territory_non_care:
+    coastal_basic: 119.86
+    coastal_all_electric: 118.75
+    desert_all_electric: 115.65
+    mountain_all_electric: 115.65
+    mountain_basic: 115.65
+    desert_basic: 115.67
+    inland_all_electric: 115.75
+    inland_basic: 117.02
+  delivery_only_care:
+    coastal_basic: 64.43
+    coastal_all_electric: 63.71
+  # published: non_care $119, care $64.
+  # ⚠ TERRITORY — same flip as January, more pronounced, and now engine-confirmed.
+  # coastal_basic (119.86) is $0.86 off the published $119; coastal_all_electric (118.75)
+  # is only $0.25 off — a 61-cent margin, the clearest of the three quarters, and it points
+  # away from coastal_basic. Every OTHER territory remains far off (>$2) in every quarter
+  # (verified by full sweep), so the real contest is always this pair. CARE mildly prefers
+  # all_electric too here (0.29 off vs 0.43 off) — the first quarter where CARE does not
+  # clearly favor coastal_basic. Full cross-quarter writeup:
+  # notes/published_impacts_corpus.md.

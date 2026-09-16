@@ -1,0 +1,48 @@
+# TIER 2 fixture — see README.md. NOT a golden bill, and unlike the SDG&E fixtures in this
+# directory, this one is NOT feasibility-testable either. Provenance only — see below.
+source:
+  publisher: PG&E
+  document: "Electric Rate Advisory, EFFECTIVE MARCH 1, 2026"
+  url: "https://www.pge.com"   # exact PDF URL not captured at fetch time; see local_text
+  proceeding: "CPUC Advice Letter 7846-E (submitted 2026-02-27), decreasing bundled electric rates"
+  retrieved: 2026-09-15
+  local_text: "data/sources/pge_electric_rate_advisory_2026-03.layout.txt"   # gitignored
+
+# ⚠ WHY THIS FIXTURE CANNOT BE TESTED — the asymmetry the README's per-utility table warns
+# about. This document states NO schedule: "Average residential electric bill" is a figure
+# averaged across PG&E's entire residential class — every schedule (E-1, E-TOU-C, E-TOU-D,
+# EV2-A, ...), every climate territory, every load shape — at an assumed flat 500 kWh/month.
+# There is no single spec this repo could price and compare it against; doing so would
+# require assuming a class-wide load mix this repo has no basis for and CLAUDE.md invariant 6
+# forbids inventing. Kept for provenance and for the one thing it DOES prove structurally
+# (the BSC/CARE-discount claim below), not for any dollar comparison.
+assumptions_stated_by_source:
+  schedule_id: UNSTATED               # "average residential electric bill" — no schedule named
+  monthly_kwh: 500
+  basis: class_average_flat_500kwh    # NOT annual-average, NOT schedule-specific
+  excludes: []                        # the primary table excludes the climate credit; a
+                                       # second table below states it including the credit
+  rounding: cents                     # PG&E prints to the cent, unlike SDG&E's whole dollars
+  tou_allocation: NOT_APPLICABLE      # not even in principle — no schedule is named to allocate against
+
+figures_usd_per_month:
+  bundled:
+    non_care: {previous_2026_01: 208.68, current_2026_03: 203.54}
+    care:     {previous_2026_01: 127.79, current_2026_03: 117.42}
+  including_climate_credit:
+    bundled:
+      non_care: {previous_2026_01: 202.65, current_2026_03: 197.51}
+      care:     {previous_2026_01: 121.76, current_2026_03: 111.39}
+
+context_not_testable:
+  bundled_avg_rate_2026_01: 0.4146
+  bundled_avg_rate_2026_03: 0.4060
+  care_discount_pct_stated: 0.42   # "approximately 42%", explicitly a typical/average figure,
+                                    # itself averaged over usage levels per the source's own
+                                    # footnote 3 — a second layer of averaging on top of the
+                                    # class average, so doubly unfit for a per-schedule check
+
+# Nothing to measure: there is no spec this fixture identifies, so there is no
+# `measured_*` block. Recorded so a future session does not assume one was omitted by
+# oversight — the README's per-utility table already predicts this fixture would look
+# like this, and this is the confirmation that the prediction held on a real document.

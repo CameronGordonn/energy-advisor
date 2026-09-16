@@ -1,0 +1,164 @@
+# TIER 2 fixture — see README.md. NOT a golden bill. Never counts toward the ±$2 claim.
+source:
+  publisher: SDG&E
+  document: "Bundled Electric Rate Change Alert / Unbundled Electric Rate Change Alert, RATE ALERT FOR APRIL 2026"
+  url: "https://www.sdge.com/sites/default/files/SDG&E%20Electric%20Rate%20Change%20Alert%20April%202026.pdf"
+  proceeding: "CPUC Advice Letters 4791-E and 4791-E-A (filed March 2026)"
+  retrieved: 2026-09-15
+  local_text: "data/sources/sdge_rate_change_alert_2026-04.layout.txt"   # gitignored; pdftotext -layout
+
+assumptions_stated_by_source:
+  schedule_id: TOU-DR1
+  monthly_kwh: 400
+  basis: annual_average_month      # "Represents an annual average bill" — averages across seasons
+  excludes: [california_climate_credit]
+  rounding: whole_dollars          # "May not sum due to rounding" — figures printed to $1
+  tou_allocation: UNSTATED         # the reason this is a feasibility test, not a reproduction
+
+# Effective 2026-04-01. delivery_only == SDG&E's "unbundled" customer (generation from a CCA).
+figures_usd_per_month:
+  bundled:
+    non_care: {previous_2026_01: 195, current_2026_04: 194}
+    care:     {previous_2026_01: 113, current_2026_04: 111}
+  delivery_only:
+    non_care: {previous_2026_01: 123, current_2026_04: 123}
+    care:     {previous_2026_01: 67,  current_2026_04: 67}
+  including_climate_credit:
+    bundled:
+      non_care: {previous_2026_01: 187, current_2026_04: 186}
+      care:     {previous_2026_01: 105, current_2026_04: 103}
+    delivery_only:
+      non_care: {previous_2026_01: 115, current_2026_04: 115}
+      care:     {previous_2026_01: 58,  current_2026_04: 58}
+
+# Derived, NOT published — implied by bundled minus delivery_only at 400 kWh.
+# Stated here so a test can assert against it explicitly rather than recomputing silently.
+derived:
+  generation_usd_non_care: 71      # 194 - 123
+  generation_usd_care: 44          # 111 - 67
+  implied_blended_generation_rate_non_care: 0.1775   # 71 / 400 $/kWh
+  implied_blended_generation_rate_care: 0.11         # 44 / 400 $/kWh
+  climate_credit_usd_non_care: 8   # 194 - 186
+  climate_credit_usd_care: 8       # 111 - 103
+  caveat: >-
+    Each derived figure inherits up to +/-$1 of rounding from EACH of its two operands,
+    so the generation figures carry +/-$2 and the implied rates +/-0.005 $/kWh. Any test
+    asserting on these must carry that band or it will fail on correct specs.
+
+# System-average rates quoted by the same document. NOT reproducible from one schedule
+# spec (they average the whole residential class); recorded for provenance only.
+context_not_testable:
+  bundled_avg_rate_2026_01: 0.457
+  bundled_avg_rate_2026_04: 0.464
+  delivery_avg_rate_2026_01: 0.282
+  delivery_avg_rate_2026_04: 0.288
+
+# ---------------------------------------------------------------------------
+# Measured 2026-09-15 against the committed 2026-04-01 specs, BEFORE any test
+# was written, to establish that this fixture is live. Hand arithmetic from the
+# spec YAML (not the bill engine): 400 kWh/month, 365/12 days, baseline credit
+# on min(usage, allowance*1.3*days), 5 summer months (Jun-Oct).
+# ---------------------------------------------------------------------------
+measured_2026_09_15:
+  # SDG&E TOU-DR1 DELIVERY energy is FLAT across all six season x period keys
+  # (0.34652 standard). So the delivery-only figure needs NO load-shape assumption
+  # at all — it is a point value, not an envelope. The only free parameter is
+  # baseline territory, and the published figure selects it uniquely:
+  delivery_only_by_territory_non_care:
+    coastal_basic: 123.48        # closest for APRIL only; does NOT generalise, see note below
+    coastal_all_electric: 122.43
+    inland_basic: 120.47
+    inland_all_electric: 119.20
+    mountain_basic: 119.17
+    mountain_all_electric: 119.17
+    desert_basic: 119.17
+    desert_all_electric: 119.17
+  delivery_only_coastal_basic_care: 66.79   # published $67
+  implied_territory: coastal_basic
+  # ⚠ On a DOMAIN PRIOR, not on arithmetic. Stream B checked Jan and Jun 2026 the same way
+  # and coastal_all_electric wins both: the two coastal territories sit a stable ~$1.05-1.13
+  # apart while the published figure is a whole dollar with a ~$0.5-0.9 band, so rounding
+  # decides it. The six non-coastal territories ARE >$2 off in every quarter - that holds.
+  # Prior: SDG&E Sheet 29294-E makes All-Electric application-only.
+  # See notes/published_impacts_corpus.md.
+
+  # Generation envelope at 400 kWh/month (min = all super-off-peak, max = all on-peak),
+  # averaged over 12 months. The implied $71 is feasible and mid-range — so the
+  # bundled figure is a genuine feasibility test, and a weak one, as designed.
+  generation_envelope_non_care: [30.73, 122.31]   # implied 71
+  generation_envelope_care: [19.98, 79.50]        # implied 44
+
+  bundled_reconstruction: 194.48    # 123.48 delivery + 71 implied generation; published $194
+
+  # *** DECIDED 2026-09-15, still an INFERENCE. The test encodes it by name as
+  # PCIA_EXCLUDED_BY_INFERENCE (= Service.BUNDLED on the delivery layer, which is the
+  # CCA line set minus the PCIA) and test_the_pcia_exclusion_is_load_bearing pins how
+  # much rides on it: no vintage in the table lands within $0.50 of the published $123,
+  # the nearest (2009) being $6.63 out. Stream B is settling it against several
+  # quarters of alerts; a single quarter cannot distinguish policy from coincidence. ***
+  # SDG&E's "unbundled" customer is a CCA customer, and a CCA customer PAYS the
+  # vintaged PCIA. The delivery spec carries it as an adder with applies_to: cca.
+  # But the arithmetic only matches with PCIA EXCLUDED:
+  #     no PCIA            -> $123.48   (published $123)  <-- matches
+  #     + PCIA vintage 2026 -> $143.43
+  #     + PCIA vintage 2009 -> $129.63
+  # The document's own footnote 3 says actual bills vary by "PCIA rate which will
+  # vary based on when you became a CCA customer" — consistent with them omitting an
+  # indeterminate component from the illustration, but it does NOT say so outright.
+  # This is an INFERENCE about what SDG&E's number means, not a verified fact, and it
+  # is load-bearing: it is also what makes bundled - unbundled a clean generation
+  # figure rather than generation-minus-PCIA. Encode it as an explicit assumption
+  # with its own name, so a future failure points at the assumption and not the spec.
+  pcia_treatment: EXCLUDED_BY_INFERENCE
+
+# ---------------------------------------------------------------------------
+# Re-measured through compute_bill() when the test was written (same session).
+# The block above is HAND arithmetic off the spec YAML with 365/12-day months;
+# this one is the bill engine on real calendar months, twelve of them, the
+# window being 2026-04-01 .. 2027-03-31 (every day inside this rate vintage, so
+# no allow_before_effective). test_sdge_2026_04_tou_dr1.py asserts these.
+# ---------------------------------------------------------------------------
+measured_by_engine_2026_09_15:
+  window: [2026-04-01, 2027-03-31]
+  delivery_only_by_territory_non_care:
+    coastal_basic: 123.48        # <-- only territory within +/-$0.50 of published $123
+    coastal_all_electric: 122.35
+    inland_basic: 120.58
+    inland_all_electric: 119.29
+    desert_basic: 119.20
+    desert_all_electric: 119.17
+    mountain_basic: 119.17
+    mountain_all_electric: 119.17
+  delivery_only_coastal_basic_care: 66.79      # published $67
+  care_by_territory_next_nearest: 66.04        # coastal_all_electric; rounds to $66, not $67
+
+  # NO GAP against the hand arithmetic on the territory that matters: both give $123.48
+  # (closed form $123.4793). Territories whose summer and winter allowances differ sharply
+  # move by up to $0.11 between the two methods, because the real Jun-Oct is 153 days and
+  # not 5 x 30.4167 — coastal_all_electric (8.3 summer / 13.5 winter) is the extreme.
+  # None of that touches the territory the published figure selects.
+  closed_form_non_care: 123.4793
+  headroom_to_the_rounding_boundary: 0.02      # $123.50 would round to $124
+
+  # Shape independence, established through the engine over five allocations spanning
+  # all-on-peak to all-super-off-peak: 123.48 for four of them, 123.47 for one. The 1c
+  # spread is per-line cent rounding (three energy lines per month, each <= 0.5c off),
+  # NOT shape sensitivity. This is what makes the delivery figure a point test.
+  delivery_shape_spread_usd: 0.01
+
+  generation_envelope_non_care: [30.73, 122.31]   # implied 71 -> 44.0% of the way up
+  generation_envelope_care: [19.97, 79.50]        # implied 44 -> 40.4% of the way up
+  flat_profile_generation_non_care: 64.80  # a uniform load, for the plausibility read only
+  witness_on_peak_share_non_care: 0.4397   # the allocation that prices to the implied $71
+  bundled_reconstruction_non_care: 194.48  # vs published $194
+
+  # What the feasibility test is MEASURED to catch, by mutating the committed spec:
+  #   all generation rates x 1/10 ........................ FAILS (correctly)
+  #   winter super-off-peak rate x 1/10 (one cell) ....... passes — envelope still covers 71
+  #   season map inverted ................................ passes — ditto
+  #   on-peak <-> super-off-peak rates swapped ........... passes feasibility (the achievable
+  #       set is unchanged by permuting which hours are cheap) and correctly trips the
+  #       separate ordering test instead.
+  # So the envelope accepts 95.6% of its own width. Infeasibility would prove a spec wrong;
+  # feasibility is near-zero information, and this tier says so in CI rather than in prose.
+  generation_envelope_accepted_fraction: 0.956
