@@ -346,6 +346,13 @@ current-year export tables were parsed in full and compared cell by cell: they a
 **byte-identical for every overlapping year** — 0.0 maximum absolute difference across 23,040
 cells. On SDG&E today, "lock in before rates drop" has no dollars behind it. This is the
 opposite of the PG&E vintage story the pitch is borrowed from.
+"Today" is dated and has a stated expiry. The tables were re-fetched **2026-09-16**, after
+the CPUC adopted the 2026 ACC update on 2026-09-03 (D.26-09-007), and every source file is
+byte-identical to the one this was measured on — the adoption has not yet reached either
+utility's published export pricing. But each utility's own readme makes its floating
+(non-locked-in) table effective **only through 2026-12-31**, so a republish is due before
+then and this finding can change with it. It is re-checked by a test that fails on
+2027-01-01 rather than being a number cached on a page.
 
 **2. Export rates rise within a locked vintage, so treating a lock as a flat number is
 wrong.** The same tables show a 2026 mean full export rate of 0.0883 rising to 0.1432 by

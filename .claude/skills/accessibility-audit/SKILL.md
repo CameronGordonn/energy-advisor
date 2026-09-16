@@ -69,16 +69,22 @@ with the audit below after any layout change; jsdom cannot see any of it.
 **Label collisions.** Fixed twice now on the hour chart. jsdom does no layout and will never
 catch this — run `scripts/screenshot_site.py` and look.
 
+**Status and arrival are announced, and the announcer is not `#status`.** Session 29 closed
+both remaining index defects. `#status` is toggled with `hidden`, and a live region that is
+out of the accessibility tree when its text is written announces nothing — so the
+announcements go through `#announcer`, a `.vh` `role="status" aria-live="polite"` paragraph
+that is **always present, never hidden, and empty on load**. `status()` writes HTML
+(entities, a spinner `<span>`), so it announces `plainText(msg)`, never the markup. Revealing
+`#results` also announces ("Analysis ready…") **and** moves focus into it (`tabindex="-1"`,
+`focus({preventScroll:true})` before the smooth scroll) — a keyboard user needs both the
+message and the caret, not either. All four facts are pinned by `tools/test_tool_render.mjs`
+and mutation-checked: deleting the announce or the focus call fails it.
+
 ## Open defects
 
-### 3. Unverified, check when auditing
-
-Both remaining items are on `index.html`; `methodology.html`'s list was closed in session 20.
-
-- `#status` updates during parsing — confirm they reach a live region rather than only
-  changing text silently.
-- The results region is revealed by toggling `hidden`; confirm focus or an announcement
-  moves there, so a keyboard user knows the analysis arrived.
+None known on either page. Both `index.html` items were closed in session 28 and
+`methodology.html`'s list in session 20 — which means the next audit's job is to find new
+ones with the method below, not to re-read this list.
 
 ## Method
 

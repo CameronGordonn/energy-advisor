@@ -12,7 +12,9 @@ Four published pages, served from `docs/` on GitHub Pages:
 - **`docs/methodology.html`** — the M4 writeup.
 - **`docs/privacy.html`**, **`docs/terms.html`** — the legal pages, prose only.
 
-**`docs/site.css` is the shared stylesheet** and the single source of truth for the palette.
+**`docs/site.css` is the shared stylesheet** and the single source of truth for the palette
+and for `.vh` (visually hidden), which both `methodology.html`'s table captions and
+`index.html`'s status announcer use — it moved out of `methodology.html` in session 28.
 **All four pages link it** and keep only page-specific rules inline. No page defines a palette
 token of its own; if you find one, that is the bug. `methodology.html` was migrated in session
 20 — it had carried a fourth hue (`--warn`) for caveats, which was deleted rather than aliased,
@@ -106,8 +108,11 @@ These are enforced by CI, not by intent. Breaking them turns a job red.
    .finding` with the first one's `h4` containing "peak hours"; **exactly 25 `#hourChart
    rect`** (24 bars + 1 peak-window shading), of which **exactly 5 carry
    `fill="var(--accent)"`**; 24 `#hourChart title`; one `#monthChart rect` per month;
-   `#fileTable` containing the utility, an interval, a date and "Yes"; and the string
-   **"$2 per month" must appear inside `#results`**. Adding any decorative `<rect>` to either
+   `#fileTable` containing the utility, an interval, a date and "Yes"; the string
+   **"$2 per month" must appear inside `#results`**; and the accessibility contract —
+   `#announcer` present, un-hidden and empty on load with `role="status"`/`aria-live="polite"`,
+   the arrival of results announced there, and focus moved into `#results`
+   (`tabindex="-1"`). Adding any decorative `<rect>` to either
    chart breaks the count — use `<path>`, `<line>` or CSS instead. Restructure the markup and
    you must update this test in the **same commit**, deliberately.
 2. **No dollar figures anywhere the page computes.** The tool prices nothing by design — the

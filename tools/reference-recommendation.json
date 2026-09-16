@@ -1,0 +1,95 @@
+{
+ "facts": {
+  "care": true,
+  "supplier": "3CE",
+  "baseline_territory": "T",
+  "all_electric": true,
+  "has_ev": false,
+  "current_plan": "E-TOU-C + 3CE"
+ },
+ "as_of": "2026-07-01",
+ "recommendation": {
+  "available": true,
+  "blockers": [],
+  "utility": "PG&E",
+  "days_modeled": 396,
+  "as_of": "2026-07-01",
+  "verdict": "Switching from E-TOU-C + 3CE to E-1 (tiered) + PG&E would have cost $170.73 less over the 396 days modelled, on your own usage.",
+  "plans": [
+   {
+    "name": "E-1 (tiered) + PG&E",
+    "annual": 987.21,
+    "delta_vs_current": -170.73,
+    "eligibility": null,
+    "is_current": false
+   },
+   {
+    "name": "E-TOU-C + PG&E",
+    "annual": 988.38,
+    "delta_vs_current": -169.56,
+    "eligibility": null,
+    "is_current": false
+   },
+   {
+    "name": "E-TOU-D + PG&E",
+    "annual": 1049.92,
+    "delta_vs_current": -108.02,
+    "eligibility": null,
+    "is_current": false
+   },
+   {
+    "name": "E-1 (tiered) + 3CE",
+    "annual": 1156.84,
+    "delta_vs_current": -1.1,
+    "eligibility": null,
+    "is_current": false
+   },
+   {
+    "name": "E-TOU-C + 3CE",
+    "annual": 1157.94,
+    "delta_vs_current": 0.0,
+    "eligibility": null,
+    "is_current": true
+   },
+   {
+    "name": "E-TOU-D + 3CE",
+    "annual": 1219.57,
+    "delta_vs_current": 61.63,
+    "eligibility": null,
+    "is_current": false
+   }
+  ],
+  "why": [
+   [
+    "delivery: Energy Total Usage",
+    -1760.96
+   ],
+   [
+    "delivery: Energy Off Peak",
+    1016.34
+   ],
+   [
+    "delivery: Energy Peak",
+    746.33
+   ],
+   [
+    "generation: Energy Total Usage",
+    -512.43
+   ],
+   [
+    "generation: Energy Off Peak",
+    258.68
+   ],
+   [
+    "generation: Energy Peak",
+    257.26
+   ]
+  ],
+  "flip_factor_evening": null,
+  "assumptions": [
+   "Every plan is billed at the rates in effect on 2026-07-01, not at the rates each month actually saw \u2014 the question is what to be on going forward.",
+   "Billing periods are modelled as fixed 30-day windows unless real meter-read dates were supplied; per-day fixed charges shift slightly with the real ones.",
+   "The Santa Cruz Utility Users' Tax adjustment is a fitted per-day credit whose mechanism is UNVERIFIED. It is schedule-independent, so it moves every plan's total by the same amount and cannot reorder this ranking."
+  ]
+ }
+}

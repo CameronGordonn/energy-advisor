@@ -13,10 +13,21 @@ Rather than committing a hand-copied duplicate that silently drifts, this genera
 committed bundle no longer matches its sources. Editing a parser and forgetting to rebuild
 is therefore a red test, not a subtly stale website.
 
-Only the modules the inspector needs are bundled. The tariff engine, the NEM 3.0 model and
-the reconciliation code are deliberately excluded: the browser tool produces no dollar
-figures (see report/inspect.py), so shipping the pricing code would be dead weight that
-also invites someone to wire it up without the reconciliation gate.
+Two layers are bundled, and the split is the product's honesty boundary:
+
+* the **parsers and inspector**, which run for every visitor and produce no dollar figure;
+* the **tariff engine, the spec YAML and the rate optimizer**, which run only when
+  ``report.recommend`` says this household is one the committed specs actually describe.
+
+The pricing code used to be excluded on the grounds that "the browser tool produces no
+dollar figures". That reasoning was retired in session 28: the PG&E path is reconciled
+11/11 within ±$2, so refusing to price *it* was stricter than invariant 1 requires, while
+the real limitation — the specs describe one household's territory, heat source, supplier
+and PCIA vintage — was nowhere on the page. The gate now lives in ``report/recommend.py``,
+is tested in ``tests/report/test_recommend.py``, and travels with the bundle, so shipping
+the pricing code no longer means shipping it ungated.
+
+The NEM 3.0 model and the reconciliation harness stay out: neither has a browser surface.
 """
 
 from __future__ import annotations
@@ -38,9 +49,23 @@ MODULES = [
     "greenbutton/models.py",
     "greenbutton/pge.py",
     "greenbutton/sdge.py",
+    "tariffs/__init__.py",
+    "tariffs/schema.py",
+    "tariffs/holidays.py",
+    "tariffs/loader.py",
+    "tariffs/bill.py",
+    "scenarios/__init__.py",
+    "scenarios/rate_optimizer.py",
     "report/__init__.py",
     "report/inspect.py",
+    "report/recommend.py",
 ]
+
+#: Data the engine reads at runtime, shipped with it. Globbed rather than listed: a spec
+#: authored and not bundled would narrow the browser's coverage relative to the CLI's
+#: without anything failing, and `report.recommend.authored_scope` reads its scope from
+#: exactly these files.
+DATA_GLOBS = ["tariffs/specs/*.yaml"]
 
 BANNER = """\
 // GENERATED FILE — do not edit by hand.
@@ -62,6 +87,13 @@ def build() -> str:
         if not path.is_file():
             raise SystemExit(f"missing module: {path}")
         files[rel] = path.read_text(encoding="utf-8")
+
+    for pattern in DATA_GLOBS:
+        matched = sorted(SRC.glob(pattern))
+        if not matched:
+            raise SystemExit(f"no files matched data glob: {pattern}")
+        for path in matched:
+            files[str(path.relative_to(SRC))] = path.read_text(encoding="utf-8")
 
     digest = hashlib.sha256(
         "".join(f"{k}\0{v}\0" for k, v in sorted(files.items())).encode("utf-8")

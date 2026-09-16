@@ -172,3 +172,10 @@ footer .legal{display:flex;gap:1.1rem;flex-wrap:wrap;font-family:var(--mono);fon
   .rail b{display:inline}
   .sheet{padding:0 1.1rem}
 }
+
+/* Visually hidden, still announced. Shared: methodology.html's table captions and
+   index.html's status announcer both need it, so it lives here rather than in one page.
+   ⚠ An absolutely-positioned .vh inside an overflow-x:auto box needs that box to be
+   position:relative, or it drags the PAGE sideways at 400% zoom. */
+.vh{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;
+  clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}

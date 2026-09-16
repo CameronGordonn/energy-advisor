@@ -116,7 +116,47 @@ details.data summary:hover{color:var(--ox)}
 .prose{max-width:64ch;color:var(--ink-2);font-size:.95rem}
 .prose b,.prose strong{color:var(--ink)}
 
+/* ---- pricing (section 03): the half of the page that is allowed to say dollars ---- */
+/* A verdict is a stamped conclusion, not a card. Heavy top rule, oxblood left edge. */
+.verdict{border-top:3px solid var(--ink);border-left:3px solid var(--ox);
+  background:var(--paper-2);padding:1.2rem 1.3rem;margin:0 0 1.8rem;
+  font-size:1.05rem;line-height:1.45;color:var(--ink);max-width:70ch}
+.verdict b{font-weight:700}
+.verdict .lbl{display:block;font-family:var(--mono);font-size:.64rem;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--ox);margin-bottom:.5rem}
+
+/* The questions only a bill can answer. Ruled fields, never floating inputs. */
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem 1.6rem;
+  margin:1.4rem 0 1.2rem}
+.fields label{display:block;font-family:var(--mono);font-size:.68rem;letter-spacing:.05em;
+  text-transform:uppercase;color:var(--ink-3)}
+.fields select{display:block;width:100%;margin-top:.4rem;padding:.5rem .55rem;
+  font-family:var(--mono);font-size:.82rem;color:var(--ink);background:var(--paper-2);
+  border:1px solid var(--rule-2);border-radius:0;text-transform:none;letter-spacing:0}
+.fields select:hover{border-color:var(--ox)}
+
+/* Refusals and assumptions read as a list of stated reasons, each with a hanging rule. */
+.reasons{list-style:none;margin:1.2rem 0;padding:0;max-width:70ch}
+.reasons li{border-top:1px solid var(--rule);padding:.8rem 0 .8rem 1rem;
+  border-left:2px solid var(--ox);font-size:.92rem;color:var(--ink-2)}
+.reasons li b{color:var(--ink);font-family:var(--mono);font-size:.72rem;letter-spacing:.05em;
+  display:block;margin-bottom:.3rem;text-transform:uppercase}
+
+#planTable,#whyTable{width:100%;border-collapse:collapse;font-family:var(--mono);
+  font-size:.82rem}
+#planTable th,#planTable td,#whyTable th,#whyTable td{padding:.5rem .4rem;
+  border-bottom:1px solid var(--rule);text-align:right}
+#planTable th:first-child,#planTable td:first-child,
+#whyTable th:first-child,#whyTable td:first-child{text-align:left}
+#planTable thead th,#whyTable thead th{color:var(--ink-3);font-size:.66rem;font-weight:700;
+  text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--ink)}
+#planTable tr.win td{color:var(--ink);font-weight:700}
+#planTable tr.mine td{background:var(--band)}
+#planTable tr.mine td,#planTable tr.win td{border-bottom-color:var(--rule-2)}
+#planTable .cond{color:var(--ox);font-size:.66rem;letter-spacing:.04em;display:block}
+
 @media (max-width:820px){
+  .fields{grid-template-columns:1fr}
   .steps{grid-template-columns:1fr;gap:1.4rem}
   .step{border-left:0;padding:0}
   .headline{grid-template-columns:1fr;gap:1.6rem}
@@ -170,19 +210,25 @@ details.data summary:hover{color:var(--ox)}
     this page; there is no server to send it to &mdash;
     <a href="./privacy.html">exactly what the page does request</a>.</p>
     <div id="status" hidden></div>
+    <!-- The status box above is toggled with `hidden`, and a live region that is absent
+         from the accessibility tree when the text arrives announces nothing. So the
+         announcements go through this one, which is always present and never hidden. -->
+    <p id="announcer" class="vh" role="status" aria-live="polite" aria-atomic="true"></p>
   </div>
 </section>
 
 <!-- ============================ RESULTS ============================ -->
-<div id="results" hidden>
+<div id="results" tabindex="-1" hidden>
  <section class="row heavy">
   <div class="rail"><b>02</b>Findings<br>Your meter</div>
   <div>
 
   <div class="demo-banner" id="demoBanner" hidden>
-    <strong>Specimen.</strong> This is invented data, not a real household's meter readings
-    &mdash; a tour of the interface, not a finding about anyone. Drop in your own file for
-    real results.
+    <strong>Worked example &mdash; not your data.</strong> This is the author's own PG&amp;E
+    household in Santa Cruz: the one whose eleven real statements this engine reproduces to
+    within &plusmn;$2, published in full so it can be checked. It is a real meter, not an
+    invented profile, and it is not a finding about you. Drop in your own file for your own
+    numbers.
   </div>
 
   <div class="report-head">
@@ -243,29 +289,120 @@ details.data summary:hover{color:var(--ox)}
   </details>
 
   <details class="fine">
-    <summary>Schedule B &mdash; why are there no dollar amounts?</summary>
+    <summary>Schedule B &mdash; when does this show dollars, and when does it refuse?</summary>
     <div class="body">
-      <p><strong>Because this tool has not earned the right to show you one.</strong>
-      Everything above is arithmetic on your own meter readings, which is safe to compute for
-      anybody. Turning it into money means modelling a specific tariff, and the project holds
-      itself to a rule before any dollar figure ships:</p>
+      <p>Everything above is arithmetic on your own meter readings, which is safe to compute
+      for anybody. Turning it into money means modelling a specific tariff, and the project
+      holds itself to a rule before any dollar figure ships:</p>
       <div class="gate">No feature that produces a dollar figure ships until the bill engine
       reproduces real utility bills, from real interval data, within &plusmn;$2 per month.</div>
       <p>That is met for PG&amp;E &mdash; eleven consecutive real statements reproduced, worst
-      error 22&nbsp;cents. It is <em>not</em> yet met for SDG&amp;E, because no real SDG&amp;E
-      bill has been tested against the engine. So rather than show a confident-looking number
-      the engine has not earned, it shows none.
+      error 22&nbsp;cents. It is <em>not</em> met for SDG&amp;E: no real SDG&amp;E bill has
+      ever been tested against the engine, so San Diego files get the analysis above and no
+      price, full stop.</p>
+      <p><strong>Passing that gate is necessary and not sufficient.</strong> The rate specs
+      describe a particular household &mdash; one baseline territory, one heat source, one
+      generation supplier, one PCIA vintage. A PG&amp;E customer outside those is refused
+      too, by name, in section 03, because the same arithmetic run against the wrong
+      allowance is not approximately right &mdash; it is wrong by real money.
       <a href="./methodology.html">The full method is written up here.</a></p>
     </div>
   </details>
 
   </div>
  </section>
+
+ <!-- ======================== PRICING ======================== -->
+ <section class="row" id="priceSection">
+  <div class="rail"><b>03</b>Pricing<br>Your plans</div>
+  <div>
+   <h2 class="sec">What it would cost you, plan by plan</h2>
+
+   <!-- (a) the engine is not allowed to price this household at all -->
+   <div id="priceGate" hidden>
+     <div class="gate" id="priceGateText"></div>
+     <ul class="reasons" id="priceGateList"></ul>
+     <p class="prose">This is the difference between a tool that is independent and one
+     that is selling you something: the refusal is the product. A number here would be
+     cheap to produce and impossible for you to check.
+     <a href="./methodology.html">How the &plusmn;$2 rule works.</a></p>
+   </div>
+
+   <!-- (b) it can, once it knows the things only your bill knows -->
+   <form id="factsForm" hidden>
+     <p class="prose">Your usage file says when you used power. It does not say what you
+     were charged for it &mdash; that depends on four things printed on your bill and
+     nowhere else. None of it is stored or sent anywhere.</p>
+     <div class="fields">
+       <label>Generation supplier
+         <select id="fSupplier">
+           <option value="3CE">3CE (Central Coast Community Energy)</option>
+           <option value="PG&amp;E">PG&amp;E (bundled)</option>
+           <option value="other">Another CCA &mdash; MCE, Ava, SVCE, Peninsula, SJCE&hellip;</option>
+         </select>
+       </label>
+       <label>Baseline territory
+         <select id="fTerritory">
+           <option value="T">T</option>
+           <option value="other">Anything else</option>
+         </select>
+       </label>
+       <label>Baseline type
+         <select id="fHeat">
+           <option value="all">All-electric (Heat Source H)</option>
+           <option value="basic">Basic</option>
+         </select>
+       </label>
+       <label>CARE or FERA discount
+         <select id="fCare"><option value="yes">Yes</option><option value="no">No</option></select>
+       </label>
+       <label>Plug-in EV at home
+         <select id="fEv"><option value="no">No</option><option value="yes">Yes</option></select>
+       </label>
+       <label>The plan you are on now
+         <select id="fPlan">
+           <option value="">Not sure &mdash; just rank them</option>
+         </select>
+       </label>
+     </div>
+     <div class="btnrow">
+       <button class="primary" id="priceBtn" type="submit">Price these plans on my usage</button>
+     </div>
+     <p class="small">Every plan is re-simulated on <em>your</em> intervals, not on a typical
+     household's. That is the whole method.</p>
+   </form>
+
+   <!-- (c) the answer -->
+   <div id="priceOut" hidden>
+     <div class="verdict" id="verdict"></div>
+     <div class="plate">
+       <div class="plate-head"><p>Annual cost by plan, cheapest first</p></div>
+       <table id="planTable">
+         <caption class="vh">Every eligible plan, re-simulated on this household's own
+         interval data, ranked by modelled annual cost.</caption>
+       </table>
+     </div>
+     <p class="prose" id="flipNote"></p>
+     <details class="fine">
+       <summary>Why the winner wins &mdash; component by component</summary>
+       <div class="body">
+         <p>A ranking with no explanation is a number to take on faith. These are the bill
+         lines that actually separate the two plans, largest first.</p>
+         <table id="whyTable"></table>
+       </div>
+     </details>
+     <details class="fine">
+       <summary>What this assumes, and where it could be wrong</summary>
+       <div class="body"><ul class="reasons" id="assumeList"></ul></div>
+     </details>
+   </div>
+  </div>
+ </section>
 </div>
 
 <!-- ============================ HOW ============================ -->
 <section class="row">
-  <div class="rail"><b>03</b>Procedure</div>
+  <div class="rail"><b>04</b>Procedure</div>
   <div class="steps">
     <div class="step">
       <span class="n">Step 01</span>
@@ -288,7 +425,7 @@ details.data summary:hover{color:var(--ox)}
 
 <!-- ============================ HELP ============================ -->
 <section class="row" id="help">
-  <div class="rail"><b>04</b>Obtaining<br>the file</div>
+  <div class="rail"><b>05</b>Obtaining<br>the file</div>
   <div>
     <h2 class="sec">How to download it</h2>
     <p class="prose" style="margin:0 0 1.4rem">You want the <b>interval usage</b> export
@@ -336,7 +473,7 @@ details.data summary:hover{color:var(--ox)}
 
 <!-- ============================ TRUST ============================ -->
 <section class="row">
-  <div class="rail"><b>05</b>Accuracy<br>record</div>
+  <div class="rail"><b>06</b>Accuracy<br>record</div>
   <div>
     <h2 class="sec">Checked against real bills, in public</h2>
     <p class="prose" style="margin:0">The code running in your browser is the same Python the
@@ -377,7 +514,22 @@ details.data summary:hover{color:var(--ox)}
 
   var $ = function (id) { return document.getElementById(id); };
   var statusEl = $("status"), resultsEl = $("results");
-  var pyPromise = null, isDemo = false;
+  var pyPromise = null, isDemo = false, caseStudy = null;
+
+  // Status text is written as HTML (entities, a spinner span), and a screen reader must
+  // not hear "&hellip;" or the spinner. Decode to plain text before announcing.
+  function plainText(html) {
+    var box = document.createElement("div");
+    box.innerHTML = html;
+    return (box.textContent || "").replace(/\s+/g, " ").trim();
+  }
+  function announce(text) {
+    var el = $("announcer");
+    if (!el) return;
+    // Re-announce identical text (e.g. the same error twice) by clearing first.
+    if (el.textContent === text) el.textContent = "";
+    el.textContent = text;
+  }
 
   function status(msg, opts) {
     opts = opts || {};
@@ -386,6 +538,7 @@ details.data summary:hover{color:var(--ox)}
     statusEl.innerHTML = (opts.busy ? '<span class="spin"></span>' : "") + msg +
       (opts.detail ? "<pre></pre>" : "");
     if (opts.detail) statusEl.querySelector("pre").textContent = opts.detail;
+    announce(plainText(msg) + (opts.detail ? " " + plainText(opts.detail) : ""));
   }
   function clearStatus() { statusEl.hidden = true; statusEl.innerHTML = ""; }
 
@@ -398,7 +551,10 @@ details.data summary:hover{color:var(--ox)}
       var mod = await import(PYODIDE + "pyodide.mjs");
       var py = await mod.loadPyodide({ indexURL: PYODIDE });
       status("Loading the data libraries&hellip;", { busy: true });
-      await py.loadPackage(["pandas", "pydantic"]);
+      // pyyaml is for the tariff specs, which only the pricing half reads. It is loaded
+      // up front anyway: the alternative is a second download mid-interaction, after the
+      // visitor has already answered the questions and asked for a number.
+      await py.loadPackage(["pandas", "pydantic", "pyyaml"]);
       status("Loading the meter parsers&hellip;", { busy: true });
       py.FS.mkdirTree("/engine");
       var files = window.ENERGY_ENGINE_FILES || {};
@@ -438,6 +594,16 @@ details.data summary:hover{color:var(--ox)}
         "_out"
       ].join("\n"));
       var data = JSON.parse(raw);
+      if (!data.error) {
+        // The pricing half re-simulates the SAME series the inspection described. Parsing
+        // it twice would risk describing one file and pricing another.
+        py.globals.set("_utility", data.utility);
+        await py.runPythonAsync([
+          "from report.inspect import _detect_and_parse",
+          "from pathlib import Path",
+          "_series, _ = _detect_and_parse(Path(_upload_path))",
+        ].join("\n"));
+      }
       if (data.error) {
         status("<strong>That file could not be read.</strong>", { error: true, detail: data.error });
         return;
@@ -469,10 +635,161 @@ details.data summary:hover{color:var(--ox)}
       : d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
   }
 
+  // ---- pricing (section 03) -------------------------------------------------------
+  //
+  // Three mutually exclusive states, and which one appears is decided in Python, not here:
+  //   (a) the reconciliation gate refuses this utility outright   -> renderGate
+  //   (b) it can price, once the visitor answers what their bill knows -> the form
+  //   (c) the answer, or the reason the specs do not describe them -> renderRecommendation
+  //
+  // The rendering functions are pure (JSON -> DOM) so the whole section can be exercised in
+  // jsdom without Pyodide, the same way the inspection half already is.
+
+  function money(v) {
+    return "$" + Math.abs(v).toLocaleString(undefined,
+      { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function setPriceState(which) {
+    ["priceGate", "factsForm", "priceOut"].forEach(function (id) {
+      $(id).hidden = id !== which;
+    });
+    $("priceSection").hidden = false;
+  }
+
+  function reasonList(el, items) {
+    el.innerHTML = items.map(function (it) {
+      return "<li>" + (it.code ? "<b>" + escapeHtml(it.code.replace(/_/g, " ")) + "</b>" : "") +
+             escapeHtml(it.detail || it) + "</li>";
+    }).join("");
+  }
+
+  function renderGate(blockers) {
+    var list = [].concat(blockers);
+    $("priceGateText").textContent = list.length === 1 && list[0].code === "UTILITY_NOT_RECONCILED"
+      ? "No dollar figure is shown for this utility, and that is deliberate."
+      : "These rate specs do not describe your household, so no dollar figure is shown.";
+    reasonList($("priceGateList"), list);
+    setPriceState("priceGate");
+  }
+
+  function renderRecommendation(rec) {
+    if (!rec || !rec.available) { renderGate((rec && rec.blockers) || []); return; }
+
+    $("verdict").innerHTML = '<span class="lbl">The answer</span>' + escapeHtml(rec.verdict);
+
+    var rows = rec.plans.map(function (p, i) {
+      var cls = [i === 0 ? "win" : "", p.is_current ? "mine" : ""].join(" ").trim();
+      var delta = p.delta_vs_current === null || p.delta_vs_current === undefined ? "&mdash;"
+        : (p.delta_vs_current === 0 ? "your plan"
+           : (p.delta_vs_current < 0 ? "&minus;" : "+") + money(p.delta_vs_current));
+      return "<tr" + (cls ? ' class="' + cls + '"' : "") + "><td>" + escapeHtml(p.name) +
+        (p.eligibility ? '<span class="cond">conditional: ' + escapeHtml(p.eligibility) + "</span>" : "") +
+        "</td><td>" + money(p.annual) + "</td><td>" + delta + "</td></tr>";
+    }).join("");
+    $("planTable").innerHTML =
+      '<caption class="vh">Every eligible plan, re-simulated on this household\'s own ' +
+      "interval data, ranked by modelled annual cost.</caption>" +
+      "<thead><tr><th scope=\"col\">Plan</th><th scope=\"col\">Modelled " +
+      rec.days_modeled + " days</th><th scope=\"col\">vs. yours</th></tr></thead><tbody>" +
+      rows + "</tbody>";
+
+    $("whyTable").innerHTML = rec.why.length
+      ? "<thead><tr><th scope=\"col\">Bill line</th><th scope=\"col\">Difference</th></tr>" +
+        "</thead><tbody>" + rec.why.map(function (w) {
+          return "<tr><td>" + escapeHtml(w[0]) + "</td><td>" +
+                 (w[1] < 0 ? "&minus;" : "+") + money(w[1]) + "</td></tr>";
+        }).join("") + "</tbody>"
+      : "";
+
+    $("flipNote").innerHTML = rec.flip_factor_evening
+      ? "<b>What would overturn this.</b> The ranking flips if your 4&ndash;9&nbsp;p.m. usage " +
+        "changed by a factor of about " + rec.flip_factor_evening.toFixed(2) +
+        " and everything else stayed as it is."
+      : "<b>What would overturn this.</b> Scaling your 4&ndash;9&nbsp;p.m. usage alone does " +
+        "not flip the ranking anywhere in the range tested, which is itself the result.";
+
+    reasonList($("assumeList"), rec.assumptions.map(function (a) { return { detail: a }; }));
+    setPriceState("priceOut");
+  }
+
+  function preparePricing(d) {
+    // The worked example ships its own recommendation; a visitor's file has to ask Python.
+    if (caseStudy && isDemo) { renderRecommendation(caseStudy.recommendation); return; }
+    if (!pyPromise) { $("priceSection").hidden = true; return; }
+    gateFor(d.utility);
+  }
+
+  async function gateFor(utility) {
+    try {
+      var py = await boot();
+      py.globals.set("_utility", utility);
+      var raw = await py.runPythonAsync([
+        "import json",
+        "from greenbutton.models import Utility",
+        "from report.recommend import utility_blocker",
+        "from scenarios.rate_optimizer import ALL_PGE_CANDIDATES",
+        "_b = utility_blocker(Utility(_utility))",
+        "json.dumps({'blocker': None if _b is None else _b.model_dump(),",
+        "            'plans': [c.name for c in ALL_PGE_CANDIDATES]})",
+      ].join("\n"));
+      var info = JSON.parse(raw);
+      if (info.blocker) { renderGate([info.blocker]); return; }
+      var sel = $("fPlan");
+      sel.innerHTML = '<option value="">Not sure &mdash; just rank them</option>' +
+        info.plans.map(function (n) {
+          return '<option value="' + escapeHtml(n) + '">' + escapeHtml(n) + "</option>";
+        }).join("");
+      setPriceState("factsForm");
+    } catch (err) {
+      $("priceSection").hidden = true;
+    }
+  }
+
+  async function priceIt() {
+    status("Re-simulating every plan on your own intervals&hellip;", { busy: true });
+    try {
+      var py = await boot();
+      py.globals.set("_facts", JSON.stringify({
+        supplier: $("fSupplier").value,
+        baseline_territory: $("fTerritory").value === "other" ? "unknown" : $("fTerritory").value,
+        all_electric: $("fHeat").value === "all",
+        care: $("fCare").value === "yes",
+        has_ev: $("fEv").value === "yes",
+        current_plan: $("fPlan").value || null,
+      }));
+      var raw = await py.runPythonAsync([
+        "import json, traceback",
+        "from datetime import date",
+        "from greenbutton.models import Utility",
+        "from report.recommend import HouseholdFacts, recommend",
+        "try:",
+        "    _f = HouseholdFacts(**json.loads(_facts))",
+        "    _rec = recommend(_series, _f, utility=Utility(_utility), as_of=date.today(),",
+        "                     specs_dir='/engine/tariffs/specs')",
+        "    _out = _rec.model_dump_json()",
+        "except Exception as _e:",
+        "    _out = json.dumps({'available': False, 'blockers': [",
+        "        {'code': 'ENGINE_ERROR', 'detail': f'{type(_e).__name__}: {_e}'}]})",
+        "_out",
+      ].join("\n"));
+      clearStatus();
+      renderRecommendation(JSON.parse(raw));
+      var out = $("priceOut");
+      if (typeof out.scrollIntoView === "function") {
+        out.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+      announce("Your plans have been priced. The ranking is below.");
+    } catch (err) {
+      status("<strong>The plans could not be priced.</strong>",
+             { error: true, detail: String(err && err.message || err) });
+    }
+  }
+
   function render(d) {
     $("demoBanner").hidden = !isDemo;
     $("resultTitle").textContent = isDemo
-      ? "The specimen household, at a glance" : "Your electricity, at a glance";
+      ? "The worked example, at a glance" : "Your electricity, at a glance";
     $("reportMeta").textContent = [
       d.utility,
       prettyDate(d.first_start) + " to " + prettyDate(d.last_start),
@@ -533,10 +850,19 @@ details.data summary:hover{color:var(--ox)}
       : "";
 
     resultsEl.hidden = false;
+    // Revealing a region by un-hiding it is silent: a keyboard or screen-reader user gets
+    // no signal that the analysis arrived. Say so, then move the caret into the results so
+    // the next Tab continues from there rather than from the file picker.
+    announce("Analysis ready. Your results are below.");
+    if (typeof resultsEl.focus === "function") {
+      try { resultsEl.focus({ preventScroll: true }); } catch (e) { resultsEl.focus(); }
+    }
     // Guarded: not every engine (and no headless DOM) implements smooth scrolling.
     if (typeof resultsEl.scrollIntoView === "function") {
       resultsEl.scrollIntoView({ behavior: "smooth", block: "start" });
     }
+
+    preparePricing(d);
   }
 
   function row(k, v) { return "<tr><th>" + k + "</th><td>" + v + "</td></tr>"; }
@@ -687,6 +1013,8 @@ details.data summary:hover{color:var(--ox)}
   // ---- wiring ----
   var drop = $("drop"), fileInput = $("file");
   function choose() { fileInput.click(); }
+  $("factsForm").addEventListener("submit", function (e) { e.preventDefault(); priceIt(); });
+
   $("pick").addEventListener("click", function (e) { e.stopPropagation(); choose(); });
   drop.addEventListener("click", choose);
   drop.addEventListener("keydown", function (e) {
@@ -716,18 +1044,26 @@ details.data summary:hover{color:var(--ox)}
   // exercised headlessly without booting Pyodide. tools/test_tool_render.mjs uses this to
   // check the rendered page against a real inspection produced by the Python engine.
   window.__renderInspection = function (data, demo) { isDemo = !!demo; render(data); };
+  window.__renderRecommendation = renderRecommendation;
+  window.__renderGate = renderGate;
 
+  // The worked example used to be an invented load profile with no dollar figures, which
+  // made the tool look like a chart viewer. It is the author's own PG&E household instead:
+  // the one whose eleven real statements the engine reproduces within ±$2, already published
+  // in full on the methodology page. Its analysis is committed as case-study.json, so the
+  // example needs no Pyodide boot at all — it appears immediately.
   $("demo").addEventListener("click", async function (e) {
     e.stopPropagation();
     isDemo = true;
-    status("Fetching the sample file&hellip;", { busy: true });
+    status("Loading the worked example&hellip;", { busy: true });
     try {
-      var res = await fetch("./sample-usage.csv");
+      var res = await fetch("./case-study.json");
       if (!res.ok) throw new Error("HTTP " + res.status);
-      var buf = await res.arrayBuffer();
-      analyze("sample-usage.csv", new Uint8Array(buf));
+      caseStudy = await res.json();
+      clearStatus();
+      render(caseStudy.inspection);
     } catch (err) {
-      status("<strong>Could not load the sample file.</strong>", {
+      status("<strong>Could not load the worked example.</strong>", {
         error: true, detail: String(err && err.message || err)
       });
     }

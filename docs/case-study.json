@@ -1,0 +1,236 @@
+{
+ "provenance": {
+  "household": "The author's own PG&E account in Santa Cruz \u2014 the household the reconciliation table is built from. Self-attributed by decision; the raw export is never committed, this derived analysis is.",
+  "reconciliation": "11 of 11 real statements within \u00b1$2, worst +$0.22",
+  "generated": "2026-09-16",
+  "engine_digest": "07a6156b162ff5f6",
+  "as_of": "2026-07-01",
+  "facts": {
+   "care": true,
+   "supplier": "3CE",
+   "baseline_territory": "T",
+   "all_electric": true,
+   "has_ev": false,
+   "current_plan": "E-TOU-C + 3CE"
+  }
+ },
+ "inspection": {
+  "source_name": "pge_electric_usage_interval_data_Service 1_1_2025-08-02_to_2026-07-18.csv",
+  "utility": "PG&E",
+  "interval_minutes": 60,
+  "first_start": "2025-08-02 00:00:00-07:00",
+  "last_start": "2026-07-18 23:00:00-07:00",
+  "span_days": 351,
+  "n_intervals": 8423,
+  "n_estimated": 9,
+  "n_gaps": 1,
+  "coverage": 0.999881,
+  "dst_fall_back_days": [
+   "2025-11-02"
+  ],
+  "dst_spring_forward_days": [
+   "2026-03-08"
+  ],
+  "total_kwh": 4522.12,
+  "avg_kwh_per_day": 12.88,
+  "by_month": [
+   {
+    "month": "2025-08",
+    "kwh": 312.48,
+    "days": 30
+   },
+   {
+    "month": "2025-09",
+    "kwh": 379.76,
+    "days": 30
+   },
+   {
+    "month": "2025-10",
+    "kwh": 426.27,
+    "days": 31
+   },
+   {
+    "month": "2025-11",
+    "kwh": 343.84,
+    "days": 30
+   },
+   {
+    "month": "2025-12",
+    "kwh": 293.83,
+    "days": 31
+   },
+   {
+    "month": "2026-01",
+    "kwh": 583.97,
+    "days": 31
+   },
+   {
+    "month": "2026-02",
+    "kwh": 511.39,
+    "days": 28
+   },
+   {
+    "month": "2026-03",
+    "kwh": 397.33,
+    "days": 31
+   },
+   {
+    "month": "2026-04",
+    "kwh": 408.19,
+    "days": 30
+   },
+   {
+    "month": "2026-05",
+    "kwh": 444.23,
+    "days": 31
+   },
+   {
+    "month": "2026-06",
+    "kwh": 276.46,
+    "days": 30
+   },
+   {
+    "month": "2026-07",
+    "kwh": 144.37,
+    "days": 18
+   }
+  ],
+  "by_hour_kwh": [
+   245.54,
+   197.95,
+   135.01,
+   103.4,
+   83.97,
+   75.38,
+   73.58,
+   74.03,
+   84.44,
+   102.72,
+   132.02,
+   160.12,
+   198.67,
+   237.49,
+   246.6,
+   220.64,
+   212.58,
+   218.25,
+   225.81,
+   271.1,
+   287.02,
+   310.14,
+   330.64,
+   295.02
+  ],
+  "weekday_kwh": 3343.24,
+  "weekend_kwh": 1178.88,
+  "peak_share": 0.2686,
+  "overnight_share": 0.186,
+  "solar_window_share": 0.1611,
+  "peak_share_weekday": 0.2715,
+  "busiest_day": "2026-02-17",
+  "busiest_day_kwh": 45.71,
+  "busiest_hour_of_day": 22,
+  "has_export_register": false,
+  "export_kwh": 0.0,
+  "findings": [
+   {
+    "kind": "watch",
+    "title": "27% of your electricity is used during peak hours",
+    "detail": "Between 4 and 9 p.m. \u2014 the window both PG&E and SDG&E charge the most for on their standard residential plans. That is above the 21% you would see from a household with a flat, featureless load, so time-of-use pricing works against you here. Moving laundry, dishwashing, pool pumps or EV charging outside that window is the single largest lever you have."
+   },
+   {
+    "kind": "info",
+    "title": "You use about 13 kWh a day",
+    "detail": "For context, the average California single-family household uses roughly 16-20 kWh a day, though this varies enormously with climate zone, house size, and whether heating and cooking are electric or gas."
+   }
+  ],
+  "notes": [
+   "1 missing interval(s); coverage 0.9999",
+   "9 interval(s) flagged estimated",
+   "This meter reports hourly, not 15-minute, readings. That is fine for California time-of-use periods, which are all hour-aligned."
+  ],
+  "warnings": [
+   "9 reading(s) are flagged estimated by the utility rather than metered."
+  ]
+ },
+ "recommendation": {
+  "available": true,
+  "blockers": [],
+  "utility": "PG&E",
+  "days_modeled": 351,
+  "as_of": "2026-07-01",
+  "verdict": "Switching from E-TOU-C + 3CE to E-TOU-C + PG&E would have cost $177.71 less over the 351 days modelled, on your own usage.",
+  "plans": [
+   {
+    "name": "E-TOU-C + PG&E",
+    "annual": 977.3,
+    "delta_vs_current": -177.71,
+    "eligibility": null,
+    "is_current": false
+   },
+   {
+    "name": "E-1 (tiered) + PG&E",
+    "annual": 1031.93,
+    "delta_vs_current": -123.08,
+    "eligibility": null,
+    "is_current": false
+   },
+   {
+    "name": "E-TOU-D + PG&E",
+    "annual": 1080.94,
+    "delta_vs_current": -74.07,
+    "eligibility": null,
+    "is_current": false
+   },
+   {
+    "name": "E-TOU-C + 3CE",
+    "annual": 1155.01,
+    "delta_vs_current": 0.0,
+    "eligibility": null,
+    "is_current": true
+   },
+   {
+    "name": "E-1 (tiered) + 3CE",
+    "annual": 1209.28,
+    "delta_vs_current": 54.27,
+    "eligibility": null,
+    "is_current": false
+   },
+   {
+    "name": "E-TOU-D + 3CE",
+    "annual": 1258.25,
+    "delta_vs_current": 103.24,
+    "eligibility": null,
+    "is_current": false
+   }
+  ],
+  "why": [
+   [
+    "delivery: Power Charge Indifference Adjustment (2018 vintage)",
+    166.39
+   ],
+   [
+    "delivery: City of Santa Cruz Utility Users' Tax",
+    14.18
+   ],
+   [
+    "generation: Energy Off Peak",
+    -3.3
+   ],
+   [
+    "delivery: Franchise Fee Surcharge",
+    2.66
+   ],
+   [
+    "generation: Energy Peak",
+    -1.76
+   ]
+  ],
+  "flip_factor_evening": 3.822,
+  "assumptions": [
+   "Every plan is billed at the rates in effect on 2026-07-01, not at the rates each month actually saw \u2014 the question is what to be on going forward.",
+   "Billing periods are modelled as fixed 30-day windows unless real meter-read dates were supplied; per-day fixed charges shift slightly with the real ones.",
+   "The Santa Cruz Utility Users' Tax adjustment is a fitted per-day credit whose mechanism is UNVERIFIED. It is schedule-independent, so it moves every plan's total by the same amount and cannot reorder this ranking."
+  ]
+ }
+}
