@@ -2,6 +2,121 @@
 
 Running log of decisions made and decisions pending. Newest first.
 
+## 2026-09-16 — Session 27 (five pieces: phase B, privacy, the climate credit, the 2027 ACC, TOU-DR-P)
+
+**1,689 tests green (+38 over session 26), ruff clean, 11/11 PG&E golden bills unchanged.**
+Cameron asked for five specific pieces. No milestone moved; `data/` is still PG&E-only.
+
+### CLI-PLAN phase B — done, against its own rule 1, at Cameron's request
+
+Rule 1 reserved schemas and prompts for him. He asked directly, so the rule now carries a
+dated override naming exactly the two artifacts it covers; phase D's scoring logic and the
+D2 span gate are still his. **Rule 2 held — `claude` was never run — so nothing about the
+schema or prompt is measured against a model.** Every claim is structural.
+
+- **The schema lives beside the skill, not in `build/`.** The driver pointed at
+  `build/schema.json`, which is gitignored: a designed contract that vanishes on a fresh
+  clone. Schema and prompt are one artifact.
+- ⭐ **A near-miss caught by building the ground-truth fixture first.** `exclusiveMinimum: 0`
+  on adders would have rejected the repo's own committed data — CEA's Rate Relief Credit is
+  **-0.03871/kWh**. D4 flagged zero and negative as legitimate in `non_bypassable.components`
+  and did not mention adders. Writing the "does it accept real data" test *before* the
+  constraint tests is what found it.
+- ⭐ **A test that asserts what the schema CANNOT do.** `0.45397` for `0.55397` — wrong by
+  ten cents a kWh — validates cleanly, because it is an ordinary California rate. Asserted
+  as *passing*, with the reason, so the schema is never mistaken for a correctness check.
+- **TODO #3 dissolved rather than being built.** The skill's frontmatter already granted
+  `Edit(build/candidates/**)`, so the skill writes the candidate YAML itself; one run
+  produces both artifacts. A missing candidate is now FAIL, not SKIP.
+- `jsonschema` added to `environment.yml`, or the new test would have skipped in CI — a gate
+  that does not gate, the failure this repo keeps correcting.
+
+### The privacy page made a claim the source contradicts
+
+It said the parser "deliberately discards identifying fields ... so they never reach the
+analysis at all". **It minimizes, it does not discard:** `mask_account` keeps the last four
+digits, `zip_from_address` keeps the 5-digit ZIP — and the ZIP is kept *because* the analysis
+needs it, since California baseline allowances are per climate zone.
+
+Nothing is collected either way (there is no server), so the page's actual promise never
+failed. But that page invites readers to check it against the source, and `MeterMeta` — the
+first model in `greenbutton/models.py` — carries `account_tail` and `address_zip`. A
+verifiably false sentence is the worst kind to have on a page whose credibility *is* that it
+can be verified. Replaced with the exact list and a link to the file.
+
+### ⭐ The climate credit: the months moved, and the "missing" second credit never was
+
+HANDOFF said "SDG&E files $(33.50) semi-annually ... generalise to a versioned semiannual
+credit." Both halves were wrong. $(33.50) is stale — SDG&E's 2026 electric credit is
+**$49.36 × 2**. And "versioned semiannual" is the wrong abstraction: **the CPUC voted
+2026-04-30 to move the residential electric credit out of April/October into August and
+September** from 2026.
+
+That dissolved what looked like missing data: eleven consecutive bills over eleven months
+carry exactly ONE credit. Correct — April 2026 had none because the schedule had moved, and
+the Aug/Sep 2026 payments fall after 2026-06-25, the last period in the corpus.
+
+Two cross-checks, both now tests:
+- PG&E's published 2025 figure **$58.23** equals the observed line on the real 10/28/2025
+  statement **to the cent** — a program document and an anonymized bill agreeing exactly.
+- SDG&E's $98.72/yr is **$8.23 per average month**, exactly the **$8** all three 2026 rate
+  alerts imply. The alerts never name the amount. So this is outside corroboration of a
+  figure `tests/published_impacts` could previously only derive. $33.50 × 2 gives $5.58,
+  rounds to $6, and fails.
+
+**Cameron chose to wire it in** (I had recommended holding). Done, with the inference named:
+`CREDITED_STATEMENT_ENDS_IN_THE_CREDIT_MONTH`, and a test measuring what rides on it — under
+the begins-in rule the same bill moves by the full $58.23. New `Bill.modeled_adjustments`,
+kept separate from `observed_adjustments` because **an observed line is echoed back and
+scores a zero residual by construction**, i.e. the ±$2 gate had never tested the credit at
+all. It does now, and 11/11 is unchanged.
+
+### The 2027 ACC vintage: still unpublished, and the re-check is now a test
+
+SDG&E offers 2023-2026 only, checked directly. The raise is correct behaviour. What changed
+is that `test_the_2027_vintage_still_has_no_published_table` makes the re-check a failing
+test rather than a chore in a document — when it fails, a utility has published.
+
+⭐ **Found while checking: the CPUC adopted the 2026 ACC update on 2026-09-03 (D.26-09-007),
+thirteen days ago.** That is the input a 2027 vintage is built from. It also puts a date on
+the only claim that gives a PG&E lock-in value today: NBT26 ≡ the floating NBT00, so the
+lock-in is purely insurance against that table moving at the next adoption — and the next
+adoption has now happened. Re-import both utilities' current tables.
+
+### ⭐ TOU-DR-P: resolved by deciding not to forecast
+
+The open decision since session 21. All three candidate day-selection rules were rejected —
+*hottest N days* needs a temperature feed and conflates "hot" with "called" (2021-23 and
+2025-26 all had hot days and zero events); *last year's dates* flips the answer on which year
+it lands on; *Monte Carlo* is right in spirit but six complete years is thin and a Poisson fit
+puts ~14% on zero against an observed two thirds. Each commits to a number the evidence
+cannot support.
+
+So `scenarios/tou_dr_p.py` selects **no days** and reports the break-even instead. `BreakEven`
+has no field capable of expressing a forecast — stronger than choosing not to make one.
+
+**The finding that justified it: break-even RISES with evening load**, so the schedule splits
+households into three genuinely different situations rather than one:
+
+| evening share | zero-event saving | per event | break-even | verdict |
+|---|---|---|---|---|
+| 0.05 | **−$20.52** | $0.95 | — | don't switch |
+| 0.15 | +$30.42 | $2.86 | 10.6 | real risk (2020 called 9) |
+| flat (0.21) | +$60.12 | $3.97 | 15.1 | inside the cap |
+| 0.60 | +$259.62 | $11.44 | 22.7 | cap cannot cancel it |
+
+A single forecast number would have collapsed all four rows into one answer.
+
+⚠ **A stated, unquantifiable bias:** per-event cost uses the household's MEAN weekday
+16:00-21:00 load, but events are called on hot days when that load is higher. True break-even
+is strictly lower; every figure is optimistic for TOU-DR-P. Direction asserted by test.
+
+Two corrections made along the way: the event history is now machine-readable and is **four
+zeros in six complete years, mean 2.0** (HANDOFF implied five in seven by counting partial
+2026); and the RYU CARE adder is printed 0.75 where a 35% derivation gives 0.754 — a
+0.004/kWh gap, close enough that a derived value would survive any eyeball check and still
+be wrong.
+
 ## 2026-09-16 — Session 26 (the point test that passed by luck, and what replaced it)
 
 Generalised `tests/published_impacts/` from one quarter to three. **1,651 tests green (+44),

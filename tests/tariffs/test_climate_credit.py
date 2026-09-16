@@ -63,8 +63,8 @@ def test_the_pge_2025_amount_matches_the_real_october_statement(table):
     """
     published = table["electric"]["PG&E"][2025]["amount"]
     golden = yaml.safe_load(GOLDEN.read_text())
-    observed = golden["expected"]["observed_adjustments"]["California Climate Credit (observed)"]
-    assert observed == pytest.approx(-published, abs=0.005), (observed, published)
+    billed = golden["expected"]["modeled_adjustments"]["California Climate Credit"]
+    assert billed == pytest.approx(-published, abs=0.005), (billed, published)
 
 
 def test_the_credit_appears_on_exactly_one_golden_bill_and_that_is_correct(table):
@@ -79,8 +79,8 @@ def test_the_credit_appears_on_exactly_one_golden_bill_and_that_is_correct(table
     credited = [
         path
         for path in sorted((REPO / "tests/golden_bills").glob("pge_*.yaml"))
-        if "California Climate Credit (observed)"
-        in yaml.safe_load(path.read_text())["expected"].get("observed_adjustments", {})
+        if "California Climate Credit"
+        in yaml.safe_load(path.read_text())["expected"].get("modeled_adjustments", {})
     ]
     assert [p.name for p in credited] == ["pge_10-28-2025.yaml"]
 
@@ -145,6 +145,89 @@ def test_absent_years_are_named_rather_than_guessed(table):
     assert 2027 not in table["electric"]["PG&E"]
     for item in table["unverified"]:
         assert len(item["why"]) > 30, item
+
+
+# --- the credit is now MODELED, and the rule behind it is an inference -------------------
+
+
+def test_the_credit_is_a_prediction_now_not_an_input():
+    """Session 27 moved it out of `observed_adjustments`, and that is the whole point.
+
+    An observed line is echoed back by the harness, so it scores a zero residual by
+    construction — the ±$2 gate never touched the climate credit at all. As a modeled line
+    the engine has to produce the amount AND pick the right statement, and a mistake in
+    either lands in the residual.
+    """
+    golden = yaml.safe_load(GOLDEN.read_text())["expected"]
+    assert "California Climate Credit" in golden["modeled_adjustments"]
+    assert not any("Climate" in name for name in golden.get("observed_adjustments", {}))
+
+
+def test_the_engine_derives_the_billed_credit_from_the_cited_table():
+    """The amount is not read off the bill: it comes from the CPUC/utility table, and the
+    statement is chosen by rule. Both have to be right for this to match."""
+    from datetime import date
+
+    from tariffs.climate_credit import credit_for
+
+    golden = yaml.safe_load(GOLDEN.read_text())
+    billed = golden["expected"]["modeled_adjustments"]["California Climate Credit"]
+    derived = credit_for("PG&E", date(2025, 9, 25), date(2025, 10, 26))
+    assert derived == pytest.approx(billed, abs=0.005)
+
+
+def test_the_credited_statement_rule_is_load_bearing():
+    """⚠ Pins the one inference this wiring rests on, so it cannot invert silently.
+
+    No source states WHICH statement receives a credit "applied in October". This repo bills
+    it on the statement whose period ENDS in a credited month. The only credited bill
+    available — period 2025-09-25..2025-10-26 — is consistent with that and equally
+    consistent with "the statement issued in that month"; one observation cannot separate
+    them. It is NOT consistent with "the period that BEGINS in the credit month", and this
+    test measures what that alternative would cost: the whole $58.23, far outside the ±$2
+    gate. A second credited bill would settle it.
+    """
+    from datetime import date
+
+    from tariffs import climate_credit
+    from tariffs.climate_credit import credit_for
+
+    start, end = date(2025, 9, 25), date(2025, 10, 26)
+    assert credit_for("PG&E", start, end) == pytest.approx(-58.23)
+
+    original = climate_credit.CREDITED_STATEMENT_ENDS_IN_THE_CREDIT_MONTH
+    try:
+        climate_credit.CREDITED_STATEMENT_ENDS_IN_THE_CREDIT_MONTH = False
+        under_begins_in_rule = credit_for("PG&E", start, end)
+    finally:
+        climate_credit.CREDITED_STATEMENT_ENDS_IN_THE_CREDIT_MONTH = original
+
+    assert under_begins_in_rule is None
+    assert abs(0 - 58.23) > 2.0  # the gate's tolerance, for scale
+
+
+def test_an_unpublished_utility_or_year_raises_rather_than_crediting_zero():
+    """A silently-absent credit overstates a bill by $36-$99 a year. CLAUDE.md's rule is to
+    refuse rather than guess, the same as an unknown climate zone or PCIA vintage."""
+    from datetime import date
+
+    from tariffs.climate_credit import MissingClimateCreditError, credit_for
+
+    with pytest.raises(MissingClimateCreditError, match="no climate credit table"):
+        credit_for("Southern California Edison", date(2026, 8, 1), date(2026, 8, 31))
+    with pytest.raises(MissingClimateCreditError, match="no 2027 climate credit"):
+        credit_for("PG&E", date(2027, 8, 1), date(2027, 8, 31))
+
+
+def test_an_ordinary_month_gets_no_credit():
+    """Two statements a year at most; every other one must return None, not zero."""
+    from datetime import date
+
+    from tariffs.climate_credit import credit_for
+
+    assert credit_for("PG&E", date(2026, 5, 1), date(2026, 5, 31)) is None
+    assert credit_for("PG&E", date(2026, 8, 2), date(2026, 8, 30)) == pytest.approx(-36.18)
+    assert credit_for("SDG&E", date(2026, 9, 2), date(2026, 9, 30)) == pytest.approx(-49.36)
 
 
 def test_the_table_is_not_in_the_specs_directory():

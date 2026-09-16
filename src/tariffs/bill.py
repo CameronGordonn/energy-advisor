@@ -74,11 +74,17 @@ class Bill(BaseModel):
     total_kwh: float
     layers: list[LayerBill]
     observed_adjustments: list[LineItem] = []
+    #: Bill-level credits this engine MODELS rather than takes as input. Kept separate from
+    #: ``observed_adjustments`` on purpose: an observed line is echoed back and so scores a
+    #: zero residual by construction, which means it is never actually tested. A line here
+    #: is a prediction and the reconciliation gate checks it.
+    modeled_adjustments: list[LineItem] = []
 
     @property
     def total(self) -> float:
         t = sum(layer.total for layer in self.layers)
         t += sum(a.amount for a in self.observed_adjustments)
+        t += sum(a.amount for a in self.modeled_adjustments)
         return _r(t)
 
 
@@ -617,6 +623,7 @@ def compute_bill(
     vintage: str | None = None,
     event_days: Sequence[date] | None = None,
     observed_adjustments: list[LineItem] | None = None,
+    climate_credit: float | None = None,
     allow_before_effective: bool = False,
 ) -> Bill:
     """Itemize a full multi-layer bill (delivery + generation + observed adjustments).
@@ -642,10 +649,18 @@ def compute_bill(
     first = specs[0]
     tou_spec = first if isinstance(first, TariffSpec) else next(iter(first))
     usage = _usage(series, tou_spec, period_start, period_end)
+    # The credit is a flat per-household amount — independent of usage, schedule, CARE class
+    # and climate zone — so it is a bill-level line rather than anything a layer computes.
+    modeled = (
+        [LineItem(name="California Climate Credit", amount=_r(climate_credit))]
+        if climate_credit
+        else []
+    )
     return Bill(
         period_start=period_start,
         period_end=period_end,
         total_kwh=_r(sum(usage.values())),
         layers=layers,
         observed_adjustments=observed_adjustments or [],
+        modeled_adjustments=modeled,
     )

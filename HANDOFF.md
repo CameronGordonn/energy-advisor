@@ -615,10 +615,31 @@ cell for cell.
    - ⭐ **TOU-DR-P is bundled-only** (EECC-TOU-DR-P is closed to DA/CCA), so it must be
      dropped for any SDCP/CEA customer *before* any event modeling. And **no Bill
      Protection** for anyone enrolling now — SC 1 closed to new requests on 2015-12-31.
-   - **STILL OPEN, and it is a new decision, not this one:** *which* days a forecast should
-     assume. Reporting the band (b) needs a day-selection rule — hottest N days, the
-     historical dates, a Monte Carlo over count and timing — and that is a material modeling
-     choice nobody has made. It is not blocking: nothing ranks SDG&E yet.
+   - **RESOLVED session 27 — by deciding NOT to forecast.** `src/scenarios/tou_dr_p.py`
+     (+ 9 tests). All three candidate rules were rejected: *hottest N days* needs a
+     temperature feed and conflates "hot" with "an event was called" (2021-23 and 2025-26
+     all had hot days and zero events); *last year's dates* flips the whole answer on which
+     year it lands on; *Monte Carlo* is right in spirit but six complete years is a thin
+     base and a Poisson fit puts ~14% on zero where the data shows two thirds. Each commits
+     to a number the evidence cannot support.
+     Instead the engine selects **no days** and reports the break-even: the saving at zero
+     events, the cost per event day, the count at which they cancel, and how often SDG&E has
+     historically exceeded that count. `BreakEven` has no field capable of expressing a
+     forecast, which is stronger than choosing not to make one.
+   - ⭐ **The finding that made this worth more than a forecast: break-even RISES with
+     evening load**, so TOU-DR-P splits households into three genuinely different
+     situations — *little evening load* loses at zero events (don't switch); *moderate*
+     gains but a lawful event year can cancel it; *heavy* gains and even the 18-event cap
+     cannot cancel it. A flat load breaks even at ~15 events, inside the cap. A single
+     forecast number would have collapsed all three into one answer.
+   - ⚠ **A stated, unquantifiable bias.** Per-event cost uses the household's MEAN weekday
+     16:00-21:00 load, but an event is called on a hot day when that load is higher. So the
+     true break-even is strictly lower and every figure is optimistic for TOU-DR-P. The
+     direction is asserted by test; quantifying it would require the forecast this decision
+     rejects.
+   - **Also corrected here:** the event history is now machine-readable
+     (`EVENTS_CALLED`), and the counts are **four zeros in six complete years, mean 2.0** —
+     HANDOFF previously implied five in seven by counting partial 2026 as a year.
 3. **SDG&E baseline allowances — RESOLVED, and re-verified session 15.** Full climate-zone table
    (Sheet 29294-E) in every TOU-DR1 vintage; `territory` supplied at bill time, and omitting it
    raises. All sixteen cells re-read off Schedule DR SC 3 on 2026-09-08 and matched exactly.

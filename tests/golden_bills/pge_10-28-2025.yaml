@@ -29,8 +29,13 @@ expected:
       Energy Commission Tax: 0.13
       City of Santa Cruz Utility Users' Tax: 5.2
     total: 66.5
+  # MODELED, not observed, since session 27. The engine derives the amount and the month
+  # from the cited CPUC/utility table (src/tariffs/climate_credit.yaml), so this line is a
+  # prediction the ±$2 gate checks. As an `observed_adjustments` entry it was echoed back
+  # and scored a zero residual by construction — i.e. never tested at all.
+  modeled_adjustments:
+    California Climate Credit: -58.23
   observed_adjustments:
-    California Climate Credit (observed): -58.23
     UUT Adjustment (delivery, observed): -2.74
     UUT Adjustment (generation, observed): -3.89
   electric_net_total: 49.11

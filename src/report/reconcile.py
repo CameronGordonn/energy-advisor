@@ -34,6 +34,7 @@ from pydantic import BaseModel
 from greenbutton import parse_pge_interval_csv, parse_sdge_interval_csv
 from greenbutton.models import IntervalSeries, ParseReport, Utility
 from tariffs.bill import LineItem, compute_bill
+from tariffs.climate_credit import credit_for
 from tariffs.loader import load_spec_versions
 from tariffs.schema import AppliesTo, Layer, Service, TariffSpec
 
@@ -358,7 +359,20 @@ def reconcile(
         for name_, amt in exp.get("observed_adjustments", {}).items()
         if amt is not None
     ]
-    bill = compute_bill(series, [deliv, gen], ps, pe, care=care, observed_adjustments=obs, **facts)
+    # Modeled, not observed. The fixture states what the statement actually credited; the
+    # amount and the month come from the cited CPUC/utility table, so this line is a
+    # prediction that the ±$2 gate checks — which an `observed_adjustments` entry never was.
+    credit = credit_for(fixture_utility(fixture).value, ps, pe)
+    bill = compute_bill(
+        series,
+        [deliv, gen],
+        ps,
+        pe,
+        care=care,
+        observed_adjustments=obs,
+        climate_credit=credit,
+        **facts,
+    )
 
     rows: list[Row] = []
     for layer in bill.layers:
@@ -383,6 +397,18 @@ def reconcile(
         )
     for a in obs:  # observed inputs: bill == modeled by construction
         rows.append(Row(section="adjustment", name=a.name, bill=a.amount, modeled=a.amount))
+    # Modeled credits are compared against what the statement actually showed, so a wrong
+    # amount or a wrong month lands in the residual instead of being absorbed.
+    billed_credits = exp.get("modeled_adjustments", {})
+    for a in bill.modeled_adjustments:
+        rows.append(
+            Row(
+                section="adjustment", name=a.name, bill=billed_credits.get(a.name), modeled=a.amount
+            )
+        )
+    for name_, amt in billed_credits.items():
+        if not any(a.name == name_ for a in bill.modeled_adjustments):
+            rows.append(Row(section="adjustment", name=name_, bill=amt, modeled=None))
 
     label = f"{deliv[0].schedule_id} + {_short_provider(gen[0].provider)}"
     return ReconResult(
