@@ -183,6 +183,14 @@ session-26 entry of SESSION_NOTES.md; the short version:
 **Still true and unchanged: this is corroboration of the DELIVERY layer only, it counts toward
 nothing in the ±$2 claim, and next-action #2 still wants a bill.**
 
+6. **The public site now documents tier 2** — `docs/METHODOLOGY.md` §1.1 and the matching
+   `methodology.html` block, inside section 01 where the ±$2 gate is defined, because the
+   point of the section is the line the evidence does NOT cross. Checked in Chromium at
+   1280/390 in both themes; no chart or token touched, so no design contract is in play.
+   ⚠ Also fixed there: `README.md` and both methodology files had printed **"1,582 tests"**
+   since ~session 22. Now "over 1,600" — a claim that stays true as it ages, which is the
+   same fix the commit-count warning at the top of this file needed three times.
+
 ---
 
 ## EXACT NEXT ACTION

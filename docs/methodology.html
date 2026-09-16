@@ -241,6 +241,52 @@ pre b{color:var(--ink);font-weight:700}
         </table>
       </div>
     </div>
+
+    <h3>A second tier of evidence, and the line it does not cross</h3>
+    <p>That number is PG&amp;E. On SDG&amp;E the engine has <strong>never reproduced a real
+    bill</strong>, because no household has yet supplied one &mdash; a gap no amount of code
+    closes, restated in &sect;05.</p>
+
+    <p>There is a weaker class of public evidence. Every California utility publishes a
+    rate-change notice when rates move, and SDG&amp;E's names a schedule:
+    <span class="m">400 kWh</span> per month on schedule <span class="m">TOU-DR1</span>, split
+    bundled against unbundled and CARE against standard. Three were filed in 2026, for three
+    different rate vintages. Priced through the same <span class="m">compute_bill</span> the
+    reconciliation uses, the committed TOU-DR1 <strong>delivery</strong> specs agree with all
+    three: energy rate, Base Services Charge, baseline allowance, baseline credit. It is the
+    only outside evidence of any kind that touches TOU-DR1 &mdash; the schedule most
+    SDG&amp;E households are actually on.</p>
+
+    <p><strong>The sharpest version of that test assumes nothing about load.</strong> Each
+    alert publishes the figure it replaces alongside the one it introduces, so the
+    <em>change</em> is published too. Differencing two vintages cancels everything the document
+    leaves unstated, and the engine's change tracks the published change across every climate
+    zone to within a few cents. A <span class="m">0.3%</span> error in the delivery energy rate
+    breaks it.</p>
+
+    <p>What it is not, stated as plainly as what it is:</p>
+    <ul>
+      <li><strong>It is not reconciliation, and none of it counts toward the
+      <span class="m">&plusmn;$2</span> figure above.</strong> No meter, no billing period, no
+      interval data. A published illustration is an average over an undisclosed population,
+      not a bill that was issued to somebody.</li>
+      <li><strong>The document leaves two parameters unstated</strong> &mdash; how the
+      <span class="m">400 kWh</span> spreads across time-of-use periods, and which baseline
+      climate zone applies &mdash; so both are bounded rather than guessed. An earlier version
+      of this work inferred the climate zone from one quarter's arithmetic; checked against the
+      other two, the inference did not hold, and the test was replaced rather than retuned.</li>
+      <li><strong>The generation layer is still untested by anything</strong>, and on TOU-DR1
+      that is where 100% of the time-of-use price signal lives (&sect;04). Every load-shifting
+      and battery conclusion on this schedule rests on numbers no outside document has
+      checked.</li>
+      <li><strong>PG&amp;E's equivalent notices cannot be used at all.</strong> They quote an
+      average residential bill across every schedule, territory and load shape, which no single
+      tariff spec can reproduce. Recorded for provenance, asserted against never.</li>
+    </ul>
+
+    <p>These fixtures sit in <span class="m">tests/published_impacts/</span>, deliberately apart
+    from the golden bills, and a test enforces the separation: nothing there may be imported by
+    the engine, so no figure from it can reach anything a visitor reads.</p>
   </div>
 </section>
 
