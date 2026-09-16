@@ -2,6 +2,206 @@
 
 Running log of decisions made and decisions pending. Newest first.
 
+## 2026-09-16 — Session 28 (the ACC re-import: a measured negative, and the expiry nobody had noticed)
+
+### Later in session 28 — the legal pages, two a11y defects, and the M1 route
+
+Three asks from Cameron, after the ACC work.
+
+**"No lawyer, ever" is now a constant, not a pending task.** This is a personal project for
+his own use, so the legal review that sat in HANDOFF as an M5 gate was never going to happen,
+and leaving it there made M5 look blocked on something nobody intended to do. Both pages
+completed to the best of my ability instead:
+- `terms.html` gained the counterparty (it said "the author" throughout and never said who),
+  acceptable use, the third-party services it depends on, **governing law and venue**
+  (California, no arbitration clause and no class-action waiver — stated as a deliberate
+  choice), **severability / waiver / entire agreement**, and an age line.
+- `privacy.html` gained the controller, **CCPA/CPRA** — answered honestly as *those rights
+  have nothing here to attach to*, rather than pretending to a request process that does not
+  exist — **DNT/GPC**, and retention.
+- ⚠ Both pages now say plainly that they were written by the author and not by a lawyer, and
+  both name **"Cameron Gordon"** as counterparty/controller — a name HANDOFF still flags as
+  *inferred* from the README copyright line. If it is wrong it is now wrong in three places.
+
+**Both remaining accessibility defects closed, and the fix is not the obvious one.**
+`#status` is toggled with `hidden`, and a live region that is outside the accessibility tree
+when its text is written announces **nothing** — so making `#status` the live region would
+have looked right and done nothing. Announcements go through a new `#announcer`: a `.vh`
+`role="status" aria-live="polite"` paragraph, always present, never hidden, empty on load.
+`status()` writes HTML (entities, a spinner span), so it announces `plainText(msg)`.
+Revealing `#results` now announces **and** moves focus into it (`tabindex="-1"`). Four new
+assertions in `tools/test_tool_render.mjs`, mutation-checked: deleting either the announce or
+the focus call fails it. `.vh` moved from `methodology.html` into `site.css`, since two pages
+now use it.
+
+### ⭐ The site gives recommendations now — and the reason it never did was wrong
+
+Cameron: *"why doesn't the site give any recommendations even in the example test case?
+That's supposed to be the whole point of this repo."* He is right, and the stated reason did
+not survive being checked.
+
+**The reason on record was invariant 1.** `scripts/build_web_engine.py` excluded the tariff
+engine because "the browser tool produces no dollar figures"; `docs/index.html` had a panel
+titled *"why are there no dollar amounts?"* answering with the ±$2 gate. **But that gate is
+met for PG&E — 11 of 11, worst +$0.22.** Refusing to price a reconciled utility was stricter
+than the invariant requires, and nobody had re-examined it since the gate was met.
+
+⭐ **The real limitation was never on the page, and it is in the spec files.**
+`pge_etou_c_delivery_2026-03-01.yaml` carries `baseline: {territory: T}` with the
+all-electric allowance; the PCIA adder is one vintage (2018) *derived from one household's
+statements*; every CCA candidate is 3CE; the UUT adjustment is fitted to Santa Cruz bills.
+**These are one household's specs.** Running them against a stranger's PG&E file produces a
+confident number that is wrong for anyone in another territory — which is worse than no
+number.
+
+**So the tool now answers, and refuses, for stated reasons** (`src/report/recommend.py`):
+
+- The **scope is read out of the spec files**, not declared — `authored_scope()` parses
+  `baseline.territory`, the PCIA vintages and the supplier list, so authoring a spec widens
+  the tool's reach with no code change. Pinned by a test that copies the specs dir, adds a
+  territory and watches the scope widen.
+- Refusals are **codes plus consequences**: `UTILITY_NOT_RECONCILED`,
+  `TERRITORY_NOT_AUTHORED`, `HEAT_SOURCE_NOT_AUTHORED`, `SUPPLIER_NOT_AUTHORED`. Each says
+  what would be wrong, not "unsupported".
+- `RECONCILED_UTILITIES` is **tied to the golden-bill corpus by test**: a utility may be
+  listed only with ≥3 committed fixtures, so turning dollars on for San Diego by editing one
+  word fails by name.
+- The verdict **can say "Stay where you are"** — asserted, because a recommender that cannot
+  is a sales funnel (invariant 2).
+
+⚠ **A schema gap surfaced rather than papered over:** the baseline block records the
+territory as data but the **heat source only as a YAML comment**, so nothing loadable can
+gate on it. `authored_scope` reads the raw text and the test pins today's value.
+
+**The browser now runs the whole pricing stack.** `docs/engine.js` grew from 60 KB to 439 KB
+(tariff engine + optimizer + all 51 spec YAMLs); the page loads `pyyaml`. `test_engine_wasm.mjs`
+now checks **dollar parity**: all six plan totals, the verdict sentence and the
+component-level explanation are identical to native CPython, and the gate is exercised
+inside the browser (SDG&E refused, PG&E not).
+
+**Two bundle tests were reversed deliberately.** `test_the_bundle_ships_no_pricing_code`
+became `test_the_pricing_code_ships_only_together_with_its_gate` — the engine may not reach
+the browser without `report/recommend.py`. And the hand-written forbidden-import list became
+`test_every_third_party_import_in_the_bundle_is_a_package_the_page_loads`, which parses the
+bundle's imports with `ast` and checks them against the page's own `loadPackage` call. (The
+first version grepped source lines and reported three docstring sentences as imports.)
+
+**The worked example is now the real household.** It was an invented profile with no dollars,
+which made the tool look like a chart viewer. It is the author's own PG&E account — already
+published in full on the methodology page — generated into `docs/case-study.json` by
+`scripts/build_case_study.py`. Its verdict: **leave 3CE, $177.71/yr**, the same finding
+M4 published. The banner attributes it instead of disowning it, and the render test's
+assertion changed with the guarantee.
+
+⚠ **That artifact is generated from gitignored data, so CI cannot rebuild it** — the repo's
+classic stale-cache hazard. Two hooks: it records the engine bundle's digest and a test fails
+when the bundle moves without it being regenerated (this fired once during the session,
+correctly), and its numbers are checked for internal consistency and for carrying no
+identifying field.
+
+### ⭐ M1 without dad: the public bill corpus is measured shut, and the real ask is smaller
+
+Full working: `notes/m1_without_dad_2026-09.md`.
+
+The obvious route — `ookla-ariel-ride/SDGE-Analysis`'s 26 itemised statements, which publish
+per-TOU-period kWh **and** printed $/kWh, exactly what `RECRUITING.md`'s "Ask 1" says is
+enough — **does not reconcile, and cannot.** Four decompositions over the seven 2026
+statements leave residuals swinging −$67 to +$63; the generation side agrees to $0.32 on one
+statement and is $59.27 out on another. Sign-swinging residuals rule out a missing line item.
+
+**The cause, from the corpus's own files:** the household is NEM-2 with solar, and its
+statements print *"Payment Required This Month: No"* — they are **true-up accruals, not
+payable bills**. Their author reports the same gap in `rate_rebilling_residuals.csv`
+(`cca_generation_gap_usd`, $0.32 → $59.27). Reconciling them would mean modelling NEM-2 credit
+carryforward, which this engine does not do and which M1 is not about.
+
+Cross-check that the failure is theirs and not ours: **our per-period energy dollars reproduce
+their `printed_tou_energy_usd` exactly on every 2026 statement.** The rates and the bucketing
+are right; the statement total is a different quantity.
+
+**What M1 actually needs is therefore smaller than "dad's data":** one **ordinary, non-solar**
+SDG&E statement, whose total is payable. Not an export, not a year of 15-minute data, not the
+M5 recruiting apparatus — one redacted bill from one person. Only the *interval* half (parser,
+interval→TOU bucketing) needs an export from that same household.
+
+**Open decision for Cameron (A/B/C in the note):** M1's DoD names dad specifically, so it is
+now unreachable as written. A = same DoD, any household. B = split into M1a (charge layer,
+bills only) and M1b (interval layer, export + its own bill). C = retire it as unreachable.
+**Recommended B**, because the two halves fail independently and B makes the bill-only harness
+— the thing that will consume the first real bill — worth building now. Invariant 1 is
+unchanged under all three.
+
+
+**1,694 tests green (+5 over session 27), ruff clean, 11/11 PG&E golden bills unchanged, node
+render checks pass.** No milestone moved; `data/` is still PG&E-only. Full working detail and
+the re-run commands: `notes/acc_reimport_2026-09.md`.
+
+### The brief, and what it actually returned
+
+HANDOFF next-action #4 asked for a re-import of both utilities' ACC tables, because the CPUC
+adopted the 2026 ACC update on 2026-09-03 (D.26-09-007) and that is the input the repo's only
+PG&E-lock-in-has-value claim was waiting on. Two outcomes were anticipated: the floating table
+moved (several ⭐ findings need restating) or it didn't (the finding gets stronger with a date).
+
+**It didn't move, and the evidence is byte-level rather than eyeballed.** All eight committed
+tables' sources were re-fetched and hashed: SDG&E's three CSVs and PG&E's 36 MB zip (plus each
+of its five member CSVs individually) are **identical to the recorded `source_sha256`**. The
+importer was then re-run against four of them into a temp directory and the rebuilt `.csv.gz`
+files are **byte-identical to the committed ones** — which a hash comparison alone would not
+have shown, since it also clears the importer and its pandas.
+
+Thirteen days after the adoption, neither utility has republished. SDG&E's NBT00 file is dated
+2025-12-23; PG&E's entire bundle is still the 2024-12-18 build, which is also why PG&E has no
+2027 vintage — it would have needed a December 2025 refresh that never came.
+
+### ⭐ THE FINDING — the floating table has a publisher-stated expiry, and both utilities' end the same day
+
+The brief framed the lock-in-is-empty finding as open-ended ("insurance against the table
+moving at *some* future adoption"). It is not. Both readmes bound how much of the floating
+(NBT00) table is **effective** rather than illustrative:
+
+- **SDG&E**: "only those rates for Pacific Standard Time **for the current year** are actual
+  effective rates" — horizon starts 2026 → effective through **2026-12-31**.
+- **PG&E**: "only those rates for Pacific Standard Time **calendar year 2025 and 2026** are
+  actual effective rates" — horizon starts 2025 → effective through **2026-12-31**.
+
+Every "the lock-in is worth $0" statement in this repo — SDG&E's NBT25/NBT26/NBT00 identity,
+PG&E's NBT26 ≡ NBT00 — is a claim about the *currently published* floating table. The vintage
+tables are frozen by the lock-in; **the floating one is not**, and when it moves those findings
+change without a single file in this repo changing. Nothing here would have noticed.
+
+So the dollar answer to "install this year or next?" today is: **the 2026 lock-in is worth
+exactly $0 observable on both utilities, and the first date that can change is the republish
+due before 2027-01-01**, which will carry D.26-09-007. That is a dated answer, not a
+hypothetical — and it is the answer an installer's "lock in before rates drop" cannot give.
+
+`test_the_floating_table_has_not_outlived_its_own_effective_window` fails on 2027-01-01 if the
+tables have not been re-imported by then. The window is **derived from each table's own
+horizon**, not written as a year, so a re-import moves it without anyone editing a constant;
+the per-utility count of effective years is the only hand-held number and it is quoted from the
+readme. Mutation-checked: shortening either utility's window by one year trips it.
+
+### `retrieved` could not tell old from stale, so `verified` now does
+
+Each ACC manifest gains `verified:` — dates on which the publisher was confirmed to still serve
+the same bytes. `retrieved:` says when the file was fetched and says nothing about whether it
+is current, so "imported 2026-07-23" and "confirmed unchanged 2026-09-16" were
+indistinguishable, and the second is the one that answers the question actually being asked.
+
+`carry_forward_verifications()` lives in `src/nem3/acc.py` rather than in the script, so it is
+importable and tested, and it keeps prior dates **only while the source sha256 is unchanged** —
+a reissued file starts a fresh list instead of inheriting a history about different bytes.
+That invalidation rule is the tested half: it is the same failure mode as the commit count this
+file has warned about three times, a cached value outliving what it described.
+
+### The public page now dates its own claim
+
+`docs/METHODOLOGY.md` finding 01 and the matching `methodology.html` block said the lock-in is
+"currently" worth nothing, with no date and no expiry, on a page whose credibility is that a
+reader can check it. Both now carry the re-fetch date, the adoption that has not yet landed,
+and the 2026-12-31 expiry. Prose only — no token, chart or DOM contract touched; the node
+render checks still pass.
+
 ## 2026-09-16 — Session 27 (five pieces: phase B, privacy, the climate credit, the 2027 ACC, TOU-DR-P)
 
 **1,689 tests green (+38 over session 26), ruff clean, 11/11 PG&E golden bills unchanged.**

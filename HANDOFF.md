@@ -8,11 +8,13 @@ how to run, open decisions, exact next action._
 **M0, M2 and M4 are done. M1 and M3 have complete, tested engines whose DoDs are blocked on
 data that does not exist yet. Do not fabricate a load or a bill to "finish" either.**
 
-**1,651 tests green · ruff clean · 11/11 PG&E golden bills within ±$2 (worst +$0.22) ·
-both CI jobs green as of session 24.**
+**Over 1,600 tests green · ruff clean · 11/11 PG&E golden bills within ±$2 (worst +$0.22) ·
+both CI jobs green.** ⚠ **Do not copy a test count forward either** — same failure as the
+commit count below. Measure it: `PYTHONPATH=src python -m pytest -q`. It was 1,694 at the end
+of session 28 (2026-09-16); the sentence above is the part that stays true as it ages.
 
-> The working tree is **not** clean: session 25's tier-2 work (fixture, README, test) and the
-> CLI-PLAN phase-B notes are uncommitted. `git status` is the authority, not this line.
+> **`git status` is the authority on the working tree, not this line** — which is exactly why
+> it no longer states one. Earlier sessions' claims about what was uncommitted are spent.
 
 > **⚠ Do not read a commit count here.** Measure it: `git fetch -q origin && git rev-list
 > --count origin/main..main`. Every session that copied a number forward published a wrong one
@@ -25,7 +27,7 @@ both CI jobs green as of session 24.**
 | Milestone | State | What is missing |
 |---|---|---|
 | M0 — PG&E reconciliation | **Done** | — |
-| M1 — SDG&E + CCA overlay | **Engine complete, DoD blocked** | one real SDG&E export + 3 bills |
+| M1 — SDG&E + CCA overlay | **Engine complete, DoD split + blocked** | M1a: 3 ordinary SDG&E bills. M1b: one household's export + its own bill |
 | M2 — Rate optimizer | **Done for PG&E** | the SDG&E household; utility cross-check unavailable |
 | M3 — NEM 3.0 solar + battery | **Engine complete, DoD blocked** | one real household with export data |
 | M4 — Public methodology | **Done, live** | — |
@@ -66,6 +68,17 @@ corpus is now six real exports across two repos (up from one), plus one MIT-lice
 26 itemised SDG&E bills — but **the exports and the bills belong to different households**, so
 nothing public can reconcile a dollar. The search is done; do not re-run it. What it bought is
 a much harder-tested parser, not a milestone. See `notes/sdge_public_exports_2026-09.md`.
+
+⭐ **Session 28 closed the last hope in that corpus, by measurement.** The 26 bills publish
+per-TOU-period kWh *and* printed $/kWh, which is exactly what `RECRUITING.md`'s Ask 1 says is
+enough to test the charge layer with no interval data — so it was tried. Four decompositions
+leave residuals swinging **−$67 to +$63** across the seven 2026 statements. **The household is
+NEM-2 with solar and its statements print "Payment Required This Month: No": they are true-up
+accruals, not payable bills.** The corpus's own author reports the same gap. Our per-period
+energy dollars reproduce their `printed_tou_energy_usd` *exactly*, so the failure is in what
+the statement total means, not in our rates. **Do not re-open this route**; full working in
+`notes/m1_without_dad_2026-09.md`, which also carries the M1 DoD question (A/B/C) that this
+leaves open for Cameron.
 
 ---
 
@@ -193,6 +206,64 @@ nothing in the ±$2 claim, and next-action #2 still wants a bill.**
 
 ---
 
+---
+
+## ⚠ SESSION 28 UPDATE (2026-09-16) — the ACC re-import: measured, nothing moved, expiry found
+
+**No milestone moved. `data/` is still PG&E-only.** Next-action #4 below is rewritten with the
+result; `notes/acc_reimport_2026-09.md` holds the evidence and the re-run commands. Short
+version:
+
+1. **Both utilities' ACC sources are byte-identical to what is committed**, verified by sha256
+   after the CPUC's 2026 ACC adoption (D.26-09-007, 2026-09-03), and a real re-import
+   reproduces the committed tables byte-for-byte. The adoption has not reached either
+   utility's published export pricing. Both ACC test files green.
+
+2. ⭐ **The floating (NBT00) table has a publisher-stated expiry — 2026-12-31, for both
+   utilities.** Every "the lock-in is worth $0" finding is a claim about the currently
+   published floating table, which is not frozen the way the vintage tables are. That is now a
+   test that fails on 2027-01-01 rather than a fact nothing would have noticed going stale.
+
+3. **`verified:` in the ACC manifests** separates "old" from "stale" — the date the publisher
+   was confirmed to still serve these bytes, kept only while the source sha256 is unchanged.
+
+4. **Finding 01 on the public site now carries its own date and expiry** (`docs/METHODOLOGY.md`
+   and `methodology.html`). Prose only; no design or DOM contract touched.
+
+5. **The legal pages are finished and will never be lawyer-reviewed** — Cameron's standing
+   decision. Terms gained the counterparty, acceptable use, third-party services, governing
+   law and venue, severability/waiver/entire-agreement and an age line; privacy gained the
+   controller, CCPA/CPRA, DNT/GPC and retention. Both say plainly they were not written by a
+   lawyer. **This is no longer an M5 gate.**
+
+6. **Both open accessibility defects are closed.** A new always-present `#announcer` live
+   region (`#status` could never be one — it is toggled with `hidden`), and focus now moves
+   into `#results` when it is revealed. Four new assertions in the render test,
+   mutation-checked. `.vh` moved into `site.css`.
+
+7. ⭐ **The public-bill route to M1 is measured shut, and the remaining ask is one ordinary
+   non-solar SDG&E statement** — see the binding-constraint section above, next-action #1, and
+   `notes/m1_without_dad_2026-09.md`. M1's DoD is now **split into M1a/M1b** (Cameron's
+   decision); see ROADMAP.
+
+8. ⭐ **THE SITE PRICES NOW.** `src/report/recommend.py` ranks plans for households the specs
+   can be shown to describe and refuses by name for the rest. The old answer — "no dollars,
+   invariant 1" — was wrong: the gate is met for PG&E. The real limit is that **the PG&E specs
+   describe one household** (territory T, all-electric, 3CE, PCIA 2018). That is now a derived
+   scope, four named blocker codes, and a `RECONCILED_UTILITIES` constant tied by test to the
+   golden-bill corpus. The browser runs the whole pricing stack and `test_engine_wasm.mjs`
+   checks **dollar parity with CPython to the cent**. ROADMAP's "web UI = Later" is formally
+   overridden there. Full detail in SESSION_NOTES.
+   - ⚠ **`docs/case-study.json` is generated from gitignored `data/`** by
+     `scripts/build_case_study.py`. CI cannot rebuild it. It carries the engine digest and
+     `tests/report/test_case_study.py` fails when the bundle moves without it — **regenerate
+     it whenever `docs/engine.js` changes**, or the site publishes numbers its own engine no
+     longer produces.
+
+9. **Not done, and next:** the visual half of the site overhaul (all four pages, the
+   design-system skill rewrite, a recomputed contrast matrix) and the **M1a bill-only
+   harness**. Neither is started.
+
 ## EXACT NEXT ACTION
 
 **0. Check for dad's SDG&E data first, every session.** `ls -lt data/` — look for anything
@@ -231,9 +302,17 @@ has landed it outranks everything below.
     missing. See session 24 in SESSION_NOTES.md.
   - **If he is CARE *and* on a CCA**, check open decision 9 first, before anything else.
 
-**1. Recruit one SDG&E validation user.** The unblock that does not depend on dad. Ask for a
-13-month interval export plus three itemised bills; be explicit that they are validating an
-engine, not buying a verdict. See the M5 warning for why this ordering is not optional.
+**1. Get ONE ordinary SDG&E bill. Not a validation user — a bill.** ⭐ **Session 28 made this
+ask much smaller than it used to be.** The public 26-bill corpus was measured shut as an M1
+route (see below and `notes/m1_without_dad_2026-09.md`), and what that leaves is not "recruit
+a validation user" but **one redacted statement from one ordinary — i.e. non-solar, non-NEM —
+SDG&E household**, whose total is a payable amount a tariff can reproduce. No export, no year
+of 15-minute data, no privacy conversation. A friend, a colleague, one post.
+  - **Only the interval half needs more.** The parser and the interval→TOU-bucket step still
+    want an export from the *same* household; that is the part that genuinely needs a willing
+    participant, and it is M1b under the DoD split proposed in the note.
+  - The fuller Ask 1 / Ask 2 framing is still in `RECRUITING.md` and still correct; this is
+    the cheapest end of it, separated out because it is now the whole critical path.
 
 **2. Get an SDG&E bill in front of the TOU-DR1 specs.** Session 23 audited the one piece of
 outside evidence and it came back clean — but for the wrong schedule. 26 itemised bills in
@@ -277,27 +356,44 @@ different answers. Surface it as a decision. Note this is gated behind the SDG&E
 set anyway — `ALL_PGE_CANDIDATES` is still the only one — which is itself gated on a real
 household. See open decision 2.
 
-**4. The 2027 ACC vintage — re-checked 2026-09-16, still unpublished, and it is now a TEST.**
-2027 is the last application year that earns a nine-year lock-in, so it is the last vintage
-the "when to install" question can ever turn on. `Vintage(application_year=2027, ...)` raises
-`MissingAccTableError`, which is the correct behaviour, not a bug.
-  - **The re-check is no longer a chore anyone has to remember.**
-    `test_the_2027_vintage_still_has_no_published_table` asserts the raise for both utilities.
-    **When it fails, that is the signal to act** — import with `scripts/build_acc_tables.py` —
-    not to delete the test.
-  - SDG&E's export-pricing page offers **2023, 2024, 2025, 2026 only** (checked directly
-    2026-09-16). PG&E's `eecvalues` page is too large to fetch in one request; its zip was
-    built 2024-12-18 at last inspection.
-  - ⭐ **NEW AND MATERIAL: the CPUC adopted the 2026 ACC update on 2026-09-03, in
-    D.26-09-007** — thirteen days before this check. That is the input a 2027 vintage is
-    built from, so publication is likelier now than at any previous re-check. **It also puts
-    a date on the one claim that gives a PG&E lock-in value today.** The repo's finding is
-    that NBT26 ≡ NBT00, i.e. locking the 2026 vintage buys exactly the floating table, so the
-    lock-in's worth is *insurance against the floating table moving at the next ACC
-    adoption*. That adoption has now happened. **Re-import both utilities' current/NBT00
-    tables and re-run `test_sdge_vintages_are_one_table_wearing_three_labels` and
-    `tests/nem3/test_acc_pge.py`: if the floating table moved, the vintage question stops
-    being hypothetical and several ⭐ findings need restating.**
+**4. The ACC tables — RE-IMPORTED 2026-09-16. Nothing moved; the next move now has a date.**
+Full detail and the re-run commands: `notes/acc_reimport_2026-09.md`.
+  - **The measurement.** All eight committed tables' sources were re-fetched and hashed after
+    the CPUC's 2026 ACC adoption (2026-09-03, D.26-09-007): SDG&E's three CSVs and PG&E's
+    36 MB zip, including each of its five member CSVs, are **byte-identical** to the recorded
+    `source_sha256`. The importer was re-run on four of them and the rebuilt tables are
+    byte-identical to the committed `.csv.gz`, which clears the importer too. Both ACC test
+    files are green. **Do not re-download before 2027-01-01 unless something else prompts it.**
+  - ⭐ **What the check found instead: the floating (NBT00) table has a publisher-stated
+    expiry, and both utilities' end on the same day — 2026-12-31.** SDG&E's readme makes its
+    current-year file effective for the current year only; PG&E's makes its floating file
+    effective for calendar 2025 and 2026. Every "the lock-in is worth $0" finding here is a
+    claim about the *currently published* floating table — the vintage tables are frozen, the
+    floating one is not — so those findings can change with a republish that touches no file
+    in this repo. **Nothing would have noticed; now
+    `test_the_floating_table_has_not_outlived_its_own_effective_window` fails on 2027-01-01**
+    if the tables have not been re-imported. The window is derived from each table's own
+    horizon, so a re-import moves it without editing a constant.
+  - **The product answer available today, with a date on it:** the 2026 vintage lock-in is
+    worth exactly **$0 observable on both utilities**, and the first date that can change is
+    the republish due before 2027-01-01, which will carry D.26-09-007's ACC. **When the
+    re-import happens, the two tests that say whether the vintage question has become real are
+    `test_sdge_vintages_are_one_table_wearing_three_labels` and
+    `test_pge_vintages_that_collapse_into_one_table[2026-current]`. If either fails, restate
+    the ⭐ findings — in this file, `test_acc_pge.py`'s module docstring, and finding 01 of
+    `docs/METHODOLOGY.md` + `methodology.html` — rather than patching them.**
+  - **The 2027 vintage is still unpublished, and still a test.** SDG&E's page offers 2023-2026
+    only; PG&E's zip holds five vintages and no 2027 — and that zip is still the 2024-12-18
+    build, which is *why*: a 2027 vintage needed a December 2025 refresh that never came.
+    2027 is the last application year that earns a nine-year lock-in, so it is the last vintage
+    the "when to install" question can ever turn on. `Vintage(application_year=2027, ...)`
+    raising `MissingAccTableError` is correct behaviour, not a bug, and
+    `test_the_2027_vintage_still_has_no_published_table` asserts it for both utilities.
+    **When it fails, that is the signal to import** — not to delete the test.
+  - **Manifests now separate "old" from "stale".** `retrieved:` is when the bytes were fetched;
+    the new `verified:` list is when the publisher was confirmed to still serve them.
+    `carry_forward_verifications()` (in `src/nem3/acc.py`, so it is tested) keeps prior dates
+    only while the source sha256 is unchanged.
 
 > **⚠ READ BEFORE STARTING M5 — M1 and M5 are coupled.** M5 targets San Diego (SDG&E) users,
 > and **the engine has never reproduced a single real SDG&E bill.** (The *parser* has now met
@@ -536,9 +632,19 @@ baseline rose while delivery *fell* — a summer-peaked load feels the generatio
 - ⚠ `docs/index.html` carries a full `<!doctype html>` wrapper for Pages. Republishing it **as
   an Artifact** requires stripping doctype/html/head/body first. Pages is canonical.
 - ⚠ The `LICENSE`/README copyright line reads "Cameron Gordon" — inferred; correct if wrong.
-- ⚠ **`privacy.html` and `terms.html` are plain-language, not lawyer-drafted.** They are
-  accurate about what the site does. Get them reviewed before M5 puts them in front of
-  recruited strangers.
+- **`privacy.html` and `terms.html` are plain-language and will never be lawyer-reviewed.**
+  **Cameron's standing decision (2026-09-16): treat "no lawyer, ever" as a constant, not a
+  pending task.** This is a personal project for his own use, so a legal review was never
+  going to happen and leaving it on the list made M5 look blocked on something nobody
+  intended to do. Both pages were completed to the best of the assistant's ability in session
+  29 — terms gained the counterparty, acceptable use, third-party services, governing law and
+  venue, severability/waiver/entire-agreement and an age line; privacy gained the controller,
+  CCPA/CPRA, DNT/GPC and retention. **What remains true and must stay on the pages: they say
+  plainly that they were written by the author and not by a lawyer.** Keep them accurate as
+  the site changes; that is the whole maintenance obligation now.
+  - ⚠ Both pages now **name "Cameron Gordon" as the counterparty and controller**, following
+    the README copyright line — which the note below still marks as *inferred*. If that name
+    is wrong it is now wrong in three places.
 
 **Two GitHub gotchas, recorded so nobody re-debugs them:**
 1. `pages.yml` has a `paths: ["docs/**"]` filter, and path filters do **not** reliably match
@@ -685,10 +791,20 @@ cell for cell.
 
 ## Blocked on data (not on work)
 
-- **M1 DoD** — dad's last 3 SDG&E bills within ±$2, plus the README SDG&E rows. The single
-  highest-leverage input in the project; everything SDG&E-facing sits behind it. **As of
-  session 24 the only remaining step is transcription**: the harness dispatches, threads and
-  gates; nothing in `src/` or `tests/` has to change to price an SDG&E statement.
+- **M1 DoD — SPLIT IN TWO on 2026-09-16 (session 28), at Cameron's decision.** Dad is no
+  longer a source, and a DoD naming one person was unreachable by anyone else. See ROADMAP.
+  - **M1a — charge layer:** three real SDG&E statements' printed dollars within ±$2 **from
+    their own per-TOU-period kWh**, no interval data. Needs bills only — *one ordinary
+    non-solar household*. ⚠ The public 26-bill corpus **cannot** meet this: its statements
+    are NEM-2 true-up accruals, measured in `notes/m1_without_dad_2026-09.md`.
+  - **M1b — interval layer:** one household's export priced end to end against its own bill.
+    The half that tests the parser and the interval→TOU-bucket step.
+  - **What still stands between a bill and a run is transcription** (session 24's finding):
+    the harness dispatches on `utility:`, threads the customer facts and gates on them. What
+    does **not** exist yet is the M1a path — a fixture and harness that take *bucketed kWh*
+    instead of an export. That is the next build, and it is the thing that will consume the
+    first real bill. It can be validated today against the 11 PG&E golden bills, by bucketing
+    their real intervals and checking the bill-only result against the full-interval one.
 - **M3 DoD** — one real household with solar/export interval data.
 - **Full validation of `src/greenbutton/sdge.py`** — session 13 fixed it against one real
   export (60-min, November). A 15-minute file, and any file spanning March, are still unseen.
