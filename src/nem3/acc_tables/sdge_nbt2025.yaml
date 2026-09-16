@@ -6,6 +6,8 @@ citation: 'SDG&E Solar Billing Plan Export Pricing, ''Legacy 2025 Export Pricing
   lock-in. Methodology: PG&E Schedule NBT Cal. P.U.C. Sheet 57352-E; CPUC Resolution
   E-5301 requires 20 years posted, of which only the 9 years from PTO are effective.'
 retrieved: '2026-07-23'
+verified:
+- '2026-09-16'
 source_file: LY2025 NBT Pricing Upload MIDAS.csv
 source_sha256: b97e32157987b7670c9960bb5085ce954500bc71a9bece9c457fc39db82540d1
 years:

@@ -12,6 +12,8 @@ citation: 'PG&E Solar Billing Plan Export Rates, pge.com/eecvalues -> pge.com/as
   Price Sheet 2025.pdf'' from pge.com/energyexportcredit: 574 of 576 cells agree to
   1e-5, the rest being DST-transition weekend cells (see tests/nem3/test_acc_pge.py).'
 retrieved: '2026-09-09'
+verified:
+- '2026-09-16'
 source_file: PG&E NBT EEC Values 2025 Vintage.csv
 source_sha256: 5886394c72b435d899083a5ed86f8f33a3344909057bf395ad607b57559dfb85
 years:

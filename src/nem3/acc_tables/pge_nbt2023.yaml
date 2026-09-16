@@ -15,6 +15,8 @@ citation: 'PG&E Solar Billing Plan Export Rates, pge.com/eecvalues -> pge.com/as
   the RateName column in this file reads NBT2023 and the printed price sheet is titled
   ''2023 Interconnection Application Year'', so the label here follows those.'
 retrieved: '2026-09-09'
+verified:
+- '2026-09-16'
 source_file: PG&E NBT EEC Values 2023 Vintage.csv
 source_sha256: d1d26b9ba0f7e89ed2b494c1b3b0ba49c3a3a23aa705af4d5ef0f90015136a14
 years:

@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import date
 
 import pytest
+import yaml
 
 from greenbutton.models import Utility
 from nem3.acc import (
@@ -14,6 +15,7 @@ from nem3.acc import (
     Vintage,
     acc_plus_table,
     available_vintages,
+    carry_forward_verifications,
     load_acc_table,
     table_stem,
 )
@@ -99,6 +101,96 @@ def test_the_2027_vintage_still_has_no_published_table(utility):
     """
     with pytest.raises(MissingAccTableError):
         load_acc_table(utility, 2027)
+
+
+#: How many calendar years of each utility's **floating** (NBT00) table are *effective*
+#: rather than illustrative, counted from the first year of that table's horizon. Both
+#: numbers are quoted from the "Solar Billing Plan Export Rates Readme.txt" shipped inside
+#: the download the table was imported from:
+#:
+#: * SDG&E — "For NBT00 customers, only those rates for Pacific Standard Time for the
+#:   current year are actual effective rates, and all rates after that are for
+#:   illustrative purposes only." Its horizon starts 2026, so: one year.
+#: * PG&E — "For NBT00 customers, only those rates for Pacific Standard Time calendar year
+#:   2025 and 2026 are actual effective rates, and all rates after that are for
+#:   illustrative purposes only." Its horizon starts 2025, so: two years.
+#:
+#: Counted from the horizon rather than written as a year so that a re-import moves the
+#: window by itself. Edit these counts only if a future readme changes the grant.
+FLOATING_EFFECTIVE_YEARS = {"SDG&E": 1, "PG&E": 2}
+
+
+@pytest.mark.parametrize("utility", sorted(FLOATING_EFFECTIVE_YEARS))
+def test_the_floating_table_has_not_outlived_its_own_effective_window(utility):
+    """⭐ The floating (NBT00) table expires by its own readme, and both utilities' expire
+    on the same date: 2026-12-31.
+
+    This is the gate the repo did not have. Every "the lock-in is worth $0" finding —
+    SDG&E's NBT25/NBT26/NBT00 being one table wearing three labels, PG&E's NBT26 equalling
+    NBT00 cell for cell — is a statement about the *currently published* floating table.
+    The vintage tables are frozen by the lock-in; the floating one is not, and when it
+    moves those findings change without any file in this repo changing.
+
+    Both readmes date that move. SDG&E's current-year file is effective for the current
+    calendar year only, PG&E's for 2025 and 2026, so on **2027-01-01 neither committed
+    table carries an effective rate for the year being priced** and this test fails.
+
+    Re-verified 2026-09-16, after the CPUC adopted the 2026 ACC update on 2026-09-03
+    (D.26-09-007): every one of the eight committed tables' source files is still
+    **byte-identical** to the one it was imported from (SDG&E's three CSVs and PG&E's
+    36 MB zip, sha256 unchanged). The adoption has not yet reached either utility's
+    published export pricing. The republish is due before the window above closes.
+
+    **When this fails, re-download and re-import both utilities** with
+    ``scripts/build_acc_tables.py``, then re-run this file and ``test_acc_pge.py``: if the
+    new floating table differs from NBT26, the nine-year lock-in has an observable dollar
+    value for the first time and several findings need restating.
+    """
+    table = load_acc_table(utility, CURRENT)
+    effective_through = table.years[0] + FLOATING_EFFECTIVE_YEARS[utility] - 1
+    assert date.today().year <= effective_through, (
+        f"{utility}'s floating table (imported {table.retrieved}, horizon from "
+        f"{table.years[0]}) carries effective rates only through {effective_through}; "
+        f"it is now {date.today().year}. Re-download and re-import it — every rate it "
+        "prices for the current year is illustrative, not effective."
+    )
+
+
+def test_a_verification_date_does_not_survive_the_file_it_described(tmp_path):
+    """The invalidation rule for the re-check dates, which is the whole point of them.
+
+    A date saying "the publisher still served these exact bytes" is evidence only about
+    the bytes it was measured against. When the utility reissues the file, the new table
+    starts with one date, not an inherited history — the repo's recurring failure is a
+    cached value that outlives what it described.
+    """
+    manifest = tmp_path / "sdge_nbtcurrent.yaml"
+    manifest.write_text(
+        yaml.safe_dump({"source_sha256": "abc", "verified": ["2026-07-23", "2026-09-16"]})
+    )
+    same = carry_forward_verifications(manifest, "abc", date(2026, 12, 1))
+    assert same == ["2026-07-23", "2026-09-16", "2026-12-01"]
+
+    reissued = carry_forward_verifications(manifest, "def", date(2026, 12, 1))
+    assert reissued == ["2026-12-01"]
+
+    fresh = carry_forward_verifications(tmp_path / "nope.yaml", "abc", date(2026, 12, 1))
+    assert fresh == ["2026-12-01"]
+
+
+@pytest.mark.parametrize("utility", ["SDG&E", "PG&E"])
+def test_every_acc_table_records_when_its_source_was_last_re_checked(utility):
+    """``retrieved`` is when the bytes were fetched; it cannot say whether they are stale.
+
+    Only a re-check can, so the re-check carries its own date in the manifest and the
+    importer keeps it only while the source sha256 is unchanged. Without this, "imported
+    2026-07-23" and "confirmed unchanged 2026-09-16" are indistinguishable, and the second
+    is the one that answers "is this still what the utility publishes?".
+    """
+    for vintage in available_vintages(utility):
+        table = load_acc_table(utility, vintage)
+        assert table.verified, f"{utility} NBT{vintage} records no re-check date"
+        assert max(table.verified) >= table.retrieved
 
 
 def test_locked_vintage_is_a_schedule_not_a_constant(year_index):

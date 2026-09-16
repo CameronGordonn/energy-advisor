@@ -49,6 +49,7 @@ from nem3.acc import (
     DAY_TYPES,
     MONTH_ABBR,
     TABLES_DIR,
+    carry_forward_verifications,
     table_stem,
 )
 
@@ -168,11 +169,13 @@ def build(
     table.to_csv(csv_path, index=False, float_format="%.6f", compression="gzip")
 
     digest = hashlib.sha256(source.read_bytes()).hexdigest()
+    manifest_path = out_dir / f"{stem}.yaml"
     manifest = {
         "utility": utility,
         "vintage": vintage,
         "citation": citation,
         "retrieved": retrieved.isoformat(),
+        "verified": carry_forward_verifications(manifest_path, digest, retrieved),
         "source_file": source.name,
         "source_sha256": digest,
         "years": [int(min(years)), int(max(years))],
@@ -180,7 +183,7 @@ def build(
         "day_types": list(DAY_TYPES),
         "rows": len(table),
     }
-    (out_dir / f"{stem}.yaml").write_text(yaml.safe_dump(manifest, sort_keys=False))
+    manifest_path.write_text(yaml.safe_dump(manifest, sort_keys=False))
     return csv_path
 
 

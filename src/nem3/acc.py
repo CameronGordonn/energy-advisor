@@ -103,6 +103,11 @@ class AccTable(BaseModel):
     vintage: str
     citation: str = Field(min_length=1)
     retrieved: date
+    #: Dates on which the publisher was re-checked and still served the *same bytes* this
+    #: table was built from (source sha256 unchanged). Distinct from ``retrieved``, which
+    #: is when the bytes were fetched and imported: a table can be old and still current,
+    #: and only a re-check can tell the two apart. See ``scripts/build_acc_tables.py``.
+    verified: tuple[date, ...] = ()
     source_file: str
     frame: pd.DataFrame
 
@@ -137,6 +142,27 @@ class AccTable(BaseModel):
         return out
 
 
+def carry_forward_verifications(manifest: Path, digest: str, retrieved: date) -> list[str]:
+    """Re-check dates that still describe *these* bytes, plus today's.
+
+    ``retrieved`` says when the file was fetched; it says nothing about whether the
+    publisher still serves it. A re-check that finds the source byte-identical is
+    evidence with its own date, and it is the only thing that distinguishes "old" from
+    "stale" — so it is recorded next to the data rather than in a session note.
+
+    Prior dates are kept only when the source sha256 is unchanged. If the publisher
+    reissued the file, every earlier verification was about different bytes and is
+    dropped rather than being silently inherited by the new table.
+    """
+    today = retrieved.isoformat()
+    previous: list[str] = []
+    if manifest.exists():
+        old = yaml.safe_load(manifest.read_text()) or {}
+        if old.get("source_sha256") == digest:
+            previous = [str(d) for d in old.get("verified", [])]
+    return sorted({*previous, today})
+
+
 @functools.lru_cache(maxsize=16)
 def load_acc_table(
     utility: str | Utility, vintage: str | int, *, tables_dir: str | Path = TABLES_DIR
@@ -165,6 +191,7 @@ def load_acc_table(
         vintage=str(meta["vintage"]),
         citation=meta["citation"],
         retrieved=date.fromisoformat(str(meta["retrieved"])),
+        verified=tuple(date.fromisoformat(str(d)) for d in meta.get("verified", ())),
         source_file=meta["source_file"],
         frame=frame,
     )
