@@ -2,6 +2,202 @@
 
 Running log of decisions made and decisions pending. Newest first.
 
+## 2026-09-15 — Session 25 stream A (the tier-2 test: one sharp assertion, one deliberately weak one)
+
+Wrote `tests/published_impacts/test_sdge_2026_04_tou_dr1.py` — the test the previous entry
+left unwritten. **1,607 tests green (+25), ruff clean, 11/11 PG&E golden bills unchanged.**
+
+### The delivery half came back exactly, through compute_bill
+
+Priced over the twelve calendar months 2026-04-01 .. 2027-03-31 — every day inside the rate
+vintage, so **no `allow_before_effective`** and no chance of pricing a day on rates that did
+not exist yet. **$123.48 non-CARE and $66.79 CARE at `coastal_basic`, identical to session
+25's hand arithmetic**, closed form $123.4793. There was no gap to investigate.
+
+- **Shape independence is now established BY the engine, not asserted from the YAML.** Five
+  allocations of the same 400 kWh/month, from all-on-peak to all-super-off-peak, priced
+  through `compute_bill`: four give $123.48, one $123.47. The 1c spread is per-line cent
+  rounding (three energy lines a month, each ≤ 0.5c off), not shape sensitivity. That is what
+  makes the delivery figure a *point* test and keeps invariant 6 out of it entirely.
+- **The figure identifies the climate zone.** Of the eight territories in the allowance
+  table exactly one lands within ±$0.50 of the published $123, and the same one under CARE.
+  Next nearest is coastal_all_electric at $122.35 / $66.04.
+- **Headroom is 2 cents** ($123.4793 vs the $123.50 that would round to $124). Cent-rounding
+  can move it at most ±$0.015, so it cannot cross — but any future edit to the 4/1/2026
+  delivery spec worth more than ~0.1c/kWh trips this.
+- **The PCIA inference is encoded by name**, `PCIA_EXCLUDED_BY_INFERENCE = Service.BUNDLED`
+  (the CCA line set minus the PCIA), with `test_the_pcia_exclusion_is_load_bearing` asserting
+  no vintage in the table reaches the published figure — nearest is 2009, $6.63 out. If a
+  future edit ever made one match, that fails instead of silently inverting the assumption.
+  Stream B is settling the inference against several quarters.
+
+### ⭐ THE CORRECTION — the first feasibility envelope could fail for the wrong reason
+
+The first draft took the envelope as (all-super-off-peak, all-on-peak), which bakes in "SOP is
+cheapest and on-peak dearest". Mutation testing killed it: **swap the summer on-peak and
+super-off-peak generation rates and the achievable set is completely unchanged** — the same
+three rates are still on offer, just on different hours — yet the test reported *infeasible*,
+i.e. "this spec is provably wrong" about a spec it had no evidence against. A feasibility test
+that fails for the wrong reason is worse than no test, because infeasibility is the only
+strong verdict this tier can issue.
+
+Now the envelope is taken **per month over every period**, so it makes no assumption about
+which period is cheapest when. The ordering fact is worth having, so it became its own
+assertion (`test_the_generation_price_signal_points_the_same_way_in_every_month`) — and that
+is what the swap mutation correctly trips now. Under the fix the swap is feasible-and-not-
+contradicted, which is the true answer.
+
+### The generation half is near-zero information, and now says so in CI
+
+Mutating the committed generation spec, measured not argued:
+
+| mutation | feasibility test |
+|---|---|
+| every rate x 1/10 | **fails** (correctly) |
+| winter super-off-peak x 1/10, one cell | passes — envelope still covers the implied $71 |
+| season map inverted | passes |
+| on-peak ⇄ super-off-peak swapped | passes (correct: achievable set unchanged) |
+
+The envelope is $30.73–$122.31 against a $4 rounding band on the figure under test: it
+**accepts 95.6% of its own width**. Rather than leave that as a README caveat that can be
+dropped in a summary, `test_the_generation_envelope_is_too_wide_to_be_evidence` asserts the
+weakness. Feasibility is still constructive — the witness allocation (44.0% on-peak non-CARE)
+is priced through `compute_bill`, not asserted — and the two layers on that allocation rebuild
+the published bundled $194 to $194.48.
+
+Sanity read the README asks for: a flat profile prices generation at $64.80 against the
+implied $71, so SDG&E's figure implies a load somewhat peakier than flat. Plausible. Nothing
+in the engine assumes it.
+
+### The tier boundary is a test now, not prose
+
+`test_no_src_module_references_this_tier` greps `src/` for `published_impacts`. Session 24's
+lesson applied to the one claim this tier rests on: a boundary asserted only in a README has
+no invalidation. The other half (no figure reaches a user-facing output) follows, since
+nothing can reach the report without `src/` reading it.
+
+### What this does NOT buy — say it exactly this way
+
+Corroboration of the **delivery layer** of **one** SDG&E schedule at **one** vintage. No
+meter, no period, no interval data, so it counts toward nothing in the ±$2 claim and M1's DoD
+is untouched. TOU-DR1 generation — where 100% of the schedule's TOU signal lives — remains
+unvalidated by any bill. **Next-action #2 still wants a bill.**
+
+## 2026-09-15 — Session 25 (a second test tier: utility-published bill impacts)
+
+Cameron pushed back on "no free bill data exists." He was right to. The claim needed splitting.
+
+### What actually does and does not exist
+
+**Real `(bill, interval data)` pairs: still no, and the reason is structural, not legal.**
+The golden-bill gate reproduces a real bill from *that same meter's* intervals for *that same
+period*. Those two halves come from different places — the bill is mailed, the intervals are a
+portal download — so only the customer ever holds both, and no institution's job is to publish
+the pair. Interval data alone is abundant (Pecan Street, the CEC's simulated CSI 15-minute set,
+PG&E's 2010-11 research release of ~180k residential hourly reads); none of it carries the
+issued bill.
+
+**But utility-published bill-impact figures are a real, regular, structured corpus, and the
+earlier session underweighted them.** Every CA IOU publishes a rate-change notice each time
+rates move, with actual dollar bill figures for a stated monthly kWh, split bundled vs
+unbundled and CARE vs non-CARE, with and without the climate credit. These are public, so —
+unlike `tests/golden_bills/` — **the fixtures are committable and run in CI without a privacy
+review.**
+
+### The asymmetry that decides how useful this is
+
+| Source | Schedule named? | Usable? |
+|---|---|---|
+| SDG&E rate alert (Apr 2026, AL 4791-E) | **yes** — "400 kWh/month on schedule TOU-DR1" | yes |
+| PG&E electric rate advisory (Mar 2026) | **no** — "average residential electric bill", across every residential schedule, territory and load shape | **no** |
+
+PG&E's $203.54 at 500 kWh is a *class average*. It is not "500 kWh on E-TOU-C in territory T"
+and is not reproducible from any single spec. Kept for provenance only. So this corpus helps
+exactly where it was most needed — SDG&E, where there is no bill of any kind — and not where
+there are already 11 golden bills.
+
+### Feasibility, not reproduction — the design decision
+
+The published figure never states how the N kWh distributes across TOU periods, and the bill
+depends entirely on that (on TOU-DR1 the on-peak and super-off-peak generation rates differ by
+~11x). So the figure cannot be reproduced. The rigorous form is:
+
+> does there exist a non-negative allocation of N kWh across the schedule's TOU periods,
+> summing to N, that this spec prices at the published figure?
+
+Infeasible => the spec is **provably wrong**. Feasible => not contradicted, plus the implied
+allocation as a sanity read. **This makes no load-shape assumption, which is the whole point** —
+a flat-profile point estimate would assume one, and that is what invariant 6 exists to prevent.
+
+### Tier separation, and the invariant-6 boundary
+
+New tier `tests/published_impacts/`, deliberately not under `golden_bills/`. **Nothing here
+counts toward the ±$2 pass rate or may be cited in a reconciliation claim** — that number is the
+product's trust artifact and these fixtures have no meter, no period and no interval data.
+Recorded so it is a decision rather than drift: invariant 6 bans modeled load profiles from
+*product computations*; a test that builds a degenerate interval series to probe a spec's
+arithmetic is not one. Boundary: nothing in that directory may be imported by `src/`, and no
+figure in it may reach a user-facing output.
+
+### Rounding is a real constraint, not a footnote
+
+SDG&E prints to the whole dollar; PG&E prints to the cent. So SDG&E's derived quantities
+(generation = bundled - unbundled = $71 non-CARE) inherit ±$1 from *each* operand — ±$2 on the
+difference, ±0.005 $/kWh on the implied blended rate. A test asserting on the derived figures
+without that band will fail on correct specs.
+
+### Measured before writing any test — the tier is live, and stronger than designed
+
+Hand arithmetic from the committed `sdge_tou_dr1_{delivery,generation}_2026-04-01.yaml`
+against the published Apr 2026 figures. **Both spec files carry exactly the alert's
+effective date.**
+
+**SDG&E TOU-DR1 delivery energy is FLAT across all six season x period keys** (0.34652
+standard). So the unbundled/delivery-only figure needs **no load-shape assumption at all** —
+it is a point value, not an envelope, and invariant 6 is not even in play for that half.
+The only free parameter is baseline territory, and the published figure selects it uniquely:
+
+| territory | computed | |
+|---|---|---|
+| **coastal_basic** | **$123.48** | only one that rounds to the published **$123** |
+| coastal_all_electric | $122.43 | |
+| inland_basic | $120.47 | |
+| the other five | $119.17-$119.20 | |
+
+CARE at coastal_basic: **$66.79** vs published **$67**. So one published figure
+simultaneously confirms the delivery energy rate, the fixed charge, the baseline allowance
+and the baseline credit, to 0.4% on a $123 bill — and identifies the territory.
+
+Generation is the weak half, as designed: envelope $30.73-$122.31 at 400 kWh, implied $71
+sits mid-range. Feasible, not contradicted, low information. Bundled reconstruction
+$123.48 + $71 = **$194.48** vs published **$194**.
+
+### The open question this surfaced — decide before writing the assertion
+
+SDG&E's "unbundled" customer is a CCA customer, and **a CCA customer pays the vintaged
+PCIA**; the delivery spec carries it as an adder with `applies_to: cca`. But the arithmetic
+only matches with PCIA **excluded**:
+
+    no PCIA              $123.48   (published $123)  <-- matches
+    + PCIA vintage 2026  $143.43
+    + PCIA vintage 2009  $129.63
+
+Footnote 3 of the alert says actual bills vary by "PCIA rate which will vary based on when
+you became a CCA customer" — consistent with omitting an indeterminate component from an
+illustration, but it does not say so outright. **This is an inference about what SDG&E's
+number means, not a verified fact**, and it is load-bearing twice over: it is also what
+makes `bundled - unbundled` a clean generation figure rather than generation-minus-PCIA.
+Recorded in the fixture as `pcia_treatment: EXCLUDED_BY_INFERENCE` so a future failure
+points at the assumption rather than at the spec.
+
+### State
+- `tests/published_impacts/README.md` — the tier's claim boundary.
+- `tests/published_impacts/sdge_2026-04_tou_dr1.yaml` — fixture, cited, parses.
+- Sources in `data/sources/` (gitignored): SDG&E Apr 2026 alert, PG&E Mar 2026 advisory,
+  plus the CEA and 3CE rate sheets fetched for the CLI-PLAN extraction work.
+- **Not written: the feasibility test itself.** That is scoring logic and it is Cameron's,
+  per CLI-PLAN rule 1.
+
 ## 2026-09-09 — Session 24 (the harness was PG&E-shaped; HANDOFF said it was ready)
 
 Made the golden-bill reconciliation harness utility-general, so an SDG&E export plus itemised
