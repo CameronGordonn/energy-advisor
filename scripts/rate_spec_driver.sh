@@ -5,20 +5,30 @@
 # Cameron runs this — CLI-PLAN.md rule 2 ("Don't run `claude` — Cameron runs every CLI
 # exercise and pastes output back") is why this script is written, not executed, here.
 #
-# TODO(cameron), in the order they block a real run:
-#   1. JSON_SCHEMA_FILE (below) — phase B's schema. This script refuses to run without it
-#      rather than silently calling `claude` with no schema (CLI-PLAN.md rule 1: schemas
-#      are yours; a driver that guesses one would be inventing the thing rule 1 reserves).
-#   2. The author-rate-spec SKILL.md body — currently a TODO placeholder itself.
-#   3. structured_output -> build/candidates/<name>.yaml. `--json-schema` validates the
-#      extraction OBJECT (CLI-PLAN.md D2-D5's citation/evidence/month_to_season/Rate
-#      shape); turning that object into the repo's spec YAML is schema-shaped work, so it
-#      isn't done here. Until it exists this script SKIPs the validate_spec.sh step rather
-#      than fabricate a YAML to pass it.
-#   4. The calibration diff (parsed pydantic object vs. the committed ground-truth spec,
+# Phase B landed (session 27), so items 1-3 of this header are now DONE:
+#   1. [done] The extraction schema is committed at JSON_SCHEMA_FILE below — next to the
+#      skill, not in gitignored build/, because schema and prompt are one contract.
+#      `tests/tariffs/test_extraction_schema.py` pins that it accepts a committed spec
+#      re-expressed as an extraction and rejects each of CLI-PLAN's D2-D4 gaps.
+#   2. [done] The author-rate-spec SKILL.md body.
+#   3. [done, differently than planned] The skill writes build/candidates/<name>.yaml
+#      itself with Edit — which is what its `allowed-tools: Edit(build/candidates/**)`
+#      was always for — so no structured_output -> YAML converter is needed here. The two
+#      artifacts (candidate YAML, structured object) are produced by one run and MUST
+#      agree; CLI-PLAN already notes `.result` and `.structured_output` are separate
+#      generations, so diffing them is a calibration measurement, not an assumption.
+#
+# STILL OPEN:
+#   4. The D2 span gate. `.structured_output` carries an `evidence.span` per value; nothing
+#      yet asserts the span occurs verbatim in $source and that the emitted number occurs
+#      inside it. That is the one check in this pipeline that does not route through the
+#      model's own judgment, and it is not written. Per D5 it must tokenize numbers out of
+#      the span and compare NUMERICALLY, not by string equality (the committed 3CE spec
+#      holds 0.119 where the sheet prints 0.11900).
+#   5. The calibration diff (parsed pydantic object vs. the committed ground-truth spec,
 #      per CLI-PLAN.md phase C — "diff the parsed object, not file bytes") is scoring
-#      logic (rule 1) and belongs in phase D's scoring loop, not here. What this script
-#      calls a PASS is schema validity only, per its own "Done when" line in CLI-PLAN.md.
+#      logic and belongs in phase D's scoring loop, not here. What this script calls a
+#      PASS is schema validity only, per its own "Done when" line in CLI-PLAN.md.
 #
 # Verified against https://code.claude.com/docs/en/headless.md and
 # https://code.claude.com/docs/en/cli-reference.md (2026-09-15) — see
@@ -31,8 +41,11 @@ CANDIDATES_DIR="$REPO_ROOT/build/candidates"
 SESSION_INDEX="$LOG_DIR/sessions.tsv"
 mkdir -p "$LOG_DIR" "$CANDIDATES_DIR"
 
-# TODO(cameron): phase B's JSON Schema for the extraction object (D2-D5) lands here.
-JSON_SCHEMA_FILE="$REPO_ROOT/build/schema.json"
+# Phase B's JSON Schema for the extraction object (D2-D5). Committed, and deliberately NOT
+# under build/ — build/ is gitignored, and a designed contract that vanishes on a fresh
+# clone is not a contract. It sits beside the skill because the two are one artifact: the
+# schema constrains the shape, the skill body carries the rules a shape cannot express.
+JSON_SCHEMA_FILE="$REPO_ROOT/.claude/skills/author-rate-spec/extraction-schema.json"
 
 MAX_TURNS=8
 
@@ -122,24 +135,22 @@ for input in "${INPUTS[@]}"; do
     echo "$structured" >"$LOG_DIR/${name}.structured_output.json"
     echo "structured_output OK — see ${name}.structured_output.json"
 
-    # TODO(cameron) #3 above: this is where structured_output becomes
-    # $CANDIDATES_DIR/${name}.yaml. Until that conversion exists, SKIP rather than
-    # fabricate one — a driver that invents a spec YAML to make its own gate pass is
-    # exactly the failure mode CLAUDE.md's reconciliation-gated invariant exists to catch.
+    # The skill writes this itself (header item 3). Its absence is now a real FAILURE, not
+    # a SKIP: the skill was told to write exactly this path, so a missing file means the
+    # run did not do its job — most likely an Edit denied by the permission mode, which is
+    # why .permission_denials is checked above this.
     candidate="$CANDIDATES_DIR/${name}.yaml"
-    if [[ -f "$candidate" ]]; then
-      if "$REPO_ROOT/scripts/validate_spec.sh" "$candidate"; then
-        outcome="PASS:schema_valid"
-      else
-        outcome="FAIL:validate_spec"
-      fi
+    if [[ ! -f "$candidate" ]]; then
+      echo "FAIL $name: skill produced no $candidate" >&2
+      outcome="FAIL:no_candidate_yaml"
+    elif "$REPO_ROOT/scripts/validate_spec.sh" "$candidate"; then
+      outcome="PASS:schema_valid"
     else
-      echo "SKIP $name: no $candidate yet (structured_output -> YAML conversion is TODO(cameron) #3)"
-      outcome="SKIP:no_candidate_yaml"
+      outcome="FAIL:validate_spec"
     fi
-    # TODO(cameron) #4 above: once $candidate exists, the calibration diff against the
-    # committed ground-truth spec belongs here (or in phase D's scoring loop) — not
-    # written, per rule 1.
+    # Header item 4: the D2 span gate belongs here — assert each .evidence.span occurs
+    # verbatim in $source and that the emitted numbers occur inside it. Not written.
+    # Header item 5: the calibration diff against committed ground truth is phase D.
   fi
 
   printf '%s\t%s\t%s\n' "$name" "$session_id" "$outcome" >>"$SESSION_INDEX"

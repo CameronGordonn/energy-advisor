@@ -9,6 +9,7 @@ dependencies:
   - matplotlib
   - pydantic
   - pyyaml
+  - jsonschema       # validates the author-rate-spec extraction schema (CLI-PLAN phase B)
   - requests
   - pytest
   - pytest-cov

@@ -27,7 +27,7 @@
 <main class="doc">
 
   <h1>Privacy</h1>
-  <p class="updated">Last updated 8 September 2026</p>
+  <p class="updated">Last updated 16 September 2026</p>
 
   <div class="callout">
     <p><strong>The short version.</strong> There are no accounts, no cookies, no analytics and
@@ -85,9 +85,31 @@
     <li>No cookies, local storage, session storage or fingerprinting.</li>
     <li>No analytics, telemetry, error reporting, advertising or third-party trackers.</li>
     <li>No copy of your usage file, your meter readings, or any figure computed from them.</li>
-    <li>No utility account numbers, addresses or names — the parser deliberately discards
-        identifying fields when it reads the file, so they never reach the analysis at all.</li>
+    <li>No full account number, address or name. See below for exactly what the parser does
+        keep, because &ldquo;discards everything identifying&rdquo; would be too strong a
+        claim to make.</li>
   </ul>
+
+  <h2>What the parser keeps from your file, exactly</h2>
+  <p>A utility export opens with a preamble naming you: your name, service address, account
+  number and meter number. The parser reads that preamble and keeps a deliberately reduced
+  part of it &mdash; not nothing, and it would be easy to overclaim here, so here is the
+  whole list:</p>
+  <ul>
+    <li><strong>The last four digits of the account number</strong>, so that two files can be
+        told apart. The full number is never retained.</li>
+    <li><strong>The five-digit ZIP</strong>, and no other part of the address. California
+        baseline allowances depend on climate zone, so the ZIP is the one piece of location
+        that changes the arithmetic.</li>
+    <li><strong>The service identifier and the name of the file you dropped.</strong></li>
+  </ul>
+  <p>Everything else in that preamble &mdash; your name, your street address, your meter
+  number &mdash; is dropped and never stored. The results object this page builds and draws
+  on screen carries none of the four items above except the filename.</p>
+  <p>All of it stays in the tab either way: none of it is transmitted, because there is
+  nowhere to transmit it to. These lines are in
+  <a href="https://github.com/CameronGordonn/energy-advisor/blob/main/src/greenbutton/_common.py"><code>src/greenbutton/_common.py</code></a>
+  if you would rather read them than take this page's word for it.</p>
 
   <h2>Children</h2>
   <p>This is a tool for utility bill-payers and is not directed at children.</p>

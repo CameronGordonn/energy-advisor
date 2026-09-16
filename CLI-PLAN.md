@@ -7,6 +7,11 @@ Cameron is learning the Claude Code CLI by wiring it into energy-advisor.
 
 1. Don't write the project's algorithmic code. Scaffolding, config, fixtures OK.
    Prompts, schemas and scoring logic are Cameron's.
+   > **⚠ OVERRIDDEN ONCE, 2026-09-16 (session 27), at Cameron's explicit request:** he asked
+   > the assistant to write phase B's JSON schema and the `author-rate-spec` skill body.
+   > Both are now committed. **The rule still stands for everything else** — scoring logic
+   > (phase D) and the D2 span gate are still his. A future session should not read phase B
+   > as licence to write phase D. The override was for two named artifacts, not the rule.
 2. Don't run `claude` — Cameron runs every CLI exercise and pastes output back.
 3. Verify every flag/config key against current docs before stating it. Index:
    `https://code.claude.com/docs/llms.txt`. Never answer from memory.
@@ -27,10 +32,14 @@ loop that says whether it worked.
 
 - [x] **A — finish the CLI surface.** Done except `--bare`, DEFERRED: it needs a Console
       `ANTHROPIC_API_KEY` (bare never reads OAuth). Findings under "Permissions" below.
-- [ ] **B — write the schema + prompt, as a skill.** `.claude/skills/author-rate-spec/`.
-      Moved ahead of the driver script: a skill is the one artifact that works
-      interactively *and* in `-p`, and survives `--bare` via `--add-dir`
-      (custom commands do not). Repo already ships two project skills as precedent.
+- [x] **B — write the schema + prompt, as a skill.** `.claude/skills/author-rate-spec/`:
+      `SKILL.md` (body) + `extraction-schema.json`. Committed beside the skill, **not** in
+      `build/` — that is gitignored, and a contract that vanishes on a fresh clone is not
+      one. `tests/tariffs/test_extraction_schema.py` (14 tests) pins that the schema accepts
+      a committed spec re-expressed as an extraction and rejects each of D2-D4's gaps.
+      **Never run against a model** — rule 2 — so every claim about it is structural.
+      A skill is the one artifact that works interactively *and* in `-p`, and survives
+      `--bare` via `--add-dir` (custom commands do not).
 - [ ] **C — driver script + calibration.** Bash loop over inputs. **Calibrate against
       an already-authored spec** (CEA or 3CE) re-derived from its cited source and
       diffed against the committed file — the only corpus with ground truth. Diff the
@@ -337,6 +346,38 @@ context was system prompt + tool definitions for a loop that made zero tool call
 ## Session log
 
 _Newest first. Append, do not rewrite._
+
+### Session 3 — 2026-09-16
+
+- **Phase B done, at Cameron's request and against rule 1** — see the override note in Rules.
+  `extraction-schema.json` + the `SKILL.md` body. Rule 2 still held: `claude` was never run,
+  so **nothing here is measured against a model.** Every claim below is structural.
+- **The schema lives beside the skill, not in `build/`.** The driver's placeholder pointed at
+  `build/schema.json`, which is gitignored — a designed contract that disappears on a fresh
+  clone. Schema and prompt are one artifact: the schema constrains shape, the body carries
+  the rules a shape cannot express.
+- **D3's shape argument generalised into the schema's design and was then tested.**
+  `month_to_season` makes both season failures unrepresentable; `energy` is keyed period →
+  season with `required: [summer, winter]`, so a dropped winter column is impossible; `anyOf`
+  kills the both-null `Rate`. Each has a test that breaks it deliberately.
+- ⭐ **A test that records what the schema CANNOT do.** `0.45397` in place of `0.55397` — wrong
+  by ten cents a kWh — validates cleanly, because it is an ordinary California rate. Asserted
+  as passing, with the reason, so nobody mistakes the schema for a correctness check. D4
+  argued this; now it fails a build if it stops being true.
+- **A near-miss worth recording: `exclusiveMinimum: 0` on adders would have rejected the
+  repo's own ground truth.** CEA's Rate Relief Credit is `-0.03871`/kWh. D4 flagged zero and
+  negative as legitimate in `non_bypassable.components`; it did not mention adders. Found by
+  building the ground-truth fixture first and validating against it, which is why that test
+  is written before the constraint tests rather than after.
+- **TODO #3 dissolved rather than being built.** The driver was going to convert
+  `structured_output` into candidate YAML. But the skill's frontmatter already granted
+  `Edit(build/candidates/**)` — so the skill writes the YAML itself and returns the structured
+  object, and one run produces both. A missing candidate file is now a FAIL, not a SKIP.
+- **Still open, and it is the one with teeth: the D2 span gate.** Nothing yet asserts that an
+  `evidence.span` occurs verbatim in the source and contains the emitted number. Per D5 it
+  must compare numbers **numerically**, not as strings (`0.119` vs a printed `0.11900`).
+- **The prompt bets on specificity**, per phase A's cost finding (specific = 1 turn/$0.07;
+  vague + schema = 4 turns/$0.39). Unmeasured here — the first real run is the first evidence.
 
 ### Session 2 — 2026-09-15
 - Scaffolded `.claude/skills/author-rate-spec/SKILL.md` — frontmatter only, body is Cameron's.
