@@ -10,6 +10,7 @@ from greenbutton.models import Utility
 from nem3.acc import (
     CURRENT,
     ExportRateSchedule,
+    MissingAccTableError,
     Vintage,
     acc_plus_table,
     available_vintages,
@@ -75,6 +76,29 @@ def test_post_2027_application_has_no_lock_in():
     assert not v.has_lock_in
     assert v.lock_in_through is None
     assert v.table_vintage(2028) == CURRENT
+
+
+@pytest.mark.parametrize("utility", ["SDG&E", "PG&E"])
+def test_the_2027_vintage_still_has_no_published_table(utility):
+    """⭐ The one vintage the "when to install" question can still turn on, and nobody has
+    published it. Asserted so the re-check is not a chore someone has to remember.
+
+    2027 is the LAST application year that earns a nine-year lock-in, so it is the last
+    vintage on which "apply this year or next?" can ever have a dollar answer. Raising is
+    the correct behaviour, not a bug: inventing an avoided-cost forecast is the one thing
+    this repo never does.
+
+    **When this test fails, that is the signal to act**, not to delete it. A utility has
+    published, and the answer to a product question this tool is built to answer has just
+    become computable — import the table with `scripts/build_acc_tables.py`.
+
+    Re-checked 2026-09-16: `sdge.com/solar/solar-billing-plan/export-pricing` offers 2023,
+    2024, 2025 and 2026 only. ⚠ Note the CPUC adopted the 2026 ACC update on 2026-09-03
+    (D.26-09-007), which is the input a 2027 vintage is built from — so this is likelier to
+    change soon than it has been at any previous re-check.
+    """
+    with pytest.raises(MissingAccTableError):
+        load_acc_table(utility, 2027)
 
 
 def test_locked_vintage_is_a_schedule_not_a_constant(year_index):

@@ -1,0 +1,106 @@
+# California Climate Credit — residential ELECTRIC, by utility and program year.
+#
+# NOT a tariff spec, and deliberately not in `specs/` (the loader globs that directory and
+# validates every file as a TariffSpec). This is a cited data table, and nothing in the
+# pricing path reads it yet — see "STATUS" below.
+#
+# ---------------------------------------------------------------------------------------
+# WHAT IT IS. A CPUC-ordered credit funded by the state's cap-and-trade proceeds, applied
+# automatically to residential bills. It is a flat dollar amount per household: it does NOT
+# depend on usage, on rate schedule, on CARE status, or on climate zone.
+#
+# ⭐ THAT MAKES IT RANKING-NEUTRAL. Every candidate schedule in a rate comparison receives
+# the same credit, so it cannot reorder an M2 ranking — the same argument that makes the
+# Santa Cruz UUT Adjustment harmless there (HANDOFF open decision 5). It DOES move an
+# absolute annual figure, by $72-$99 a year, which is not small next to the $170/yr the
+# PG&E case study's whole recommendation turns on.
+#
+# ---------------------------------------------------------------------------------------
+# ⭐ THE 2026 SCHEDULE CHANGE, which is the fact that makes a naive model wrong.
+#
+# The CPUC voted on 2026-04-30 to move the residential ELECTRIC credit into the high-bill
+# summer months. Through 2025 it was paid in APRIL and OCTOBER; from 2026 it is paid in
+# AUGUST and SEPTEMBER. So "semi-annual" is true but useless on its own — the months moved,
+# and a model that assumed April/October would apply 2026's credit to the wrong bills.
+#
+# This also explains something that looked like missing data. Eleven consecutive golden
+# bills span 2025-08-02 .. 2026-06-25 and contain exactly ONE climate credit, on the
+# 10/28/2025 statement. Under a semi-annual model a second should appear in spring 2026.
+# None does, and that is correct: April 2026 had no electric credit because the schedule
+# had moved, and the August/September 2026 credits fall AFTER the last bill in the corpus.
+# The data was consistent all along; the note describing it was not.
+#
+# ---------------------------------------------------------------------------------------
+# ⭐ TWO INDEPENDENT CROSS-CHECKS, both of which hold. Pinned by
+# `tests/tariffs/test_climate_credit.py`.
+#
+#   1. PG&E 2025 electric, $58.23, matches the observed line on the real 10/28/2025
+#      statement (`tests/golden_bills/pge_10-28-2025.yaml`) to the cent. A published
+#      program figure and a real bill, from different places, agreeing exactly.
+#   2. SDG&E 2026 electric, 2 x $49.36 = $98.72/yr, is $8.23 per average month. SDG&E's
+#      own rate-change alerts imply $8/month — published as (bundled excluding credit)
+#      minus (bundled including credit), $194 - $186, in all three 2026 quarters. Those
+#      alerts never name the amount; they only ever say "semi-annual". So this is outside
+#      corroboration of a figure the tier-2 corpus could previously only derive.
+#
+# ---------------------------------------------------------------------------------------
+# STATUS: DATA ONLY, NOT WIRED INTO `compute_bill`.
+#
+# The golden-bill harness takes the credit as an OBSERVED adjustment, echoed back, so it
+# contributes exactly $0 to the +/-$2 residual — i.e. the reconciliation does not currently
+# test it at all. Modeling it would change that, and would require a rule this table does
+# not have evidence for: WHICH statement receives a credit "applied in October". The one
+# data point available (the 10/28/2025 statement, covering 09-25..10-26) is consistent with
+# "the billing period whose END date falls in that month", but one observation cannot
+# distinguish that from several other rules. Deciding it is a modeling decision with a
+# real dollar consequence, so it is surfaced rather than picked. Do not wire this in
+# without settling the application rule against more than one credited bill.
+# ---------------------------------------------------------------------------------------
+
+citation: >-
+  California Public Utilities Commission, "California Climate Credit"
+  (cpuc.ca.gov/ClimateCredit/), retrieved 2026-09-16, which publishes the per-utility
+  residential electric amounts and the August/September 2026 distribution months.
+  Corroborated per utility by PG&E "California Climate Credit"
+  (pge.com/en/account/billing-and-assistance/understand-your-bill/california-climate-credit.html)
+  and SDG&E (sdge.com/climatecredit), both retrieved 2026-09-16, which state the same
+  months and the same shift away from the former April/October schedule. The CPUC decision
+  moving residential electric credits into the high-bill months was voted 2026-04-30.
+
+schedule_change:
+  effective_year: 2026
+  months_through_2025: [4, 10]
+  months_from_2026: [8, 9]
+  note: >-
+    Residential ELECTRIC only. The residential NATURAL GAS credit is on its own schedule —
+    paid in April 2026, moving to February from 2027 — and is out of scope for this repo,
+    which models electricity.
+
+# Per-payment amount in dollars, and the months each payment lands in. Annual total is
+# amount x len(months).
+electric:
+  PG&E:
+    2025: {amount: 58.23, months: [10]}     # the April 2025 payment predates the bill
+                                            # corpus and is not transcribed; do not infer it.
+    2026: {amount: 36.18, months: [8, 9]}
+  SDG&E:
+    2026: {amount: 49.36, months: [8, 9]}
+  SCE:
+    2026: {amount: 36.00, months: [8, 9]}   # out of scope per CLAUDE.md; recorded only so
+                                            # the table is not silently PG&E/SDG&E-shaped.
+
+# ⚠ DELIBERATELY ABSENT. Each is a number this repo has no citation for; CLAUDE.md forbids
+# guessing one, and an absent year is a loud failure where a wrong year is a silent one.
+unverified:
+  - field: electric.PG&E.2025.months
+    why: >-
+      CPUC states the through-2025 schedule was April and October, and the October payment
+      is confirmed by a real bill. The April 2025 payment is therefore expected but its
+      amount was not located, so only October is listed and the annual total for PG&E 2025
+      must not be computed from this table.
+  - field: electric.SDG&E.2025
+    why: >-
+      CPUC's page shows a 2025 SDG&E figure of "$81" as a rounded comparison value, not an
+      exact per-payment amount, and does not break it into payments. Not transcribed.
+  - field: electric.*.2027
+    why: Not published as of 2026-09-16.

@@ -277,13 +277,27 @@ different answers. Surface it as a decision. Note this is gated behind the SDG&E
 set anyway — `ALL_PGE_CANDIDATES` is still the only one — which is itself gated on a real
 household. See open decision 2.
 
-**4. The 2027 ACC vintage, when either utility publishes it.** 2027 is the last application
-year that earns a nine-year lock-in, so it is the last vintage the "when to install" question
-can ever turn on — and neither utility's 2027 table exists yet. Until it does,
-`Vintage(application_year=2027, ...)` raises `MissingAccTableError`, which is the correct
-behaviour, not a bug. Re-check `pge.com/eecvalues` and SDG&E's export-pricing page; the PG&E
-zip currently served was built 2024-12-18, so PG&E has not refreshed even its floating NBT00
-table since then.
+**4. The 2027 ACC vintage — re-checked 2026-09-16, still unpublished, and it is now a TEST.**
+2027 is the last application year that earns a nine-year lock-in, so it is the last vintage
+the "when to install" question can ever turn on. `Vintage(application_year=2027, ...)` raises
+`MissingAccTableError`, which is the correct behaviour, not a bug.
+  - **The re-check is no longer a chore anyone has to remember.**
+    `test_the_2027_vintage_still_has_no_published_table` asserts the raise for both utilities.
+    **When it fails, that is the signal to act** — import with `scripts/build_acc_tables.py` —
+    not to delete the test.
+  - SDG&E's export-pricing page offers **2023, 2024, 2025, 2026 only** (checked directly
+    2026-09-16). PG&E's `eecvalues` page is too large to fetch in one request; its zip was
+    built 2024-12-18 at last inspection.
+  - ⭐ **NEW AND MATERIAL: the CPUC adopted the 2026 ACC update on 2026-09-03, in
+    D.26-09-007** — thirteen days before this check. That is the input a 2027 vintage is
+    built from, so publication is likelier now than at any previous re-check. **It also puts
+    a date on the one claim that gives a PG&E lock-in value today.** The repo's finding is
+    that NBT26 ≡ NBT00, i.e. locking the 2026 vintage buys exactly the floating table, so the
+    lock-in's worth is *insurance against the floating table moving at the next ACC
+    adoption*. That adoption has now happened. **Re-import both utilities' current/NBT00
+    tables and re-run `test_sdge_vintages_are_one_table_wearing_three_labels` and
+    `tests/nem3/test_acc_pge.py`: if the floating table moved, the vintage question stops
+    being hypothetical and several ⭐ findings need restating.**
 
 > **⚠ READ BEFORE STARTING M5 — M1 and M5 are coupled.** M5 targets San Diego (SDG&E) users,
 > and **the engine has never reproduced a single real SDG&E bill.** (The *parser* has now met
@@ -667,9 +681,30 @@ cell for cell.
   specs still carry the percent-of-energy approximation. One of the two documented causes of the
   one-sided residual.
 - **2025 summer generation credit** still bill-fitted (the 2026 one is tariff-exact).
-- **California Climate Credit** modeled as an observed per-bill line (−$58.23 on 10/28). PG&E
-  files $(36.18) on Aug/Sep cycles; SDG&E files $(33.50) semi-annually per Schedule GHG-ARR.
-  Generalise to a versioned semiannual credit.
+- **California Climate Credit — RESEARCHED AND TABULATED session 27; still an observed line,
+  deliberately.** `src/tariffs/climate_credit.yaml` (cited, CPUC + both utilities, retrieved
+  2026-09-16) + `tests/tariffs/test_climate_credit.py`.
+  - ⚠ **The old note here was wrong twice.** "SDG&E files $(33.50) semi-annually" is stale —
+    2026 is **$49.36 × 2 = $98.72**. And "generalise to a versioned semiannual credit" would
+    have built the wrong thing: **the CPUC moved the residential ELECTRIC credit out of
+    April/October into AUGUST/SEPTEMBER for 2026** (voted 2026-04-30). A model carrying the
+    old months forward applies 2026's credit to the wrong bills.
+  - **PG&E 2025 $58.23 (Oct) · PG&E 2026 $36.18 ×2 (Aug/Sep) · SDG&E 2026 $49.36 ×2.**
+  - ⭐ **Two independent cross-checks, both hold and both are now tests.** The published PG&E
+    2025 figure equals the observed line on the real 10/28/2025 statement **to the cent**;
+    and SDG&E's $98.72/yr is $8.23/average month, which is exactly the **$8/month** all three
+    2026 rate alerts imply — outside corroboration of a figure the tier-2 corpus could only
+    derive. ($33.50 × 2 would give $5.58, which rounds to $6 and fails.)
+  - ⭐ **The "missing" second credit was never missing.** 11 golden bills span 11 months and
+    carry exactly ONE credit. Correct: April 2026 had none (schedule moved) and the Aug/Sep
+    2026 payments fall after the last bill (2026-06-25). A test asserts the corpus still
+    ends before 2026-08-01, so adding a later bill forces this to be revisited.
+  - **NOT wired into `compute_bill`, and that is a decision.** It is **ranking-neutral** —
+    a flat per-household amount, independent of schedule, usage, CARE and climate zone — so
+    it cannot reorder an M2 comparison; it only moves an absolute annual figure, by $72–99.
+    Modeling it needs a rule for WHICH statement receives a credit "applied in October", and
+    exactly one credited bill exists, which cannot distinguish the candidate rules. Settle
+    that against a second credited bill before wiring it in.
 - **CEC surcharge on SDG&E** — PG&E specs carry $0.0003/kWh; SDG&E's Total Rates Tables show no
   such column on any 2026 vintage, so it is deliberately NOT asserted either way.
 - **SDG&E minimum bill** ($0.329/day, CARE $0.164) comes from the 2018 sheet; no 2026 table
