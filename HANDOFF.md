@@ -8,7 +8,7 @@ how to run, open decisions, exact next action._
 **M0, M2 and M4 are done. M1 and M3 have complete, tested engines whose DoDs are blocked on
 data that does not exist yet. Do not fabricate a load or a bill to "finish" either.**
 
-**1,607 tests green · ruff clean · 11/11 PG&E golden bills within ±$2 (worst +$0.22) ·
+**1,651 tests green · ruff clean · 11/11 PG&E golden bills within ±$2 (worst +$0.22) ·
 both CI jobs green as of session 24.**
 
 > The working tree is **not** clean: session 25's tier-2 work (fixture, README, test) and the
@@ -78,10 +78,11 @@ a much harder-tested parser, not a milestone. See `notes/sdge_public_exports_202
    CI-runnable**, unlike `tests/golden_bills/`. **Nothing in it counts toward the ±$2 claim**
    — no meter, no period, no interval data. Its README carries the boundary and
    `test_no_src_module_references_this_tier` now enforces the half of it that can be
-   enforced: nothing under `src/` may reference these figures. 25 tests (stream A).
-   **The test covers the April 2026 fixture only.** Stream B's further fixtures land
-   untested; generalising the test across fixtures is cheap and is the obvious next step —
-   each rate change is an independent regression point on the same spec family.
+   enforced: nothing under `src/` may reference these figures.
+   **~~The test covers the April 2026 fixture only.~~ Session 26 generalised it to all three
+   2026 quarters (Jan/Apr/Jun), 69 tests.** ⚠ And "generalising is cheap" was **wrong**: two
+   of the three quarters fail April's territory point assertion. See the session-26 note below
+   and the session-26 entry in SESSION_NOTES.md.
 
 2. **Next-action #2 is partially answered — by a figure, not a bill, and now by a test.**
    SDG&E's April 2026 rate alert publishes $123/month for 400 kWh on **schedule TOU-DR1**
@@ -92,14 +93,18 @@ a much harder-tested parser, not a milestone. See `notes/sdge_public_exports_202
    baseline allowance and baseline credit have outside corroboration — **the first ever to
    touch TOU-DR1** — and it is a permanent gate, not a one-off measurement.
    - ⚠ **The climate zone is NOT pinned by this, and an earlier draft of this entry said it
-     was.** Stream B checked Jan and Jun 2026 the same way and `coastal_all_electric` wins
-     both. The two coastal territories sit a stable ~$1.05–1.13 apart while the published
-     figure is a whole dollar carrying a ~$0.5–0.9 band, so rounding decides the contest, not
-     evidence. **What does hold: the six non-coastal territories are >$2 off in every quarter
-     checked.** `coastal_basic` stands on a **domain prior** — SDG&E Sheet 29294-E makes
-     All-Electric available only on application — not on arithmetic. The April test is
-     correct within April and must not be copied to another quarter unedited; it would fail.
-     See `notes/published_impacts_corpus.md`.
+     was.** Session 26 priced all three quarters through `compute_bill`: **no single territory
+     lands inside the ±$0.50 band in every cell** — June picks `coastal_all_electric`, and
+     January has nothing inside the band at all. The two coastal territories sit a stable
+     ~$1.05–1.13 apart while the published figure is a whole dollar carrying a ~$0.5–0.9 band,
+     so rounding decides the contest, not evidence. `coastal_basic` stands on a **domain
+     prior** — SDG&E Sheet 29294-E makes All-Electric available only on application — not on
+     arithmetic.
+     - ⚠ **A second correction: "the six non-coastal territories are >$2 off in every quarter"
+       is ALSO wrong.** June CARE puts `inland_basic` $1.41 off. What holds in all six cells:
+       the two nearest territories are always the coastal pair, third-nearest a further
+       $0.98–$1.77 out. Asserted by test now, in both forms.
+     See `notes/published_impacts_corpus.md` and `tests/published_impacts/README.md`.
    - **Shape independence is proved by the engine**, not read off the YAML: five allocations
      spanning all-on-peak to all-super-off-peak agree to 1c (per-line rounding). That is why
      this is a point test and why invariant 6 is not in play for the delivery half.
@@ -128,12 +133,55 @@ a much harder-tested parser, not a milestone. See `notes/sdge_public_exports_202
    1 above is built on. Do not re-run either search.
 
 **Paste-ready prompts for the next sessions, including a parallel-stream split with model
-and effort per stream: `notes/session25_handoff_prompts.md`.**
+and effort per stream: `notes/session25_handoff_prompts.md`.** ⚠ **Streams A, B and C are all
+spent** (A and B in session 25, and session 26 finished the tier-2 work A's prompt scoped).
+That file's "what is available to work on" list is stale apart from items 0 and 3 — **dad's
+data or a recruited SDG&E user, and Cameron's JSON schema + skill body for CLI-PLAN phase B,
+which no session can do for him.**
 
 _This is an insert, not the full rewrite CLAUDE.md asks for at a pause. The status table
 above and the next-action list below remain accurate; a wholesale rewrite would have
 discarded accumulated context this session did not read in full. Next session that
 completes a milestone should do the real rewrite._
+
+---
+
+## ⚠ SESSION 26 UPDATE (2026-09-16) — tier 2 now covers three quarters, not one
+
+**No milestone moved. `data/` is still PG&E-only; M1 and M3 blocked on the same data.**
+1,651 tests green (+44), ruff clean, 11/11 reconciliation unchanged. Full detail in the
+session-26 entry of SESSION_NOTES.md; the short version:
+
+1. **`tests/published_impacts/` is parameterized over all three 2026 SDG&E alerts** (Jan/Apr/
+   Jun), 69 tests. New `tier2.py` holds the shared probe machinery; fixtures are found by
+   **glob** and carry a `vintage:` field, so a fixture added without a test now fails loudly.
+   That is the gap that let stream B's two fixtures sit untested.
+
+2. ⭐ **April's territory point test passed by luck and has been retired.** Two of three
+   quarters fail it. No single territory reproduces every published figure inside SDG&E's own
+   rounding band. The generalisable lesson, now README design rule 3: **the alert states
+   neither the TOU allocation NOR the baseline territory, and every unstated parameter gets
+   the feasibility treatment.** A figure that happens to round your way does not pin a
+   parameter the document never stated.
+
+3. **The residual was chased before any tolerance was chosen, and it is not a spec defect.**
+   It never exceeds $0.36 beyond the publisher's own rounding. No rate error fits (non-CARE
+   averages +$0.65 but CARE +$0.03, where a rate error would give +$0.42). A territory mix is
+   LP-feasible but only at a non-credible corner. **No spec changed; `src/` untouched; the
+   reconcile run is unmoved, which is the gate that proves it.**
+
+4. ⭐ **The replacement test needs no territory: the vintage-over-vintage delta.** Each alert
+   publishes the figure it replaces, and the engine's change agrees across all eight
+   territories to a few cents while the levels span ~$4.3. So differencing tests the filing
+   itself. Mutation-measured at a **0.3% energy-rate error**.
+
+5. **Seven spec mutations, all seven trip.** The surprise: the cell-by-cell "which territories
+   land inside the band" table is the **strongest** assertion in the tier (6 of 7), sharper
+   than the ±$1.00 feasibility test (5 of 7) — pinning exact set membership beats pinning a
+   tolerance.
+
+**Still true and unchanged: this is corroboration of the DELIVERY layer only, it counts toward
+nothing in the ±$2 claim, and next-action #2 still wants a bill.**
 
 ---
 
@@ -195,15 +243,22 @@ prints as separate line items rather than inside the Rate/kWh row. Pinned by
     the schedule almost every SDG&E household is actually on, and the one M1 needs. Note the
     irony worth carrying: the only externally validated SDG&E schedule is EV-TOU-5, which is
     filtered out of rankings by default because Cameron has no EV.
-  - ⭐ **Session 25 stream A changed what "unvalidated" means here, precisely.** TOU-DR1's
-    **delivery** layer is now corroborated against SDG&E's own published figure, by a test
-    that goes through `compute_bill` — energy rate, fixed charge, baseline allowance, baseline
-    credit, and it pins the climate zone. **TOU-DR1 GENERATION is still unvalidated by
-    anything**, and that is where 100% of the schedule's TOU signal lives, so every load-shift
-    and battery conclusion on the schedule still rests on untested numbers. The feasibility
-    test over the published bundled figure accepts 95.6% of its own width and must not be
-    described as corroboration. **A bill is still the ask, and generation is the half it has
-    to price.**
+  - ⭐ **Sessions 25–26 changed what "unvalidated" means here, precisely.** TOU-DR1's
+    **delivery** layer is now corroborated against SDG&E's own published figures across
+    **three independently filed alerts** (1/1, 4/1, 6/1 2026), by tests that go through
+    `compute_bill` — energy rate, fixed charge, baseline allowance, baseline credit. It does
+    **not** pin the climate zone (see the correction above). The sharpest of those tests is
+    the **vintage-over-vintage delta**, which needs no territory at all: the levels span
+    ~$4.3 across territories but the *change* between vintages agrees across all of them to a
+    few cents, so differencing cancels both the unstated territory and any constant
+    methodology residual. Mutation-measured: a **0.3% delivery energy-rate error** trips it.
+  - **TOU-DR1 GENERATION is still unvalidated by anything**, and that is where 100% of the
+    schedule's TOU signal lives, so every load-shift and battery conclusion on the schedule
+    still rests on untested numbers. The feasibility test over the published bundled figure
+    accepts 95.6% of its own width and must not be described as corroboration. Note also that
+    the corpus is **three quarters of delivery evidence but only two of generation** — the 6/1
+    filing moved the UDC and left EECC alone, so June's generation layer is April's numbers.
+    **A bill is still the ask, and generation is the half it has to price.**
 
 **3. Wire TOU-DR-P into a ranking — but decide the day-selection rule first.** The engine
 half is done (session 21: it loads, bills, and refuses to price without an explicit event

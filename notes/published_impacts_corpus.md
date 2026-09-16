@@ -1,5 +1,14 @@
 # Stream B — PCIA disambiguation + corpus growth (2026-09-15)
 
+> **STATUS 2026-09-16 (session 26): this file's recommendations have been absorbed.** Both
+> softenings it asked for are done, in HANDOFF.md, the April fixture and the tests. One of its
+> own claims was corrected in the process — "all six other territories remain far off, >$2, in
+> every quarter" is not right; June CARE puts `inland_basic` $1.41 off. And the territory
+> finding went further than this file states: **no single territory fits every cell**, not just
+> "the contest flips". All three quarters are now under test
+> (`tests/published_impacts/test_sdge_tou_dr1_quarters.py`). The measurement method below is
+> superseded by that test, which does the same work in CI instead of in a scratch script.
+
 Written for: the next Claude Code session (and stream A / Cameron reconciling parallel work).
 Scope per `notes/session25_handoff_prompts.md`: settle the PCIA inference across quarters,
 grow the fixture corpus. Per that brief, this file — not SESSION_NOTES.md or HANDOFF.md —

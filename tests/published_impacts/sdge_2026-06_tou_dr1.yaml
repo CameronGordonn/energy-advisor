@@ -7,6 +7,10 @@ source:
   retrieved: 2026-09-15
   local_text: "data/sources/sdge_rate_change_alert_2026-06.layout.txt"   # gitignored; pdftotext -layout
 
+# The rate vintage this alert describes. tier2.py discovers fixtures by glob and reads this
+# to pick the spec pair and the `current_*` column below, so a fixture cannot sit untested.
+vintage: 2026-06-01
+
 assumptions_stated_by_source:
   schedule_id: TOU-DR1
   monthly_kwh: 400

@@ -2,6 +2,103 @@
 
 Running log of decisions made and decisions pending. Newest first.
 
+## 2026-09-16 — Session 26 (the point test that passed by luck, and what replaced it)
+
+Generalised `tests/published_impacts/` from one quarter to three. **1,651 tests green (+44),
+ruff clean, 11/11 PG&E golden bills unchanged (worst +$0.22).** No milestone moved; M1 and M3
+are still blocked on a real SDG&E export plus bills, and `data/` is still PG&E-only.
+
+### ⭐ THE FINDING — "generalising the test is cheap" was wrong, and the reason matters
+
+HANDOFF called this the obvious cheap next step. It is not cheap: **two of the three quarters
+fail April's territory point assertion.** Priced through `compute_bill`, all eight territories,
+both classes, twelve months from each vintage's own effective date:
+
+| cell | nearest territory | residual | inside ±$0.50? |
+|---|---|---|---|
+| Jan non-CARE | coastal_all_electric | 0.54 | **no — nothing is** |
+| Jan CARE | coastal_basic | 0.14 | yes |
+| Apr non-CARE | coastal_basic | 0.48 | yes |
+| Apr CARE | coastal_basic | 0.21 | yes |
+| Jun non-CARE | coastal_all_electric | 0.25 | yes (but not coastal_basic, 0.86) |
+| Jun CARE | coastal_all_electric | 0.29 | yes (both coastal rows fit) |
+
+**No single territory satisfies all six cells.** Session 25 read April's "exactly one territory
+lands inside the band" as identifying the climate zone; it was one quarter's arithmetic read as
+a general fact. The generalisable statement is the design rule, now rule 3 in the tier README:
+**SDG&E states neither the TOU allocation nor the baseline territory, and an unstated parameter
+gets the feasibility treatment — a figure that happens to round your way does not pin it.**
+
+### The residual was chased before any band was chosen, and it is not a spec defect
+
+Per the plan's checkpoint. The residual beyond SDG&E's own rounding **never exceeds $0.36**.
+Three hypotheses, measured not argued:
+
+- **A rate error?** No. Non-CARE at `coastal_basic` averages +$0.65 but CARE averages +$0.03,
+  where a per-kWh or per-day error would give CARE 0.65× the non-CARE figure, i.e. +$0.42.
+  Nothing in the spec is both that small and that CARE-asymmetric.
+- **A territory mix?** Fed all six cells to an LP over the 8-territory simplex: **feasible**,
+  but only at a corner (91.5% `coastal_basic` + 8.5% `mountain_basic`, zero inland), which is
+  not a credible customer distribution. Not excluded, not supported.
+- **SDG&E's own estimation slop?** Consistent with everything, and unfalsifiable from a
+  whole-dollar figure whose averaging method the alert does not disclose.
+
+$0.36 is below the resolution of the evidence, so **no spec changed and `src/` was not
+touched** — the conclusion is that the point-test form was unjustified, not that the specs are
+wrong. The reconcile run is unmoved, which is the gate that proves it.
+
+### ⭐ What replaced it — the sharp test needs no territory at all
+
+Each alert publishes the figure it replaces alongside the one it introduces, so the **change**
+is published too. The levels span $4.22–$4.31 across the eight territories, but the
+vintage-over-vintage change agrees across all of them **to within a few cents**, because the
+allowances are identical in both specs and only the rates moved. Differencing therefore cancels
+the unstated territory *and* any constant methodology residual, leaving the filing itself under
+test: engine −$3.62 vs published −$4 across the 6/1 UDC cut, well inside the ±$1 the two
+whole-dollar operands inherit.
+
+Also new: June's "previous" column is April's "current", so the two documents cross-check each
+other's transcription with no engine involved.
+
+### Mutation-tested, because an assertion nothing kills is worth knowing about
+
+Seven mutations of committed specs, each restored from git afterwards. **All seven trip.**
+
+| mutation | tests tripped |
+|---|---|
+| coastal_basic summer allowance 9.0 → 90.0 | 6 |
+| baseline credit −0.10892 → −0.11892 | 7 |
+| delivery energy rate +1% | 4 |
+| **delivery energy rate +0.3% ($0.40/month)** | **2** |
+| Base Services Charge +10% | 4 |
+| PCIA 2009 vintage → 0.00100 | 1 (by design — only the PCIA test) |
+| undo the 6/1 UDC cut | 5, incl. the delta test |
+
+The surprise: **the cell-by-cell "which territories land inside the band" table is the
+strongest assertion in the tier**, tripping on 6 of 7 — sharper than the ±$1.00 feasibility
+test, which survives 5 of 7. Pinning exact set membership beats pinning a tolerance. The
+feasibility test is kept anyway because it is the one that states the claim honestly; the flip
+table is recorded as a measurement, and any spec edit that moves a cell in or out of it should
+be a conversation rather than a silent diff.
+
+### Two corrections folded in from stream B's notes
+
+1. The April fixture said the published figure "selects [the territory] uniquely". It does not.
+2. It also said the six non-coastal territories are ">$2 off in every quarter". **They are
+   not** — June CARE puts `inland_basic` $1.41 off. What holds in all six cells is weaker and
+   is what the test now asserts: the two nearest are always the coastal pair, third-nearest a
+   further $0.98–$1.77 out.
+
+### What this does NOT buy — say it exactly this way
+
+Corroboration of the **delivery** layer of **one** SDG&E schedule across three vintages. No
+meter, no period, no interval data, so it counts toward nothing in the ±$2 claim and M1's DoD
+is untouched. And it is **three quarters of delivery evidence but only two of generation** —
+the 6/1 filing moved the UDC and left EECC alone, so June's generation layer is April's
+numbers, now pinned by a test so the count cannot be overstated. TOU-DR1 generation, where 100%
+of the schedule's TOU signal lives, **remains unvalidated by anything**. Next-action #2 still
+wants a bill.
+
 ## 2026-09-15 — Session 25 stream A (the tier-2 test: one sharp assertion, one deliberately weak one)
 
 Wrote `tests/published_impacts/test_sdge_2026_04_tou_dr1.py` — the test the previous entry

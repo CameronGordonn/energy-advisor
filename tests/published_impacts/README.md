@@ -56,20 +56,35 @@ SDG&E publishes a schedule. Only the schedule-specific form supports a feasibili
 
 | File | What it is |
 |---|---|
-| `sdge_2026-04_tou_dr1.yaml` | SDG&E's April 2026 rate-change alert: published figures, the derived quantities, and both the hand and engine measurements against the 4/1/2026 specs |
-| `test_sdge_2026_04_tou_dr1.py` | the two tests above — a delivery point test and a generation feasibility test — plus the tier-boundary test |
+| `sdge_2026-01_tou_dr1.yaml` | SDG&E's January 2026 rate alert (AL 4757-E), against the 1/1/2026 specs |
+| `sdge_2026-04_tou_dr1.yaml` | SDG&E's April 2026 rate alert (AL 4791-E), against the 4/1/2026 specs |
+| `sdge_2026-06_tou_dr1.yaml` | SDG&E's June 2026 rate alert (AL 4843-E, a FERC-driven interim decrease), against the 6/1/2026 specs |
+| `pge_2026-03_class_average.yaml` | PG&E's March 2026 advisory. **Non-testable**, marked so in its own header — a residential class average with no schedule and no territory. Provenance only |
+| `tier2.py` | the shared probe machinery: a `Quarter` is one alert plus its two spec layers. Fixtures are found by **glob**, so one added without a test fails loudly |
+| `test_sdge_tou_dr1_quarters.py` | every assertion, parameterized over all three SDG&E quarters, plus the tier-boundary test |
+
+Each SDG&E fixture carries a `vintage:` field; that is what the harness reads to pick the spec
+pair and the fixture's own `current_*` column. Jan/Apr/Jun are the only 2026 SDG&E alerts —
+`sdge.com/rate-alerts` was checked directly and no alert was issued for the 8/1 vintage change.
+
+⚠ **Three quarters of delivery evidence, but only TWO of generation.** The 6/1/2026 filing moved
+the UDC and left EECC untouched, so the April and June generation layers are the same numbers
+and June's generation assertions re-test April's spec. Pinned by
+`test_the_april_and_june_generation_envelopes_are_identical` so "three quarters" cannot quietly
+become an overstatement.
 
 ## How weak is "weak"? Measured, not asserted
 
-The generation envelope for the one fixture here is **$30.73–$122.31** against a **$4**
-rounding band on the figure under test: the feasibility test **accepts 95.6% of the width it
+The generation envelope is **$30.73–$122.31** non-CARE (all three quarters agree to a cent)
+against a **$4** rounding band on the figure under test: the feasibility test **accepts 95.6%
+(93.3% under CARE) of the width it
 could have rejected**, and `test_the_generation_envelope_is_too_wide_to_be_evidence` asserts
 that in CI so the caveat cannot quietly fall out of a summary. Mutating the committed spec:
 scaling every generation rate by 1/10 trips it; a 10x decimal shift on a single rate does not,
 and neither does inverting the season map. **Infeasible would prove a spec wrong. Feasible is
 close to no evidence at all** — never write it up as corroboration.
 
-Two design rules the first draft got wrong, recorded so the next fixture does not repeat them:
+Three design rules earlier drafts got wrong, recorded so the next fixture does not repeat them:
 
 1. **Take the envelope per month over every period**, not as (all-cheapest, all-dearest) with
    the ordering hard-coded. Swapping two rates in a spec leaves the achievable set identical;
@@ -78,3 +93,29 @@ Two design rules the first draft got wrong, recorded so the next fixture does no
 2. **Bands come from the publisher's rounding.** A whole-dollar figure gives ±$0.50; a figure
    derived by subtracting two of them gives ±$2. The derived band must be *inside* the
    envelope, not just its midpoint.
+3. **Every unstated parameter gets the feasibility treatment, not just the obvious one.** The
+   alert states neither the TOU allocation nor the **baseline territory**. Session 25 treated
+   the first as unstated and the second as identified, because in April exactly one territory
+   landed inside the rounding band. Across all three quarters no single territory does — June
+   picks `coastal_all_electric`, January picks none — so that was one quarter's arithmetic
+   read as a general fact. A parameter the document does not state is not pinned by a figure
+   that happens to round its way.
+
+## What replaced the territory point test
+
+Ordered by how much a mutation has to move a spec before each one notices:
+
+| assertion | strength |
+|---|---|
+| which territories land inside the ±$0.50 band, **cell by cell** | strongest — catches a **0.3%** energy-rate change ($0.40/month) |
+| the vintage-over-vintage **delta** matches the published change | sharp, and needs **no territory at all** — differencing cancels it |
+| the two nearest territories are always the coastal pair | catches allowance-table errors the delta cannot |
+| the PCIA exclusion is load-bearing | order-of-magnitude margin in all three quarters |
+| **some** territory prices to the published figure (±$1.00) | weakest of the delivery set; survives 5 of 7 mutations |
+| generation feasibility | near-zero information by construction — see above |
+
+The delta is the one worth understanding: the levels span $4.22–$4.31 across the eight
+territories, but the *change* between two vintages agrees across all of them to within a few
+cents, because the allowances are identical in both specs and only the rates moved. So the
+delta tests the filing rather than the climate zone, which is exactly what makes it immune to
+the ambiguity that retired the point test.

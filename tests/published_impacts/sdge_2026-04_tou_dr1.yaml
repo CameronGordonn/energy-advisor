@@ -7,6 +7,10 @@ source:
   retrieved: 2026-09-15
   local_text: "data/sources/sdge_rate_change_alert_2026-04.layout.txt"   # gitignored; pdftotext -layout
 
+# The rate vintage this alert describes. tier2.py discovers fixtures by glob and reads this
+# to pick the spec pair and the `current_*` column below, so a fixture cannot sit untested.
+vintage: 2026-04-01
+
 assumptions_stated_by_source:
   schedule_id: TOU-DR1
   monthly_kwh: 400
@@ -63,7 +67,7 @@ measured_2026_09_15:
   # SDG&E TOU-DR1 DELIVERY energy is FLAT across all six season x period keys
   # (0.34652 standard). So the delivery-only figure needs NO load-shape assumption
   # at all — it is a point value, not an envelope. The only free parameter is
-  # baseline territory, and the published figure selects it uniquely:
+  # baseline territory, and the published figure does NOT pin it (see below):
   delivery_only_by_territory_non_care:
     coastal_basic: 123.48        # closest for APRIL only; does NOT generalise, see note below
     coastal_all_electric: 122.43
@@ -75,12 +79,18 @@ measured_2026_09_15:
     desert_all_electric: 119.17
   delivery_only_coastal_basic_care: 66.79   # published $67
   implied_territory: coastal_basic
-  # ⚠ On a DOMAIN PRIOR, not on arithmetic. Stream B checked Jan and Jun 2026 the same way
-  # and coastal_all_electric wins both: the two coastal territories sit a stable ~$1.05-1.13
-  # apart while the published figure is a whole dollar with a ~$0.5-0.9 band, so rounding
-  # decides it. The six non-coastal territories ARE >$2 off in every quarter - that holds.
-  # Prior: SDG&E Sheet 29294-E makes All-Electric application-only.
-  # See notes/published_impacts_corpus.md.
+  # ⚠ On a DOMAIN PRIOR, not on arithmetic — SDG&E Sheet 29294-E makes All-Electric
+  # application-only. Session 26 priced all three quarters through compute_bill: NO single
+  # territory lands inside the ±$0.50 rounding band in every cell, coastal_all_electric wins
+  # June, and January has no territory inside the band at all. The two coastal rows sit a
+  # stable ~$1.05-1.13 apart while the published figure is a whole dollar carrying a
+  # ~$0.5-0.9 band, so rounding decides which one "wins", not evidence.
+  #
+  # ⚠ ALSO CORRECTED: an earlier note here said the six non-coastal territories are ">$2 off
+  # in every quarter". They are not — June CARE puts inland_basic $1.41 off. What DOES hold
+  # in all six cells is weaker and is what the test asserts: the two nearest territories are
+  # always the coastal pair, and the third-nearest is a further $0.98-$1.77 out.
+  # See notes/published_impacts_corpus.md and test_sdge_tou_dr1_quarters.py.
 
   # Generation envelope at 400 kWh/month (min = all super-off-peak, max = all on-peak),
   # averaged over 12 months. The implied $71 is feasible and mid-range — so the
