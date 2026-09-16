@@ -444,7 +444,7 @@ largest credit on a California bill.
 
 ```bash
 conda env create -f environment.yml && conda activate energy-advisor
-pytest                                              # over 1,600 tests
+pytest                                              # over 1,700 tests
 
 PYTHONPATH=src python scripts/reconcile_report.py   # the 11 line-item comparisons
 PYTHONPATH=src python scripts/rate_optimizer.py     # ranking, why, sensitivity, assumption audit

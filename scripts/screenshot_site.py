@@ -37,6 +37,7 @@ def main(outdir: Path) -> int:
 
     outdir.mkdir(parents=True, exist_ok=True)
     inspection = json.loads((REPO / "tools" / "reference-sample.json").read_text())
+    case_study = json.loads((REPO / "docs" / "case-study.json").read_text())["recommendation"]
     written: list[Path] = []
 
     with sync_playwright() as pw:
@@ -63,6 +64,42 @@ def main(outdir: Path) -> int:
                         shot = outdir / f"{chart}-{scheme}.png"
                         page.locator(f"#{chart}").screenshot(path=shot)
                         written.append(shot)
+
+                    # ...and a third: the pricing section, which is where the dollars are
+                    # and therefore the state most worth looking at with human eyes. It
+                    # needs no Pyodide either — the committed worked example is a real
+                    # recommendation the Python engine produced.
+                    page.evaluate("r => window.__renderRecommendation(r)", case_study)
+                    page.wait_for_timeout(300)
+                    shot = outdir / f"priced-{scheme}.png"
+                    page.locator("#priceSection").screenshot(path=shot)
+                    written.append(shot)
+
+                    # The refusal is half the product; screenshot it too.
+                    page.evaluate(
+                        "b => window.__renderGate(b)",
+                        [
+                            {
+                                "code": "TERRITORY_NOT_AUTHORED",
+                                "detail": (
+                                    "The committed PG&E specs carry the baseline allowance "
+                                    "for territory T only, and this account is in territory "
+                                    "X. The allowance and the baseline credit both change "
+                                    "with territory."
+                                ),
+                            },
+                            {
+                                "code": "SUPPLIER_NOT_AUTHORED",
+                                "detail": (
+                                    "Generation layers exist for 3CE and PG&E. MCE has none."
+                                ),
+                            },
+                        ],
+                    )
+                    page.wait_for_timeout(300)
+                    shot = outdir / f"refused-{scheme}.png"
+                    page.locator("#priceSection").screenshot(path=shot)
+                    written.append(shot)
                 page.close()
         browser.close()
 
