@@ -24,8 +24,11 @@
 
 <div class="sheet">
 
-<main class="doc">
+<main>
 
+<section class="row heavy">
+  <div class="rail"><b>00</b>Privacy<br>policy<br>Rev. 16 Sep 2026</div>
+  <div class="doc">
   <h1>Privacy</h1>
   <p class="updated">Last updated 16 September 2026</p>
 
@@ -35,8 +38,13 @@
     uploaded, because there is no server to upload it to. Nobody — including the author of
     this site — can see your file or your results.</p>
   </div>
+  </div>
+</section>
 
-  <h2>Your usage file</h2>
+<section class="row">
+  <div class="rail"><b>01</b>In your tab</div>
+  <div class="doc">
+    <h2>Your usage file</h2>
   <p>When you drop a file onto this page, it is read by code running <strong>inside your
   browser tab</strong>. The analysis is performed locally, the results are drawn on the page
   you are already looking at, and nothing derived from your file is transmitted anywhere.</p>
@@ -48,8 +56,13 @@
   your browser's network tab while you analyse a file and you will see that no request
   carries your data, or read the <a href="https://github.com/CameronGordonn/energy-advisor/blob/main/docs/index.html">page
   source</a>, which is public.</p>
+  </div>
+</section>
 
-  <h2>What the page does request from other companies</h2>
+<section class="row">
+  <div class="rail"><b>02</b>Third parties</div>
+  <div class="doc">
+    <h2>What the page does request from other companies</h2>
   <p>Being honest about this matters more than the marketing line. The page itself is static,
   but loading it does cause your browser to make requests to two third parties. Neither
   carries any part of your usage file or your results — they serve the page and the analysis
@@ -78,8 +91,13 @@
     of this kind. Its <em>contents</em> reveal nothing about you. If that distinction matters
     to you, run the site locally from the source repository instead.</p>
   </div>
+  </div>
+</section>
 
-  <h2>What is not collected</h2>
+<section class="row">
+  <div class="rail"><b>03</b>Not collected</div>
+  <div class="doc">
+    <h2>What is not collected</h2>
   <ul>
     <li>No accounts, sign-ups, email addresses or passwords.</li>
     <li>No cookies, local storage, session storage or fingerprinting.</li>
@@ -89,8 +107,13 @@
         keep, because &ldquo;discards everything identifying&rdquo; would be too strong a
         claim to make.</li>
   </ul>
+  </div>
+</section>
 
-  <h2>What the parser keeps from your file, exactly</h2>
+<section class="row">
+  <div class="rail"><b>04</b>Kept, exactly</div>
+  <div class="doc">
+    <h2>What the parser keeps from your file, exactly</h2>
   <p>A utility export opens with a preamble naming you: your name, service address, account
   number and meter number. The parser reads that preamble and keeps a deliberately reduced
   part of it &mdash; not nothing, and it would be easy to overclaim here, so here is the
@@ -110,13 +133,23 @@
   nowhere to transmit it to. These lines are in
   <a href="https://github.com/CameronGordonn/energy-advisor/blob/main/src/greenbutton/_common.py"><code>src/greenbutton/_common.py</code></a>
   if you would rather read them than take this page's word for it.</p>
+  </div>
+</section>
 
-  <h2>Who runs this</h2>
+<section class="row">
+  <div class="rail"><b>05</b>Controller</div>
+  <div class="doc">
+    <h2>Who runs this</h2>
 <p>A personal project by <strong>Cameron Gordon</strong>, written and run from California.
 There is no company behind it, no team with access, no analytics vendor and no data
 processor, because there is no data to process &mdash; the arithmetic happens in your tab.</p>
+  </div>
+</section>
 
-<h2>Your California privacy rights</h2>
+<section class="row">
+  <div class="rail"><b>06</b>CCPA / CPRA</div>
+  <div class="doc">
+    <h2>Your California privacy rights</h2>
 <p>California's privacy law (the CCPA, as amended by the CPRA) gives you rights over personal
 information a business collects about you: to know what it holds, to have it deleted or
 corrected, and to opt out of its sale or sharing. This site collects none, sells none and
@@ -126,34 +159,61 @@ shares none.</p>
 disclose, nothing to delete, and no sale or sharing to opt out of. What GitHub and jsDelivr
 see when they serve you a file is theirs, under their own policies, and any request about
 that is one you would make to them.</p>
+  </div>
+</section>
 
-<h2>Do Not Track and Global Privacy Control</h2>
+<section class="row">
+  <div class="rail"><b>07</b>DNT &middot; GPC</div>
+  <div class="doc">
+    <h2>Do Not Track and Global Privacy Control</h2>
 <p>Both are signals your browser can send asking a site not to track you. This site does no
 tracking to switch off &mdash; no cookies, no storage, no analytics, no profile &mdash; so the
 signals change nothing here. That is not a refusal to respect them; there is genuinely
 nothing for them to act on.</p>
+  </div>
+</section>
 
-<h2>How long anything is kept</h2>
+<section class="row">
+  <div class="rail"><b>08</b>Retention</div>
+  <div class="doc">
+    <h2>How long anything is kept</h2>
 <p>Nothing this site controls is kept at all. Your file and everything derived from it live in
 the tab's memory until you close or reload it, and then they are gone; there is no export, no
 backup and no cache of results. The ordinary web-server logs GitHub keeps for hosting are
 subject to GitHub's own retention, which is outside this project's control and is the same for
 every page on the site.</p>
+  </div>
+</section>
 
-<h2>Children</h2>
+<section class="row">
+  <div class="rail"><b>09</b>Age</div>
+  <div class="doc">
+    <h2>Children</h2>
   <p>This is a tool for utility bill-payers and is not directed at children.</p>
+  </div>
+</section>
 
-  <h2>If this ever changes</h2>
+<section class="row">
+  <div class="rail"><b>10</b>Changes</div>
+  <div class="doc">
+    <h2>If this ever changes</h2>
   <p>If the project later adds anything that transmits your data — an optional report by
   email, say, or a hosted comparison — it will be opt-in, described here before it ships, and
   announced in the public repository. The commit history of this page is itself public, so
   changes to this policy are auditable rather than merely promised.</p>
+  </div>
+</section>
 
-  <h2>Contact</h2>
+<section class="row">
+  <div class="rail"><b>11</b>Contact</div>
+  <div class="doc">
+    <h2>Contact</h2>
   <p>Questions, corrections, or a privacy problem to report: open an issue at
   <a href="https://github.com/CameronGordonn/energy-advisor/issues">github.com/CameronGordonn/energy-advisor/issues</a>.</p>
 
   <p style="margin-top:2rem"><a href="./terms.html">Terms of use &rarr;</a></p>
+  </div>
+</section>
 
 </main>
 

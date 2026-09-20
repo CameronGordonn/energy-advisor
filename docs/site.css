@@ -90,14 +90,22 @@ h2.sec{font-family:var(--display);font-stretch:115%;font-weight:700;text-transfo
 .masthead a[aria-current="page"]{color:var(--ink);text-decoration:underline;
   text-decoration-thickness:2px;text-underline-offset:4px}
 
-/* ---- the stamp: the signature device. A tool that deliberately prices nothing should
-   say so the way a document would. ---- */
+/* ---- the stamp: the signature device. A document asserts its own status in the margin,
+   so the page does too. There are TWO of them and they say different things, because the
+   site now answers in dollars (session 28) and the two questions a reader has are not the
+   same question. The hero stamps the CLAIM — reconciled, 11 of 11, within ±$2 — because
+   that is what earns the right to the figures further down. The pricing section stamps the
+   DISCLAIMER — not a bill, no amount due — because that is where the figures actually are,
+   and a disclaimer 2,000px away from what it qualifies is decoration.
+   `.stamp.due` is the disclaimer variant: it leans the other way so the two read as a pair
+   of impressions rather than a repeated motif. ---- */
 .stamp{display:inline-block;border:2px solid var(--ox);color:var(--ox);
   font-family:var(--mono);font-weight:700;text-transform:uppercase;letter-spacing:.1em;
   font-size:.74rem;line-height:1.25;padding:.5rem .8rem;transform:rotate(-3deg);
   text-align:center}
 .stamp span{display:block;font-size:.6rem;letter-spacing:.08em;font-weight:400;
   border-top:1px solid var(--ox);margin-top:.35rem;padding-top:.3rem}
+.stamp.due{transform:rotate(2.5deg)}
 
 /* ---- ledger rows: dot leaders, right-aligned figures ---- */
 .ledger{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:.82rem}
@@ -129,8 +137,11 @@ details.fine>summary:hover{color:var(--ox)}
 details.fine .body{padding:0 0 1.4rem;font-size:.92rem;color:var(--ink-2);max-width:68ch}
 details.fine .body p{margin:0 0 .8rem}
 details.fine .body p:last-child{margin-bottom:0}
+/* The quoted rule. It sets the same measure as the prose it qualifies — it ran to the
+   full content column before, which made a refusal's headline wider than its reasons. */
 .gate{border-left:3px solid var(--ox);background:var(--paper-2);padding:.8rem 1rem;
-  font-family:var(--mono);font-size:.82rem;line-height:1.5;color:var(--ink);margin:.6rem 0 1rem}
+  font-family:var(--mono);font-size:.82rem;line-height:1.5;color:var(--ink);margin:.6rem 0 1rem;
+  max-width:78ch}
 
 button{font-family:var(--mono);font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;
   padding:.7rem 1.1rem;border:1px solid var(--ink);background:transparent;color:var(--ink);
@@ -149,14 +160,21 @@ footer p{margin:0 0 .7rem;max-width:74ch}
 footer .legal{display:flex;gap:1.1rem;flex-wrap:wrap;font-family:var(--mono);font-size:.68rem;
   letter-spacing:.05em;text-transform:uppercase}
 
-/* ---- prose documents (privacy, terms) ---- */
-.doc{max-width:42rem;padding:2.6rem 0 0}
+/* ---- prose documents (privacy, terms) ------------------------------------------------
+   These wear the same ruled rail as the tool and the methodology page: every h2 is its own
+   .row, so its number sits in the margin the way a numbered clause sits on paper, and the
+   left gutter carries something. Until session 30 both pages were a single 42rem column
+   adrift in a 76rem sheet with an empty gutter beside it — the one place on the site that
+   stopped looking like the document it is about. The measure is unchanged; only the
+   scaffolding around it is. */
+.doc{max-width:42rem}
+.doc>:first-child{margin-top:0}
 .doc h1{font-family:var(--display);font-stretch:125%;font-weight:700;text-transform:uppercase;
   font-size:clamp(2rem,5vw,3.2rem);line-height:.92;margin:0 0 .6rem}
 .doc .updated{font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;
   color:var(--ink-3);margin:0 0 2rem;border-bottom:1px solid var(--rule);padding-bottom:1rem}
 .doc h2{font-family:var(--display);font-stretch:110%;font-weight:700;text-transform:uppercase;
-  font-size:1.1rem;letter-spacing:.01em;margin:2.4rem 0 .7rem}
+  font-size:1.25rem;letter-spacing:.01em;margin:0 0 .8rem}
 .doc h3{font-family:var(--mono);font-size:.82rem;text-transform:uppercase;letter-spacing:.05em;
   color:var(--ox);margin:1.6rem 0 .4rem;font-weight:700}
 .doc p{margin:0 0 1rem;color:var(--ink-2)}
@@ -165,6 +183,9 @@ footer .legal{display:flex;gap:1.1rem;flex-wrap:wrap;font-family:var(--mono);fon
 .doc .callout{border:1px solid var(--ink);padding:1.1rem 1.2rem;margin:1.4rem 0;
   background:var(--paper-2)}
 .doc .callout p{margin:0;color:var(--ink)}
+/* The terms callout runs to two paragraphs and they were butted together, because the
+   rule above zeroes the margin to keep a one-paragraph callout tight. */
+.doc .callout p+p{margin-top:.8rem}
 
 @media (max-width:820px){
   .row{grid-template-columns:1fr;gap:1rem;padding:2rem 0}

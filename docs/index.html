@@ -18,6 +18,10 @@
 .hero .lede{font-size:1.12rem;line-height:1.5;max-width:38ch;margin:1.8rem 0 0;color:var(--ink-2)}
 .hero .lede b{color:var(--ink);font-weight:700}
 .hero-foot{display:flex;gap:2.5rem;align-items:flex-start;margin-top:2.2rem;flex-wrap:wrap}
+/* The stamp is pushed to the far edge so it lands under the end of the headline rather than
+   trailing the lede with half the row left empty. It is the only thing out there, so it has
+   to be placed on purpose. */
+.hero-foot .stamp{margin-left:auto}
 
 /* ---- intake: a form, with a ruled header, not a floating card ---- */
 #drop{border:2px solid var(--ink);background:var(--paper-2);padding:2.6rem 1.5rem;
@@ -54,7 +58,16 @@
   font-size:.98rem;line-height:1.15;margin:0 0 .45rem}
 .step p{margin:0;font-size:.88rem;color:var(--ink-2)}
 
-/* ---- report ---- */
+/* ---- report ----
+   #results is focused programmatically when it is revealed, so a keyboard user lands in
+   it rather than back at the top of the document — and Chromium then paints the global
+   :focus-visible ring around the whole region, which at full report length is a 4,700px
+   oxblood box that reads as an error state. The ring is suppressed HERE ONLY: #results is
+   a scroll-and-focus target with tabindex="-1", not a keyboard-reachable control, so the
+   rule that every interactive control shows a focus ring is untouched. The arrival is
+   still announced through #announcer, and the report head below is the visible landmark. */
+#results:focus{outline:none}
+
 .report-head{border-bottom:3px solid var(--ink);padding-bottom:.7rem;margin-bottom:2rem;
   display:flex;justify-content:space-between;align-items:flex-end;gap:1.5rem;flex-wrap:wrap}
 .report-head h2{font-family:var(--display);font-stretch:118%;font-weight:700;
@@ -73,6 +86,8 @@
   color:var(--ink-2);margin-top:.7rem;max-width:22ch;line-height:1.5}
 
 /* findings as numbered notes, number hanging in the margin */
+.findings-head{font-family:var(--display);font-stretch:112%;font-weight:700;
+  text-transform:uppercase;font-size:1.15rem;line-height:1;margin:0 0 .9rem}
 .findings{display:grid;gap:0;margin-bottom:2.6rem;border-top:1px solid var(--rule)}
 .finding{display:grid;grid-template-columns:2.6rem 1fr;gap:1rem;padding:1.15rem 0;
   border-bottom:1px solid var(--rule)}
@@ -118,8 +133,10 @@ details.data summary:hover{color:var(--ox)}
 
 /* ---- pricing (section 03): the half of the page that is allowed to say dollars ---- */
 /* A verdict is a stamped conclusion, not a card. Heavy top rule, oxblood left edge. */
+.answer-head{display:flex;gap:2rem;align-items:flex-start;flex-wrap:wrap;margin:0 0 1.8rem}
+.answer-head .stamp{margin-top:1.1rem}
 .verdict{border-top:3px solid var(--ink);border-left:3px solid var(--ox);
-  background:var(--paper-2);padding:1.2rem 1.3rem;margin:0 0 1.8rem;
+  background:var(--paper-2);padding:1.2rem 1.3rem;margin:0;flex:1 1 32rem;
   font-size:1.05rem;line-height:1.45;color:var(--ink);max-width:70ch}
 .verdict b{font-weight:700}
 .verdict .lbl{display:block;font-family:var(--mono);font-size:.64rem;letter-spacing:.08em;
@@ -148,17 +165,47 @@ details.data summary:hover{color:var(--ox)}
   border-bottom:1px solid var(--rule);text-align:right}
 #planTable th:first-child,#planTable td:first-child,
 #whyTable th:first-child,#whyTable td:first-child{text-align:left}
+#planTable tbody th,#whyTable tbody th{font-weight:400;color:var(--ink-2)}
 #planTable thead th,#whyTable thead th{color:var(--ink-3);font-size:.66rem;font-weight:700;
   text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--ink)}
-#planTable tr.win td{color:var(--ink);font-weight:700}
-/* The sulphur band is a FILL and never carries text, so where it lands behind a row the
-   ink is set explicitly rather than inherited. Computed, not eyeballed: --ink on --band is
-   11.62 light / 11.26 dark; --ink-3 would have been 4.15 / 3.66 and failed in the dark. The
-   conditional-plan note is oxblood everywhere else, but oxblood on band is 3.62 in the dark,
-   so on this one row it steps to --ink-2 (6.61) instead. */
-#planTable tr.mine td{background:var(--band);color:var(--ink)}
+/* Hierarchy, corrected. Until session 30 the loudest row in the ranking was the reader's
+   CURRENT plan — a full-width sulphur fill — and the RECOMMENDED plan was merely bold, so
+   the table shouted the status quo at a page whose entire job is to rank against it. The
+   winner now carries oxblood rules top and bottom (the document accent used as a RULE, the
+   way site.css already uses it for links, rail numbers and the stamp), and the current plan
+   keeps the sulphur as a highlighter mark on its NAME rather than a fill across the row. */
+#planTable tr.win th,#planTable tr.win td{color:var(--ink);font-weight:700;
+  border-top:2px solid var(--ox);border-bottom:2px solid var(--ox)}
+
+/* The magnitude bar. Six figures spanning $281 do not read as a ranking in type alone, and
+   the one quantity the table leaves the reader to subtract — how much more than the
+   cheapest plan each option costs — is the decision. Zero-based on that difference, so the
+   winner's bar is correctly empty. It grows right-to-left, anchored under the right-aligned
+   figure, the way a ledger sets a column.
+   ⚠ It is --mark and never --ox. --ox means "the expensive hours" as a DATA colour, so
+   painting the CHEAPEST plan oxblood would invert the one chart rule the site has. */
+.mbar{display:flex;justify-content:flex-end;height:5px;margin-top:.4rem}
+.mbar i{display:block;height:100%;background:var(--mark)}
+/* The sulphur band is a FILL and never carries text, so where it lands behind the plan
+   name the ink is set explicitly rather than inherited. Computed, not eyeballed, by
+   scripts/contrast_matrix.py: --ink on --band is 11.62 light / 11.26 dark; --ink-3 would
+   have been 4.15 / 3.66 and failed in the dark. The conditional-plan note is oxblood
+   everywhere else, but oxblood on band is 3.62 in the dark, so on this one row it steps to
+   --ink-2 — 5.86 light / 6.61 dark. (This comment used to quote 6.61 alone, which is the
+   DARK figure; light is the tighter of the two and is the one that has to clear 4.5.) */
+/* The highlighter hugs the NAME, not the cell. Filling a 380px column with sulphur put
+   the reader's current plan back in charge of the table, which is the inversion this was
+   meant to undo. --ink on --band is 11.62 light / 11.26 dark.
+   ⚠ The 2px --ink-2 edge is not trim. --band against the plate is 1.09 light / 1.25 dark —
+   the sulphur reads instantly in light because the HUE shift is large, but luminance is
+   what survives dark mode, greyscale and most CVD, and in dark the fill all but vanishes.
+   The edge is the part of the marker that is actually visible: --ink-2 on the plate is
+   6.38 / 8.25, clear of the 3.0 non-text threshold in both themes. The state is also
+   written in words in the "vs. yours" column, so it was never carried by colour alone. */
+#planTable tr.mine .pname{background:var(--band);color:var(--ink);
+  padding:.15em .4em;margin-left:-.4em;box-shadow:inset 2px 0 0 var(--ink-2)}
 #planTable tr.mine .cond{color:var(--ink-2)}
-#planTable tr.mine td,#planTable tr.win td{border-bottom-color:var(--rule-2)}
+#planTable tr.mine td{border-bottom-color:var(--rule-2)}
 #planTable .cond{color:var(--ox);font-size:.66rem;letter-spacing:.04em;display:block}
 
 @media (max-width:1060px){
@@ -199,7 +246,7 @@ details.data summary:hover{color:var(--ox)}
       This reads it, shows you your own habits, and then <b>re-bills a year of them under
       every rate plan you could be on</b> &mdash; or tells you exactly why it will not.
       No account. No upload.</p>
-      <div class="stamp">Not a bill<span>No amount due</span></div>
+      <div class="stamp">Reconciled &plusmn;&#36;2<span>11 of 11 real bills</span></div>
     </div>
   </div>
 </section>
@@ -260,6 +307,7 @@ details.data summary:hover{color:var(--ox)}
     <table class="ledger" id="stats"></table>
   </div>
 
+  <h3 class="findings-head">What stands out</h3>
   <div class="findings" id="findings"></div>
 
   <div class="plate">
@@ -388,7 +436,13 @@ details.data summary:hover{color:var(--ox)}
 
    <!-- (c) the answer -->
    <div id="priceOut" hidden>
-     <div class="verdict" id="verdict"></div>
+     <!-- The stamp that used to sit in the hero. It belongs here now: this is the only
+          place on the site that prints money, so this is the only place the disclaimer
+          answers a question the reader is actually asking. -->
+     <div class="answer-head">
+       <div class="verdict" id="verdict"></div>
+       <div class="stamp due">Not a bill<span>No amount due</span></div>
+     </div>
      <div class="plate">
        <div class="plate-head"><p>Annual cost by plan, cheapest first</p></div>
        <table id="planTable">
@@ -417,6 +471,8 @@ details.data summary:hover{color:var(--ox)}
 <!-- ============================ HOW ============================ -->
 <section class="row">
   <div class="rail"><b>02</b>Procedure</div>
+  <div>
+  <h2 class="sec">What happens, start to finish</h2>
   <div class="steps">
     <div class="step">
       <span class="n">Step 01</span>
@@ -441,6 +497,7 @@ details.data summary:hover{color:var(--ox)}
       usage shift that would overturn the answer &mdash; or a plain statement of why this
       engine has not earned the right to price your household.</p>
     </div>
+  </div>
   </div>
 </section>
 
@@ -699,26 +756,43 @@ details.data summary:hover{color:var(--ox)}
 
     $("verdict").innerHTML = '<span class="lbl">The answer</span>' + escapeHtml(rec.verdict);
 
+    // The plans arrive cheapest-first, so plans[0] is the floor every other row is read
+    // against. The bar encodes exactly that gap and nothing else — zero-based, one colour,
+    // and carrying its own text equivalent because the number is printed nowhere else.
+    var floorCost = rec.plans.length ? rec.plans[0].annual : 0;
+    var worstGap = rec.plans.reduce(function (m, p) {
+      return Math.max(m, p.annual - floorCost);
+    }, 0);
+
     var rows = rec.plans.map(function (p, i) {
       var cls = [i === 0 ? "win" : "", p.is_current ? "mine" : ""].join(" ").trim();
       var delta = p.delta_vs_current === null || p.delta_vs_current === undefined ? "&mdash;"
         : (p.delta_vs_current === 0 ? "your plan"
            : (p.delta_vs_current < 0 ? "&minus;" : "+") + money(p.delta_vs_current));
-      return "<tr" + (cls ? ' class="' + cls + '"' : "") + "><td>" + escapeHtml(p.name) +
+      var gap = p.annual - floorCost;
+      var bar = worstGap > 0
+        ? '<span class="mbar" aria-hidden="true"><i style="width:' +
+          (gap / worstGap * 100).toFixed(1) + '%"></i></span>' +
+          '<span class="vh">' + (gap > 0 ? money(gap) + " more than the cheapest plan"
+                                         : "the cheapest plan") + "</span>"
+        : "";
+      return "<tr" + (cls ? ' class="' + cls + '"' : "") + '><th scope="row">' +
+        '<span class="pname">' + escapeHtml(p.name) + "</span>" +
         (p.eligibility ? '<span class="cond">conditional: ' + escapeHtml(p.eligibility) + "</span>" : "") +
-        "</td><td>" + money(p.annual) + "</td><td>" + delta + "</td></tr>";
+        "</th><td>" + money(p.annual) + bar + "</td><td>" + delta + "</td></tr>";
     }).join("");
     $("planTable").innerHTML =
       '<caption class="vh">Every eligible plan, re-simulated on this household\'s own ' +
       "interval data, ranked by modelled annual cost.</caption>" +
       "<thead><tr><th scope=\"col\">Plan</th><th scope=\"col\">Modelled " +
-      rec.days_modeled + " days</th><th scope=\"col\">vs. yours</th></tr></thead><tbody>" +
+      rec.days_modeled + " days<span class=\"cond\">bar: gap to the cheapest</span></th>" +
+      "<th scope=\"col\">vs. yours</th></tr></thead><tbody>" +
       rows + "</tbody>";
 
     $("whyTable").innerHTML = rec.why.length
       ? "<thead><tr><th scope=\"col\">Bill line</th><th scope=\"col\">Difference</th></tr>" +
         "</thead><tbody>" + rec.why.map(function (w) {
-          return "<tr><td>" + escapeHtml(w[0]) + "</td><td>" +
+          return '<tr><th scope="row">' + escapeHtml(w[0]) + "</th><td>" +
                  (w[1] < 0 ? "&minus;" : "+") + money(w[1]) + "</td></tr>";
         }).join("") + "</tbody>"
       : "";
@@ -886,7 +960,12 @@ details.data summary:hover{color:var(--ox)}
     preparePricing(d);
   }
 
-  function row(k, v) { return "<tr><th>" + k + "</th><td>" + v + "</td></tr>"; }
+  // Every generated row is a header-plus-value pair, so the key is a row header — with a
+  // scope, or a screen reader has to guess which axis it belongs to. Used by #fileTable
+  // and by the #stats ledger.
+  function row(k, v) {
+    return '<tr><th scope="row">' + k + "</th><td>" + v + "</td></tr>";
+  }
 
   function svgEl(tag, attrs, text) {
     var e = document.createElementNS("http://www.w3.org/2000/svg", tag);
@@ -917,8 +996,10 @@ details.data summary:hover{color:var(--ox)}
     var band = pw / 24, bw = Math.min(26, band - 4);
     var y = function (v) { return base - (v / max) * ph; };
 
+    var BAND_LIFT = 6;   // see the note above: this and LABEL_LIFT are a pair
     svg.appendChild(svgEl("rect", {
-      x: L + band * 16, y: T - 10, width: band * 5, height: ph + 10, fill: "var(--band)"
+      x: L + band * 16, y: T - BAND_LIFT, width: band * 5, height: ph + BAND_LIFT,
+      fill: "var(--band)"
     }));
     svg.appendChild(svgEl("text", {
       x: L + band * 18.5, y: T - 40, "text-anchor": "middle",
@@ -952,9 +1033,10 @@ details.data summary:hover{color:var(--ox)}
       }
     });
 
+    var LABEL_LIFT = 16;
     var labelX = Math.min(Math.max(L + band * peakHour + band / 2, L + 38), W - R - 38);
     svg.appendChild(svgEl("text", {
-      x: labelX, y: y(max) - 10, "text-anchor": "middle", "font-family": "var(--mono)",
+      x: labelX, y: y(max) - LABEL_LIFT, "text-anchor": "middle", "font-family": "var(--mono)",
       "font-size": "10.5", "font-weight": "700", fill: "var(--ink)"
     }, "BUSIEST · " + hourLabel(peakHour).toUpperCase()));
 
@@ -967,9 +1049,25 @@ details.data summary:hover{color:var(--ox)}
     }, "HOUR OF DAY · LOCAL TIME"));
   }
 
+  // Axis ticks only. The engine's own "2025-07" stays in the tooltip and in #monthTable,
+  // which is the text equivalent and should carry the value verbatim; this is the
+  // compressed form that lets the ticks sit level instead of rotated.
+  function monthLabel(iso) {
+    var m = /^(\d{4})-(\d{2})$/.exec(iso);
+    if (!m) return iso;
+    var names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                 "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    var name = names[parseInt(m[2], 10) - 1];
+    return name ? name + " " + m[1].slice(2) : iso;
+  }
+
   function monthChart(d) {
     var svg = $("monthChart"); svg.innerHTML = "";
-    var W = 760, H = 240, L = 52, R = 10, T = 20, B = 52;
+    // B was 52 and the ticks were rotated -42°, which put their descending ends into the
+    // axis caption at the bottom of the frame. Thirteen months across 698px leaves ~54px a
+    // tick, and "Jul 25" needs ~33px, so the ticks are set level and the rotation is gone —
+    // a rotated axis label is a workaround for a width problem this chart does not have.
+    var W = 760, H = 240, L = 52, R = 10, T = 20, B = 62;
     var pw = W - L - R, ph = H - T - B, base = T + ph;
     var ms = d.by_month;
     var max = Math.max.apply(null, ms.map(function (m) { return m.kwh; })) || 1;
@@ -996,16 +1094,15 @@ details.data summary:hover{color:var(--ox)}
       if (ms.length <= 14 || i % 2 === 0) {
         svg.appendChild(svgEl("text", {
           x: x + bw / 2, y: base + 18, "text-anchor": "middle",
-          "font-family": "var(--mono)", "font-size": "9", fill: "var(--ink-3)",
-          transform: "rotate(-42 " + (x + bw / 2) + " " + (base + 18) + ")"
-        }, m.month));
+          "font-family": "var(--mono)", "font-size": "9", fill: "var(--ink-3)"
+        }, monthLabel(m.month)));
       }
     });
     svg.appendChild(svgEl("line", {
       x1: L, y1: base, x2: W - R, y2: base, stroke: "var(--ink)", "stroke-width": 1.5
     }));
     svg.appendChild(svgEl("text", {
-      x: L, y: H - 6, "font-family": "var(--mono)", "font-size": "9.5", fill: "var(--ink-3)",
+      x: L, y: H - 4, "font-family": "var(--mono)", "font-size": "9.5", fill: "var(--ink-3)",
       "letter-spacing": ".06em"
     }, "KWH PER CALENDAR MONTH"));
   }
@@ -1014,9 +1111,10 @@ details.data summary:hover{color:var(--ox)}
   function hourTable(d) {
     var total = d.total_kwh || 1;
     $("hourTable").innerHTML =
-      "<thead><tr><th>Hour</th><th>Share</th><th>kWh</th></tr></thead><tbody>" +
+      '<thead><tr><th scope="col">Hour</th><th scope="col">Share</th>' +
+      '<th scope="col">kWh</th></tr></thead><tbody>' +
       d.by_hour_kwh.map(function (v, h) {
-        return "<tr><th>" + hourLabel(h) + (h >= 16 && h < 21 ? " · peak" : "") + "</th>" +
+        return '<tr><th scope="row">' + hourLabel(h) + (h >= 16 && h < 21 ? " · peak" : "") + "</th>" +
                "<td>" + (v / total * 100).toFixed(1) + "%</td>" +
                "<td>" + num(v, 1) + "</td></tr>";
       }).join("") + "</tbody>";
@@ -1024,9 +1122,10 @@ details.data summary:hover{color:var(--ox)}
 
   function monthTable(d) {
     $("monthTable").innerHTML =
-      "<thead><tr><th>Month</th><th>kWh</th><th>Days</th></tr></thead><tbody>" +
+      '<thead><tr><th scope="col">Month</th><th scope="col">kWh</th>' +
+      '<th scope="col">Days</th></tr></thead><tbody>' +
       d.by_month.map(function (m) {
-        return "<tr><th>" + escapeHtml(m.month) + "</th><td>" + num(m.kwh) +
+        return '<tr><th scope="row">' + escapeHtml(m.month) + "</th><td>" + num(m.kwh) +
                "</td><td>" + m.days + "</td></tr>";
       }).join("") + "</tbody>";
   }
