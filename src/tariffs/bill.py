@@ -378,7 +378,228 @@ def marginal_energy_price(
     return total
 
 
+# --- the shared charge layer -----------------------------------------------
+
+
+class TimingDependentChargeError(ValueError):
+    """A charge was asked for without the within-TOU-period timing it is billed on."""
+
+
+def _fmt_hours(hours: Sequence[tuple[int, int]]) -> str:
+    return ", ".join(f"{a:02d}:00-{b:02d}:00" for a, b in hours)
+
+
+def charge_lines(
+    spec: TariffSpec,
+    season: Season,
+    *,
+    days: int,
+    usage: dict[str, float],
+    event_kwh: float | None = None,
+    care: bool = False,
+    service: Service = Service.CCA,
+    territory: str | None = None,
+    vintage: str | None = None,
+) -> list[LineItem]:
+    """Every line one ``(spec version, season)`` run bills, from bucketed kWh and a day count.
+
+    **This is the charge layer, and it is deliberately the only copy of it.** Two callers
+    reach it: :func:`compute_layer`, which derives ``usage`` from a customer's interval
+    series, and :mod:`tariffs.bucketed`, which takes it from the per-TOU-period kWh a
+    statement prints. M1a's definition of done is a bill reconciled with no interval
+    export at all, and a second implementation of these lines would mean the bill-only
+    path could pass its gate while the interval path was wrong, or the reverse.
+
+    Everything here is a function of ``(days, usage, season, customer facts)`` — no
+    timestamp is consulted — which is the formal statement of what a statement's own
+    bucketed kWh is sufficient to reproduce. The one exception is the event adder, whose
+    kWh is measured inside named hours on named days; it is passed in rather than derived,
+    and ``event_kwh=None`` raises :class:`TimingDependentChargeError` instead of being
+    read as zero. Zero is the flattering answer, and the schedule that carries the adder
+    (SDG&E TOU-DR-P) is exactly the one where it decides the recommendation.
+
+    ``days`` is the run's length, not the statement's: the baseline allowance and the
+    fixed charge are both per-day, so a caller that merges two runs into one call would
+    misprice both.
+    """
+    total_kwh = sum(usage.values())
+    tag = season.value
+    # Build this sub-period's lines locally: percent surcharges below must apply to
+    # THIS run's subtotal only. Two runs can share a season tag (a version change
+    # within one season, e.g. 3CE's 2026-02-15 update), so filtering by season tag
+    # would let a later run's surcharge double-count an earlier run's charges.
+    sub: list[LineItem] = []
+
+    # Fixed charge (per day).
+    if spec.fixed_per_day is not None:
+        rate = spec.fixed_per_day.for_customer(care=care, what=spec.fixed_name)
+        sub.append(
+            LineItem(
+                name=spec.fixed_name,
+                season=tag,
+                quantity=days,
+                unit="day",
+                rate=rate,
+                amount=_r(days * rate),
+            )
+        )
+
+    # Energy (charged at standard rate; CARE handled as a discount line below).
+    if spec.energy is not None:
+        for period, kwh in usage.items():
+            label = spec.tou.label(period)
+            std = spec.energy_rate(season, period).for_customer(care=False, what=f"{label} energy")
+            sub.append(
+                LineItem(
+                    name=f"Energy {label}",
+                    season=tag,
+                    quantity=_r(kwh),
+                    unit="kWh",
+                    rate=std,
+                    amount=_r(kwh * std),
+                    volumetric=True,
+                )
+            )
+
+    # Baseline credit: min(usage, allowance) x credit (standard rate).
+    credited_kwh = 0.0
+    if spec.baseline is not None:
+        credited_kwh = spec.baseline.credited_kwh(season, days, total_kwh, territory)
+        cr = spec.baseline.credit_per_kwh.for_customer(care=False, what="baseline credit")
+        sub.append(
+            LineItem(
+                name="Baseline Credit",
+                season=tag,
+                quantity=_r(credited_kwh),
+                unit="kWh",
+                rate=cr,
+                amount=_r(credited_kwh * cr),
+                volumetric=True,
+            )
+        )
+
+    # CARE discount = sum (care - standard) x kWh over energy + baseline credit.
+    # Only emitted for layers that actually define CARE rates (delivery, not 3CE).
+    if care and spec.energy is not None:
+        disc = 0.0
+        has_care = False
+        for period, kwh in usage.items():
+            r = spec.energy_rate(season, period)
+            if r.care is not None and r.standard is not None:
+                disc += kwh * (r.care - r.standard)
+                has_care = True
+        if spec.baseline is not None:
+            bc = spec.baseline.credit_per_kwh
+            if bc.care is not None and bc.standard is not None:
+                disc += credited_kwh * (bc.care - bc.standard)
+                has_care = True
+        if has_care:
+            sub.append(LineItem(name="CARE Discount", season=tag, amount=_r(disc), volumetric=True))
+
+    # Event-contingent adder (SDG&E's RYU Event Period Adder). Billed at the
+    # customer's own class rate rather than folded into the CARE Discount line,
+    # because SDG&E prints it that way: the TOU-DR-P-CARE table gives the RYU row its
+    # own "Total Adjusted CARE Rate" (0.75) beside the standard 1.16, exactly as it
+    # does for the Base Services Charge. `event_days` is guaranteed non-None here for
+    # any spec carrying an adder — `_check_event_days` raised above otherwise.
+    if spec.event_adder is not None:
+        ea = spec.event_adder
+        if event_kwh is None:
+            raise TimingDependentChargeError(
+                f"{spec.schedule_id} carries the {ea.name} ({ea.per_kwh.standard}/kWh on "
+                f"up to {ea.max_events_per_year} utility-called days a year, "
+                f"{_fmt_hours(ea.hours)} local) and cannot be billed from per-TOU-period "
+                "kWh alone: the adder is charged on the kWh that fell inside those hours "
+                "ON THOSE DAYS, which is strictly finer than any TOU bucket a statement "
+                "prints. Reconcile this schedule from interval data."
+            )
+        ev_kwh = event_kwh
+        rate = ea.per_kwh.for_customer(care=care, what=ea.name)
+        sub.append(
+            LineItem(
+                name=ea.name,
+                season=tag,
+                quantity=_r(ev_kwh),
+                unit="kWh",
+                rate=rate,
+                amount=_r(ev_kwh * rate),
+                volumetric=True,
+            )
+        )
+
+    # Per-kWh adders (PCIA, generation credit, ...). May be flat, seasonal, or TOU;
+    # a TOU adder (e.g. the TOU-weighted Generation Credit) reports no single rate.
+    for adder in spec.adders:
+        if not adder.applies_to.covers(service):
+            continue
+        amt, rate = adder.amount(season, usage, vintage=vintage)
+        sub.append(
+            LineItem(
+                name=adder.name,
+                season=tag,
+                quantity=_r(total_kwh),
+                unit="kWh",
+                rate=rate,
+                amount=_r(amt),
+                volumetric=True,
+            )
+        )
+
+    # Energy Commission Tax (generation layer), per kWh.
+    if spec.energy_commission_tax_per_kwh is not None:
+        r = spec.energy_commission_tax_per_kwh
+        sub.append(
+            LineItem(
+                name="Energy Commission Tax",
+                season=tag,
+                quantity=_r(total_kwh),
+                unit="kWh",
+                rate=r,
+                amount=_r(total_kwh * r),
+            )
+        )
+
+    # Percent surcharges (franchise fee on energy; UUT on pretax subtotal), each on
+    # this sub-period's own subtotal.
+    pretax = sum(li.amount for li in sub)
+    energy_sub = sum(li.amount for li in sub if li.name.startswith("Energy "))
+    for sur in spec.surcharges:
+        if not sur.applies_to.covers(service):
+            continue
+        amt, rate = sur.amount(pretax=pretax, energy=energy_sub, kwh=total_kwh)
+        sub.append(LineItem(name=sur.name, season=tag, rate=rate, amount=_r(amt)))
+
+    return sub
+
+
 # --- the billing function --------------------------------------------------
+
+
+def minimum_bill_line(items: list[LineItem], meta: TariffSpec, days: int, *, care: bool) -> None:
+    """Append the SDG&E Minimum Bill shortfall to ``items`` in place, if the floor bound.
+
+    A floor on the *layer* total over the whole statement, applied once rather than per
+    sub-period because the tariff states it per billing month; the shortfall is its own
+    line so a reconciliation shows when it bound. Shared with :mod:`tariffs.bucketed` for
+    the same reason :func:`charge_lines` is: SDG&E is the utility that has this floor and
+    the one whose first reconciliation will be bill-only.
+
+    A function of the day count and the lines already billed, so printed per-period kWh
+    is sufficient to reproduce it.
+    """
+    if meta.minimum_bill is None:
+        return
+    floor = days * meta.minimum_bill.per_day.for_customer(care=care, what=meta.minimum_bill.name)
+    so_far = sum(li.amount for li in items)
+    if so_far < floor:
+        items.append(
+            LineItem(
+                name=meta.minimum_bill.name,
+                quantity=days,
+                unit="day",
+                amount=_r(floor - so_far),
+            )
+        )
 
 
 def compute_layer(
@@ -436,170 +657,25 @@ def compute_layer(
     for spec, season, d0, d1 in _rate_subperiods(
         period_start, period_end, versions, allow_before_effective=allow_before_effective
     ):
-        days = (d1 - d0).days + 1
-        usage = _usage(series, spec, d0, d1)
-        total_kwh = sum(usage.values())
-        tag = season.value
-        # Build this sub-period's lines locally: percent surcharges below must apply to
-        # THIS run's subtotal only. Two runs can share a season tag (a version change
-        # within one season, e.g. 3CE's 2026-02-15 update), so filtering by season tag
-        # would let a later run's surcharge double-count an earlier run's charges.
-        sub: list[LineItem] = []
-
-        # Fixed charge (per day).
-        if spec.fixed_per_day is not None:
-            rate = spec.fixed_per_day.for_customer(care=care, what=spec.fixed_name)
-            sub.append(
-                LineItem(
-                    name=spec.fixed_name,
-                    season=tag,
-                    quantity=days,
-                    unit="day",
-                    rate=rate,
-                    amount=_r(days * rate),
-                )
+        items.extend(
+            charge_lines(
+                spec,
+                season,
+                days=(d1 - d0).days + 1,
+                usage=_usage(series, spec, d0, d1),
+                event_kwh=(
+                    _event_kwh(series, spec.event_adder, event_days or (), d0, d1)
+                    if spec.event_adder is not None
+                    else None
+                ),
+                care=care,
+                service=service,
+                territory=territory,
+                vintage=vintage,
             )
-
-        # Energy (charged at standard rate; CARE handled as a discount line below).
-        if spec.energy is not None:
-            for period, kwh in usage.items():
-                label = spec.tou.label(period)
-                std = spec.energy_rate(season, period).for_customer(
-                    care=False, what=f"{label} energy"
-                )
-                sub.append(
-                    LineItem(
-                        name=f"Energy {label}",
-                        season=tag,
-                        quantity=_r(kwh),
-                        unit="kWh",
-                        rate=std,
-                        amount=_r(kwh * std),
-                        volumetric=True,
-                    )
-                )
-
-        # Baseline credit: min(usage, allowance) x credit (standard rate).
-        credited_kwh = 0.0
-        if spec.baseline is not None:
-            credited_kwh = spec.baseline.credited_kwh(season, days, total_kwh, territory)
-            cr = spec.baseline.credit_per_kwh.for_customer(care=False, what="baseline credit")
-            sub.append(
-                LineItem(
-                    name="Baseline Credit",
-                    season=tag,
-                    quantity=_r(credited_kwh),
-                    unit="kWh",
-                    rate=cr,
-                    amount=_r(credited_kwh * cr),
-                    volumetric=True,
-                )
-            )
-
-        # CARE discount = sum (care - standard) x kWh over energy + baseline credit.
-        # Only emitted for layers that actually define CARE rates (delivery, not 3CE).
-        if care and spec.energy is not None:
-            disc = 0.0
-            has_care = False
-            for period, kwh in usage.items():
-                r = spec.energy_rate(season, period)
-                if r.care is not None and r.standard is not None:
-                    disc += kwh * (r.care - r.standard)
-                    has_care = True
-            if spec.baseline is not None:
-                bc = spec.baseline.credit_per_kwh
-                if bc.care is not None and bc.standard is not None:
-                    disc += credited_kwh * (bc.care - bc.standard)
-                    has_care = True
-            if has_care:
-                sub.append(
-                    LineItem(name="CARE Discount", season=tag, amount=_r(disc), volumetric=True)
-                )
-
-        # Event-contingent adder (SDG&E's RYU Event Period Adder). Billed at the
-        # customer's own class rate rather than folded into the CARE Discount line,
-        # because SDG&E prints it that way: the TOU-DR-P-CARE table gives the RYU row its
-        # own "Total Adjusted CARE Rate" (0.75) beside the standard 1.16, exactly as it
-        # does for the Base Services Charge. `event_days` is guaranteed non-None here for
-        # any spec carrying an adder — `_check_event_days` raised above otherwise.
-        if spec.event_adder is not None:
-            ea = spec.event_adder
-            ev_kwh = _event_kwh(series, ea, event_days or (), d0, d1)
-            rate = ea.per_kwh.for_customer(care=care, what=ea.name)
-            sub.append(
-                LineItem(
-                    name=ea.name,
-                    season=tag,
-                    quantity=_r(ev_kwh),
-                    unit="kWh",
-                    rate=rate,
-                    amount=_r(ev_kwh * rate),
-                    volumetric=True,
-                )
-            )
-
-        # Per-kWh adders (PCIA, generation credit, ...). May be flat, seasonal, or TOU;
-        # a TOU adder (e.g. the TOU-weighted Generation Credit) reports no single rate.
-        for adder in spec.adders:
-            if not adder.applies_to.covers(service):
-                continue
-            amt, rate = adder.amount(season, usage, vintage=vintage)
-            sub.append(
-                LineItem(
-                    name=adder.name,
-                    season=tag,
-                    quantity=_r(total_kwh),
-                    unit="kWh",
-                    rate=rate,
-                    amount=_r(amt),
-                    volumetric=True,
-                )
-            )
-
-        # Energy Commission Tax (generation layer), per kWh.
-        if spec.energy_commission_tax_per_kwh is not None:
-            r = spec.energy_commission_tax_per_kwh
-            sub.append(
-                LineItem(
-                    name="Energy Commission Tax",
-                    season=tag,
-                    quantity=_r(total_kwh),
-                    unit="kWh",
-                    rate=r,
-                    amount=_r(total_kwh * r),
-                )
-            )
-
-        # Percent surcharges (franchise fee on energy; UUT on pretax subtotal), each on
-        # this sub-period's own subtotal.
-        pretax = sum(li.amount for li in sub)
-        energy_sub = sum(li.amount for li in sub if li.name.startswith("Energy "))
-        for sur in spec.surcharges:
-            if not sur.applies_to.covers(service):
-                continue
-            amt, rate = sur.amount(pretax=pretax, energy=energy_sub, kwh=total_kwh)
-            sub.append(LineItem(name=sur.name, season=tag, rate=rate, amount=_r(amt)))
-
-        items.extend(sub)
-
-    # Minimum bill: a floor on the *layer* total over the whole period (SDG&E). Applied
-    # once, not per sub-period, since the tariff states it per billing month; the shortfall
-    # is emitted as its own line so the reconciliation shows when the floor bound.
-    if meta.minimum_bill is not None:
-        days = (period_end - period_start).days + 1
-        floor = days * meta.minimum_bill.per_day.for_customer(
-            care=care, what=meta.minimum_bill.name
         )
-        so_far = sum(li.amount for li in items)
-        if so_far < floor:
-            items.append(
-                LineItem(
-                    name=meta.minimum_bill.name,
-                    quantity=days,
-                    unit="day",
-                    amount=_r(floor - so_far),
-                )
-            )
+
+    minimum_bill_line(items, meta, (period_end - period_start).days + 1, care=care)
 
     total = _r(sum(li.amount for li in items))
     return LayerBill(
