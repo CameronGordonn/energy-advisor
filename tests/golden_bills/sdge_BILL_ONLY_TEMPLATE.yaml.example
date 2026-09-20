@@ -1,0 +1,147 @@
+# SDG&E BILL-ONLY golden-bill fixture TEMPLATE — copy to `sdge_<MM-DD-YYYY>.yaml`, fill in.
+#
+# NOT A FIXTURE. The extension is `.yaml.example` deliberately: the reconciliation gate
+# globs `*.yaml`, so this file is documentation and cannot be mistaken for evidence.
+# It carries NO dollar figures and NO kWh figures. Every number below must be transcribed
+# off a real itemised SDG&E statement — invariant 1 is reconciliation-gated, and a
+# fabricated expectation (or a fabricated load) would turn the merge gate into a mirror.
+#
+# ---------------------------------------------------------------------------------------
+# WHAT THIS ONE IS FOR, and how it differs from `sdge_TEMPLATE.yaml.example`
+#
+#   sdge_TEMPLATE.yaml.example   M1b — the INTERVAL path. Needs the household's Green
+#                                Button export in data/ as well as the statement. Tests
+#                                the parser, the TOU rules and the rates.
+#   THIS FILE                    M1a — the BILL-ONLY path. Needs NOTHING but the
+#                                statement. Tests the rates and the charge structure and
+#                                takes SDG&E's own bucketing as given.
+#
+# M1a's definition of done says "from the statements' own per-TOU-period kWh, no interval
+# data required" (ROADMAP, amended 2026-09-16). This is the fixture shape that meets it,
+# so the first ordinary SDG&E statement to arrive can be reconciled the same day, by
+# transcription alone, with no export and no conversation about a year of 15-minute data.
+#
+# A fixture MAY carry both this block and an interval export. Then the two are
+# cross-checked per TOU period before anything is priced, and a disagreement beyond
+# `printed_usage.tolerance_kwh` is refused rather than averaged (that comparison is the
+# only direct measurement of M1b's claim that we bucket intervals the way SDG&E does).
+#
+# WHAT TO READ OFF THE BILL, and where each thing goes:
+#
+#   schedule            -> specs.delivery / specs.generation     (e.g. TOU-DR1, EV-TOU-5)
+#   who supplies power  -> specs.generation_provider + customer.service
+#   climate zone        -> customer.territory
+#   PCIA vintage        -> customer.vintage      (CCA customers only; it is printed)
+#   CARE / FERA         -> customer_class
+#   kWh by TOU period   -> printed_usage.segments[].kwh
+#   every $ line        -> expected.*
+# ---------------------------------------------------------------------------------------
+
+statement_date: MM-DD-YYYY
+period_start: 'YYYY-MM-DD' # first day of the billing period, inclusive
+period_end: 'YYYY-MM-DD' # last day, inclusive
+
+utility: SDG&E # selects the parser IF an export is also present; harmless without one
+customer_class: standard # or CARE
+
+customer:
+  # Facts about the HOUSEHOLD that no tariff can supply. The harness asks the loaded
+  # specs which of these they need and refuses the fixture, BY NAME, if one is missing.
+  # There is deliberately no default for any of them. Identical to the interval
+  # template's block — dropping the export changes nothing about what the tariff cannot
+  # know about the customer.
+
+  # bundled = SDG&E supplies generation; cca = San Diego Community Power or Clean Energy
+  # Alliance does. Decides whether the PCIA and the generation credit are billed at all.
+  # The CCA case is shown because it needs strictly more facts: on `bundled`, drop the
+  # `vintage` below (a bundled household never pays the PCIA and has no vintage to give)
+  # and set generation_provider to SDG&E.
+  service: cca
+
+  # SDG&E climate zone + Basic/All-Electric, from Schedule DR SC 3. This scales the
+  # baseline credit, the largest single credit on a CA residential bill; a wrong zone
+  # misprices every statement without any one line looking wrong.
+  # Keys published by the specs: coastal_basic, coastal_all_electric, inland_basic,
+  # inland_all_electric, mountain_basic, mountain_all_electric, desert_basic,
+  # desert_all_electric.
+  territory: coastal_basic # EXAMPLE — replace with the zone printed on the bill
+
+  # PCIA vintage — the year this account's load departed bundled service. CCA customers
+  # only; required whenever the delivery spec publishes a per-vintage PCIA table. The
+  # 2026 spread is ~0.035 $/kWh, about $210/yr on a 6,000 kWh household.
+  vintage: '2018' # EXAMPLE — replace with the vintage printed on the bill
+
+  # NOTE — `event_days` has NO effect on this path and TOU-DR-P CANNOT be reconciled
+  # from printed buckets at all. The RYU Event Period Adder is billed on the kWh that
+  # fell between 4 p.m. and 9 p.m. ON the days SDG&E called, which is strictly finer
+  # than any bucket a statement prints. The bill-only path raises
+  # `TimingDependentChargeError` naming the adder rather than billing it as zero.
+  # A TOU-DR-P statement needs the interval template and an export.
+
+specs:
+  delivery: TOU-DR1
+  generation: TOU-DR1
+  # Four providers author TOU-DR1 generation (SDG&E bundled EECC, CEA, SDCP-2021V,
+  # SDCP-2022V) and their rates differ by up to 20 c/kWh in a period, so the loader
+  # raises unless one is named. Provider strings are the specs' own `provider:` values.
+  generation_provider: SDCP-2021V # EXAMPLE — SDG&E | CEA | SDCP-2021V | SDCP-2022V
+
+# --- the bill-only input ------------------------------------------------------------
+printed_usage:
+  # ONE SEGMENT PER BLOCK THE STATEMENT PRINTS. A statement that spans no rate change
+  # prints one; SDG&E prints a second when rates change mid-cycle, and that matters more
+  # often than it sounds — SDG&E filed FIVE 2026 TOU-DR1 vintages (1/1, 4/1, 5/1, 6/1,
+  # 8/1) and its summer season starts 6/1, so a routine 30-day statement straddles a
+  # boundary more often than not, and delivery and generation can change on different
+  # dates.
+  #
+  # A segment that SPANS a rate change or a season boundary is REFUSED
+  # (`SegmentStraddlesRateChangeError`), never split pro rata: printed buckets say how
+  # much energy fell in each TOU period, never on which side of the change it fell, and
+  # the two sides are priced differently. If the statement does not itemise its own
+  # sub-periods, say so here and reconcile that month from intervals instead.
+  #
+  # `start`/`end` are INCLUSIVE and the segments must tile period_start..period_end
+  # exactly — no gap, no overlap. The Base Services Charge and the baseline allowance are
+  # both per-day, so a day the segments miss is a wrong bill, not a partial one.
+  segments:
+    - start: 'YYYY-MM-DD'
+      end: 'YYYY-MM-DD'
+      kwh:
+        # Keys are the SCHEDULE's period names, not the statement's printed labels
+        # (On-Peak / Off-Peak / Super Off-Peak). Every period the schedule defines must
+        # appear; write 0 explicitly where the statement printed none. A blank is refused
+        # by period name — an unfilled bucket read as zero is a fabricated usage figure,
+        # and it lowers the bill.
+        on_peak:
+        off_peak:
+        super_off_peak:
+    # - start: 'YYYY-MM-DD'          # second block, only if the statement prints one
+    #   end: 'YYYY-MM-DD'
+    #   kwh: {on_peak: , off_peak: , super_off_peak: }
+
+  # How far a printed bucket may sit from the metered one before the fixture is refused,
+  # and it applies ONLY when an interval export is present too. SDG&E prints usage to the
+  # whole kWh, so a faithful transcription of a correct statement lands inside half a kWh.
+  # Widen it only with a reason written here.
+  tolerance_kwh: 0.5
+
+  source: # e.g. "SDG&E statement MM/DD/YYYY, 'Your energy usage by time of use' table."
+
+expected:
+  # TRANSCRIBE, do not compute. Line names must match the engine's own line names — run
+  # the reconciliation once with a placeholder and read the modeled column for the exact
+  # spelling, then fill the bill column from the statement.
+  delivery:
+    line_items: {} # "<line name>": <dollars from the statement>
+    total: # delivery subtotal as printed
+  generation:
+    line_items: {}
+    total:
+  # Lines the engine does not model and takes as given (climate credit, observed
+  # adjustments). Each one is an admission, not a fit — keep the list short and say why.
+  observed_adjustments: {}
+  electric_net_total: # the statement's electric total
+
+tolerance_dollars: 2.0
+source: # e.g. "SDG&E statement MM/DD/YYYY (anonymized; no PII)."

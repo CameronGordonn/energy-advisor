@@ -12,6 +12,15 @@ reconciled at all. Discovering that on the day a customer's bill arrives is a se
 harness work under time pressure; these tests turn it into a fixture. They deliberately
 assert no SDG&E dollar: no real SDG&E bill exists yet, and invariant 1 says a dollar
 figure has to be earned against one.
+
+Session 29 added a second entry point and a second plumbing gate below it. M1a's DoD is a
+statement reconciled **from its own printed per-TOU-period kWh, with no interval export**,
+because the ask that closes it is one redacted bill rather than a year of 15-minute data
+(``notes/m1_without_dad_2026-09.md``). The same rule applies to that path: its tests need
+no data, they fail loudly when a spec starts demanding something new, and they assert no
+SDG&E dollar. What they *do* assert is parity — given identical bucketed kWh the two
+paths produce identical dollars — which is measured on the PG&E golden bills, the only
+place this repo holds both an interval export and a real statement.
 """
 
 from __future__ import annotations
@@ -26,10 +35,13 @@ from greenbutton import GreenButtonParseError
 from greenbutton.models import Utility
 from report.reconcile import (
     CUSTOMER_FACTS,
+    DEFAULT_PRINTED_TOLERANCE_KWH,
     INTERVAL_GLOBS,
     AmbiguousIntervalExportError,
     FixtureError,
     MissingCustomerFactError,
+    NoUsageEvidenceError,
+    PrintedUsageDisagreementError,
     customer_facts,
     fixture_utility,
     format_comparison,
@@ -37,11 +49,23 @@ from report.reconcile import (
     interval_files_for,
     load_fixture,
     parse_interval_file,
+    printed_tolerance_kwh,
+    printed_usage,
     reconcile,
     required_customer_facts,
 )
+from tariffs.bill import TimingDependentChargeError, compute_bill
+from tariffs.bucketed import (
+    SegmentCoverageError,
+    SegmentStraddlesRateChangeError,
+    UnbucketedPeriodError,
+    UsageSegment,
+    compute_bill_from_usage,
+    segments_from_series,
+)
+from tariffs.climate_credit import credit_for
 from tariffs.loader import load_spec_versions
-from tariffs.schema import Layer
+from tariffs.schema import Layer, Service
 
 GOLDEN = Path(__file__).parent
 FIXTURES = sorted(GOLDEN.glob("*.yaml"))
@@ -475,3 +499,464 @@ def test_the_climate_zone_the_fixture_supplies_actually_moves_the_bill(tmp_path)
 
     gap = abs(credit("coastal_basic") - credit("desert_all_electric"))
     assert gap > 20.0, f"one month, two climate zones, only ${gap:.2f} apart"
+
+
+# --- the bill-only path (M1a) -----------------------------------------------
+#
+# M1a's DoD is a statement reconciled from its OWN per-TOU-period kWh, with no interval
+# export (ROADMAP, amended 2026-09-16). Everything from here down needs no data, for the
+# same reason the dispatch gate above needs none: the harness work has to be finished
+# BEFORE the first real SDG&E bill lands, not discovered on the day it does. And as
+# above, no SDG&E dollar is asserted anywhere — none has been earned.
+
+BILL_ONLY_TEMPLATE = GOLDEN / "sdge_BILL_ONLY_TEMPLATE.yaml.example"
+
+
+def _sdge_layers(*, generation_provider: str = "SDG&E", schedule: str = "TOU-DR1"):
+    """(delivery versions, generation versions) — the shape compute_bill wants."""
+    return (
+        load_spec_versions(schedule, Layer.DELIVERY),
+        load_spec_versions(schedule, Layer.GENERATION, provider=generation_provider),
+    )
+
+
+def _seg(start: str, end: str, **kwh) -> UsageSegment:
+    return UsageSegment(start=date.fromisoformat(start), end=date.fromisoformat(end), kwh=kwh)
+
+
+# --- parity: the two paths are one charge layer ------------------------------
+
+
+@pytest.mark.parametrize("fx_path", FIXTURES, ids=lambda p: p.stem)
+def test_the_two_paths_produce_identical_dollars_on_every_golden_bill(fx_path):
+    """The substantive claim of the bill-only path, measured where both inputs exist.
+
+    The eleven PG&E golden bills are the only place this repo holds a real interval
+    export AND a real statement, so they are the only place the bill-only path can be
+    validated before a bill-only fixture exists. Bucket their real intervals the way a
+    statement would print them, price those buckets, and every line must land on the
+    interval path's line to the cent — not within the ±$2 gate, EXACTLY, because the two
+    paths are supposed to be the same arithmetic reached by different roads.
+
+    Mutation-checked while writing: changing any rate, rounding or line name reached by
+    one path and not the other is impossible by construction, which is the point —
+    ``tariffs.bill.charge_lines`` is the only copy.
+    """
+    fixture = load_fixture(fx_path)
+    utility = fixture_utility(fixture)
+    series = _series_for(utility)
+    if series is None:
+        pytest.skip(f"real {utility.value} interval export not present")
+
+    ps = date.fromisoformat(fixture["period_start"])
+    pe = date.fromisoformat(fixture["period_end"])
+    spec_ids = fixture["specs"]
+    layers = [
+        load_spec_versions(
+            spec_ids["delivery"], Layer.DELIVERY, provider=spec_ids.get("delivery_provider")
+        ),
+        load_spec_versions(
+            spec_ids["generation"], Layer.GENERATION, provider=spec_ids.get("generation_provider")
+        ),
+    ]
+    facts = customer_facts(fixture, [s for versions in layers for s in versions], name=fx_path.name)
+    care = fixture.get("customer_class") == "CARE"
+    credit = credit_for(utility.value, ps, pe)
+
+    from_intervals = compute_bill(series, layers, ps, pe, care=care, climate_credit=credit, **facts)
+    segments = segments_from_series(series, layers, ps, pe)
+    from_printed = compute_bill_from_usage(
+        segments, layers, ps, pe, care=care, climate_credit=credit, **facts
+    )
+
+    assert from_printed.total == from_intervals.total
+    for printed, metered in zip(from_printed.layers, from_intervals.layers, strict=True):
+        assert printed.bucket() == metered.bucket()
+        assert printed.total == metered.total
+
+
+@pytest.mark.parametrize("fx_path", FIXTURES, ids=lambda p: p.stem)
+def test_reconcile_dispatches_to_the_bill_only_path_and_lands_on_the_same_residual(fx_path):
+    """Parity again, but through ``reconcile`` — the thing a fixture actually calls.
+
+    Separate from the test above because the dispatch, the customer-fact gate, the
+    climate credit and the observed adjustments all sit between a fixture and
+    ``compute_bill``, and a bill-only fixture meets every one of them.
+    """
+    fixture = load_fixture(fx_path)
+    series = _series_for(fixture_utility(fixture))
+    if series is None:
+        pytest.skip("real interval export not present")
+
+    spec_ids = fixture["specs"]
+    layers = [
+        load_spec_versions(
+            spec_ids["delivery"], Layer.DELIVERY, provider=spec_ids.get("delivery_provider")
+        ),
+        load_spec_versions(
+            spec_ids["generation"], Layer.GENERATION, provider=spec_ids.get("generation_provider")
+        ),
+    ]
+    ps = date.fromisoformat(fixture["period_start"])
+    pe = date.fromisoformat(fixture["period_end"])
+    bill_only = dict(fixture)
+    bill_only["printed_usage"] = {
+        "segments": [
+            {"start": s.start, "end": s.end, "kwh": dict(s.kwh)}
+            for s in segments_from_series(series, layers, ps, pe)
+        ]
+    }
+
+    from_intervals = reconcile(fixture, series, name=fx_path.name)
+    from_printed = reconcile(bill_only, None, name=fx_path.name)
+
+    assert from_printed.usage_source == "printed"
+    assert from_intervals.usage_source == "interval"
+    assert from_printed.net_modeled == from_intervals.net_modeled
+    assert from_printed.delta == from_intervals.delta
+    assert [(r.section, r.name, r.modeled) for r in from_printed.rows] == [
+        (r.section, r.name, r.modeled) for r in from_intervals.rows
+    ]
+    # And the statement itself is still reproduced — the bill-only path is not a
+    # different answer that merely agrees with the old one's bug.
+    assert from_printed.within_tolerance, "\n" + format_comparison(from_printed)
+
+
+# --- the two paths agree on SDG&E-shaped specs too, with no data and no dollar ---
+
+
+def test_the_two_paths_agree_on_the_sdge_charge_structure(tmp_path):
+    """Parity where PG&E cannot reach: the baseline allowance TABLE and the minimum bill.
+
+    PG&E's specs pin one territory and carry no minimum bill, so the golden-bill parity
+    test above never exercises ``Baseline.allowances`` or ``minimum_bill_line`` — exactly
+    the two blocks SDG&E adds. A synthetic month drives both paths here and they must
+    agree line for line. **No amount is asserted**: the load is synthetic and invariant 1
+    says an SDG&E dollar is earned against a real statement, not against this.
+    """
+    series = _sdge_series(tmp_path)
+    deliv, gen = _sdge_layers()
+    ps, pe = date(2026, 1, 1), date(2026, 1, 31)
+    facts = customer_facts(
+        _sdge_period_fixture({"service": "cca", "territory": "coastal_basic", "vintage": "2018"}),
+        [*deliv, *gen],
+        name="sdge_fake.yaml",
+    )
+    from_intervals = compute_bill(series, [deliv, gen], ps, pe, **facts)
+    segments = segments_from_series(series, [deliv, gen], ps, pe)
+    from_printed = compute_bill_from_usage(segments, [deliv, gen], ps, pe, **facts)
+
+    assert from_printed.total == from_intervals.total
+    for printed, metered in zip(from_printed.layers, from_intervals.layers, strict=True):
+        assert printed.bucket() == metered.bucket()
+    # The blocks this test exists for were actually reached.
+    assert "Baseline Credit" in from_printed.layers[0].bucket()
+    assert any("Power Charge Indifference" in n for n in from_printed.layers[0].bucket())
+
+
+# --- refusals: what printed buckets cannot do -------------------------------
+
+
+def test_a_fixture_with_neither_an_export_nor_printed_kwh_is_refused_not_skipped():
+    """A skipped reconciliation reads as a passing one in a green run."""
+    fx = _sdge_period_fixture({"service": "bundled", "territory": "coastal_basic"})
+    with pytest.raises(NoUsageEvidenceError) as e:
+        reconcile(fx, None, name="sdge_fake.yaml")
+    msg = str(e.value)
+    assert "printed_usage" in msg and "sdge_BILL_ONLY_TEMPLATE" in msg
+
+
+def test_printed_kwh_that_contradicts_the_export_is_refused_by_period(tmp_path):
+    """A fixture holding both is the only place M1b's bucketing claim can be measured.
+
+    Holding them and not comparing them would waste the one cross-check available, so the
+    disagreement is reported per TOU period with both numbers, and neither is used.
+    """
+    series = _sdge_series(tmp_path)  # 0.5 kWh every hour of January 2026
+    fx = _sdge_period_fixture({"service": "bundled", "territory": "coastal_basic"})
+    truth = segments_from_series(series, list(_sdge_layers()), date(2026, 1, 1), date(2026, 1, 31))
+    wrong = dict(truth[0].kwh)
+    wrong["on_peak"] = wrong["on_peak"] + 40.0
+    fx["printed_usage"] = {
+        "segments": [{"start": truth[0].start, "end": truth[0].end, "kwh": wrong}]
+    }
+    with pytest.raises(PrintedUsageDisagreementError) as e:
+        reconcile(fx, series, name="sdge_fake.yaml")
+    msg = str(e.value)
+    assert "on_peak" in msg and "+40.00" in msg.replace("-40.00", "+40.00")
+
+
+def test_a_transcription_inside_the_printing_tolerance_is_accepted(tmp_path):
+    """SDG&E prints kWh to the whole kWh; the tolerance exists for that and nothing more."""
+    series = _sdge_series(tmp_path)
+    fx = _sdge_period_fixture({"service": "bundled", "territory": "coastal_basic"})
+    truth = segments_from_series(series, list(_sdge_layers()), date(2026, 1, 1), date(2026, 1, 31))
+    rounded = {p: round(v) for p, v in truth[0].kwh.items()}
+    fx["printed_usage"] = {
+        "segments": [{"start": truth[0].start, "end": truth[0].end, "kwh": rounded}]
+    }
+    with pytest.raises(KeyError, match="expected"):  # got past the cross-check; no bill to expect
+        reconcile(fx, series, name="sdge_fake.yaml")
+
+
+def test_a_segment_spanning_an_sdge_rate_change_is_refused_not_split_pro_rata():
+    """The case that makes this a LIST of segments rather than one bucket set.
+
+    SDG&E filed five 2026 TOU-DR1 vintages, so an ordinary 30-day statement straddles a
+    rate change more often than not. Printed buckets say how much energy fell in each TOU
+    period and never on which side of the change it fell.
+    """
+    deliv, gen = _sdge_layers()
+    with pytest.raises(SegmentStraddlesRateChangeError) as e:
+        compute_bill_from_usage(
+            [_seg("2026-04-15", "2026-05-14", on_peak=80, off_peak=200, super_off_peak=120)],
+            [deliv, gen],
+            date(2026, 4, 15),
+            date(2026, 5, 14),
+            service=Service.BUNDLED,
+            territory="coastal_basic",
+        )
+    msg = str(e.value)
+    assert "2026-04-15..2026-05-14" in msg and "2026-05-01" in msg
+
+
+def test_a_segment_spanning_the_summer_boundary_is_refused_even_at_constant_rates():
+    """Season is a rate change the tariff makes, not one the utility files.
+
+    Nov 1 on SDG&E: no filed rate change sits there (the latest 2026 vintage is 8/1), and
+    the delivery energy rate is flat across all six season/period cells anyway — but the
+    generation rate is not, and the baseline allowance is not. A statement that spans it
+    still cannot be priced from one bucket set.
+    """
+    deliv, gen = _sdge_layers()
+    with pytest.raises(SegmentStraddlesRateChangeError) as e:
+        compute_bill_from_usage(
+            [_seg("2026-10-20", "2026-11-18", on_peak=80, off_peak=200, super_off_peak=120)],
+            [deliv, gen],
+            date(2026, 10, 20),
+            date(2026, 11, 18),
+            service=Service.BUNDLED,
+            territory="coastal_basic",
+        )
+    assert "2026-11-01" in str(e.value) and "season" in str(e.value)
+
+
+def test_segments_split_at_the_statements_own_blocks_price_fine():
+    """The other half of the previous two tests: the fix is transcription, not code."""
+    deliv, gen = _sdge_layers()
+    bill = compute_bill_from_usage(
+        [
+            _seg("2026-04-15", "2026-04-30", on_peak=40, off_peak=100, super_off_peak=60),
+            _seg("2026-05-01", "2026-05-14", on_peak=40, off_peak=100, super_off_peak=60),
+        ],
+        [deliv, gen],
+        date(2026, 4, 15),
+        date(2026, 5, 14),
+        service=Service.BUNDLED,
+        territory="coastal_basic",
+    )
+    assert [layer.layer for layer in bill.layers] == [Layer.DELIVERY, Layer.GENERATION]
+    assert bill.total_kwh == 400.0
+    # `service: bundled` reached the engine through this path too.
+    assert not [n for n in bill.layers[0].bucket() if "Power Charge Indifference" in n]
+
+
+@pytest.mark.parametrize(
+    ("segments", "match"),
+    [
+        ([("2026-01-02", "2026-01-31")], "billing period"),  # starts late
+        ([("2026-01-01", "2026-01-30")], "billing period"),  # ends early
+        ([("2026-01-01", "2026-01-10"), ("2026-01-12", "2026-01-31")], "gap"),
+        ([("2026-01-01", "2026-01-15"), ("2026-01-10", "2026-01-31")], "overlap"),
+    ],
+)
+def test_segments_that_do_not_tile_the_billing_period_are_refused(segments, match):
+    """A missed day is a missed Base Services Charge and a smaller baseline allowance."""
+    deliv, gen = _sdge_layers()
+    with pytest.raises(SegmentCoverageError, match=match):
+        compute_bill_from_usage(
+            [_seg(a, b, on_peak=10, off_peak=20, super_off_peak=10) for a, b in segments],
+            [deliv, gen],
+            date(2026, 1, 1),
+            date(2026, 1, 31),
+            service=Service.BUNDLED,
+            territory="coastal_basic",
+        )
+
+
+def test_a_tou_period_left_out_of_a_segment_is_refused_rather_than_read_as_zero():
+    """Reading an omitted bucket as zero is indistinguishable from reading a typo as zero."""
+    deliv, gen = _sdge_layers()
+    with pytest.raises(UnbucketedPeriodError) as e:
+        compute_bill_from_usage(
+            [_seg("2026-01-01", "2026-01-31", on_peak=80, off_peak=200)],
+            [deliv, gen],
+            date(2026, 1, 1),
+            date(2026, 1, 31),
+            service=Service.BUNDLED,
+            territory="coastal_basic",
+        )
+    assert "super_off_peak" in str(e.value) and "write 0 explicitly" in str(e.value)
+
+
+def test_a_tou_period_the_schedule_does_not_bill_is_refused():
+    deliv, gen = _sdge_layers()
+    with pytest.raises(UnbucketedPeriodError, match="mid_peak"):
+        compute_bill_from_usage(
+            [
+                _seg(
+                    "2026-01-01",
+                    "2026-01-31",
+                    on_peak=80,
+                    off_peak=200,
+                    super_off_peak=1,
+                    mid_peak=1,
+                )
+            ],
+            [deliv, gen],
+            date(2026, 1, 1),
+            date(2026, 1, 31),
+            service=Service.BUNDLED,
+            territory="coastal_basic",
+        )
+
+
+def test_tou_dr_p_cannot_be_reconciled_from_printed_buckets_at_all():
+    """The one charge in the SDG&E book that printed per-period kWh cannot reach.
+
+    The RYU Event Period Adder is billed on kWh inside 16:00-21:00 ON the days SDG&E
+    called — strictly finer than any bucket a statement prints. Zero is both the usual
+    outcome and the flattering one, so this raises by name instead.
+    """
+    deliv, gen = _sdge_layers(schedule="TOU-DR-P")
+    with pytest.raises(TimingDependentChargeError) as e:
+        compute_bill_from_usage(
+            [_seg("2026-06-01", "2026-06-30", on_peak=80, off_peak=200, super_off_peak=120)],
+            [deliv, gen],
+            date(2026, 6, 1),
+            date(2026, 6, 30),
+            service=Service.BUNDLED,
+            territory="coastal_basic",
+        )
+    msg = str(e.value)
+    assert "RYU" in msg and "16:00-21:00" in msg and "interval data" in msg
+
+
+def test_the_interval_path_still_bills_the_event_adder(tmp_path):
+    """The refusal above is about the bill-only path, not about the adder.
+
+    Stated as a test because a refusal that had quietly disabled the charge everywhere
+    would look identical from the bill-only side.
+    """
+    series = _sdge_series(tmp_path)
+    deliv, gen = _sdge_layers(schedule="TOU-DR-P")
+    bill = compute_bill(
+        series,
+        [deliv, gen],
+        date(2026, 1, 1),
+        date(2026, 1, 31),
+        service=Service.BUNDLED,
+        territory="coastal_basic",
+        event_days=[date(2026, 1, 15)],
+        allow_before_effective=True,
+    )
+    ryu = [n for n in bill.layers[1].bucket() if "RYU" in n or "Event" in n]
+    assert ryu, bill.layers[1].bucket()
+
+
+# --- the bill-only template --------------------------------------------------
+
+
+def test_the_bill_only_template_is_not_picked_up_as_a_fixture():
+    assert BILL_ONLY_TEMPLATE.exists()
+    assert BILL_ONLY_TEMPLATE not in FIXTURES
+    assert BILL_ONLY_TEMPLATE.suffixes[-1] == ".example"
+
+
+def test_the_bill_only_template_declares_every_fact_the_sdge_specs_demand():
+    """Same gate as the interval template: a spec that starts demanding a new customer
+    fact fails here, rather than being discovered while a real bill is waiting."""
+    fixture = yaml.safe_load(BILL_ONLY_TEMPLATE.read_text())
+    specs = _sdge_specs(generation_provider=fixture["specs"]["generation_provider"])
+    facts = customer_facts(fixture, specs, name=BILL_ONLY_TEMPLATE.name)
+    assert facts["territory"] in ("coastal_basic",)
+
+
+def test_the_bill_only_template_buckets_exactly_the_periods_the_sdge_specs_bill():
+    """The bill-only analogue of the customer-fact gate, and the reason it is needed:
+    a schedule that gained a fourth TOU period would make every transcription of this
+    template silently incomplete, and the engine would refuse the fixture on the day the
+    bill arrived instead of here."""
+    fixture = yaml.safe_load(BILL_ONLY_TEMPLATE.read_text())
+    deliv, gen = _sdge_layers(generation_provider=fixture["specs"]["generation_provider"])
+    expected = set(deliv[-1].tou.periods)
+    assert expected == set(gen[-1].tou.periods), "layers disagree about the period set"
+    for seg in fixture["printed_usage"]["segments"]:
+        assert set(seg["kwh"]) == expected
+
+
+def test_the_bill_only_template_carries_no_dollar_figures():
+    """Invariant 1: no SDG&E dollar may be committed before a real SDG&E bill earns it."""
+    exp = yaml.safe_load(BILL_ONLY_TEMPLATE.read_text())["expected"]
+    assert exp["delivery"]["line_items"] == {}
+    assert exp["generation"]["line_items"] == {}
+    assert exp["observed_adjustments"] == {}
+    assert exp["electric_net_total"] is None
+    assert exp["delivery"]["total"] is None and exp["generation"]["total"] is None
+
+
+def test_the_bill_only_template_carries_no_kwh_figures_and_says_so_by_name():
+    """A load is an expectation too. The template ships blank and refuses to be priced,
+    naming the period that is unfilled — because an unfilled bucket read as zero is a
+    fabricated usage figure, and it lowers the bill."""
+    fixture = yaml.safe_load(BILL_ONLY_TEMPLATE.read_text())
+    for seg in fixture["printed_usage"]["segments"]:
+        assert all(v is None for v in seg["kwh"].values())
+    with pytest.raises(FixtureError) as e:
+        printed_usage(fixture, name=BILL_ONLY_TEMPLATE.name)
+    msg = str(e.value)
+    assert "is blank" in msg and BILL_ONLY_TEMPLATE.name in msg
+
+
+def test_the_bill_only_templates_tolerance_is_the_harness_default():
+    """Kept in step deliberately: a template that quietly widened the cross-check would
+    be advice to ignore a disagreement."""
+    fixture = yaml.safe_load(BILL_ONLY_TEMPLATE.read_text())
+    assert fixture["printed_usage"]["tolerance_kwh"] == DEFAULT_PRINTED_TOLERANCE_KWH
+    assert printed_tolerance_kwh(fixture) == DEFAULT_PRINTED_TOLERANCE_KWH
+
+
+def test_a_fixture_with_no_printed_usage_block_is_not_a_bill_only_fixture():
+    assert printed_usage({"utility": "SDG&E"}) is None
+
+
+@pytest.mark.parametrize(
+    ("block", "match"),
+    [
+        ({"segments": []}, "non-empty list"),
+        ({"segments": [{"start": "2026-01-01", "kwh": {"on_peak": 1}}]}, r"\['end'\]"),
+        ({"segments": [{"start": "2026-01-01", "end": "2026-01-31"}]}, r"\['kwh'\]"),
+        (
+            {"segments": [{"start": "2026-01-01", "end": "2026-01-31", "kwh": {"on_peak": "x"}}]},
+            "not a number",
+        ),
+        (
+            {"segments": [{"start": "nope", "end": "2026-01-31", "kwh": {"on_peak": 1}}]},
+            "not a YYYY-MM-DD date",
+        ),
+        ({"segmets": []}, "unknown printed_usage key"),
+    ],
+)
+def test_a_malformed_printed_usage_block_is_refused_by_name(block, match):
+    with pytest.raises(FixtureError, match=match):
+        printed_usage({"printed_usage": block}, name="sdge_fake.yaml")
+
+
+@pytest.mark.parametrize("fx_path", FIXTURES, ids=lambda p: p.stem)
+def test_every_committed_fixture_offers_some_usage_evidence(fx_path):
+    """Needs no data: a fixture with no export in data/ AND no printed block would skip
+    forever rather than fail, which is the failure mode this whole section exists for."""
+    fixture = load_fixture(fx_path)
+    has_printed = printed_usage(fixture, name=fx_path.name) is not None
+    has_export_glob = bool(INTERVAL_GLOBS[fixture_utility(fixture)])
+    assert has_printed or has_export_glob
