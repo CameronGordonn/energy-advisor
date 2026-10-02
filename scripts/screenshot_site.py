@@ -81,6 +81,12 @@ def main(outdir: Path) -> int:
                         [
                             {
                                 "code": "TERRITORY_NOT_AUTHORED",
+                                "summary": (
+                                    "Your bill lists baseline territory X, and this tool "
+                                    "only has the rates for territory T so far \u2014 the "
+                                    "amount of cheaper baseline electricity you get "
+                                    "depends on it."
+                                ),
                                 "detail": (
                                     "The committed PG&E specs carry the baseline allowance "
                                     "for territory T only, and this account is in territory "
@@ -90,6 +96,10 @@ def main(outdir: Path) -> int:
                             },
                             {
                                 "code": "SUPPLIER_NOT_AUTHORED",
+                                "summary": (
+                                    "This tool does not have MCE's rates yet \u2014 only "
+                                    "3CE and PG&E."
+                                ),
                                 "detail": (
                                     "Generation layers exist for 3CE and PG&E. MCE has none."
                                 ),

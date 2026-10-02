@@ -100,6 +100,27 @@ Measured: **1,788 passed** (+16), ruff clean, 11/11 PG&E unchanged (worst +$0.22
 wasm-parity and render checks green, `docs/engine.js` + `docs/case-study.json` rebuilt (digest
 only; every case-study number unchanged), M3 demo figures unchanged.
 
+### Site usability overhaul (Cameron: "overhaul the usability of the website")
+
+Looked at all four states before touching anything; the problems were all about a
+homeowner getting stuck, not about the visual system, which was left alone.
+1. Hero filled the first screen; the tool was below the fold → headline resized, lede says
+   what the tool is for.
+2. The pricing form asked for "Baseline territory: T / Anything else" and "Heat Source H"
+   with no hint where to look → every field names the printed line on a PG&E statement
+   (wording read off a real statement in `data/`, not recalled).
+3. Plans were codes ("E-TOU-C + 3CE") → plain description under each; saving shown as a
+   figure.
+4. A refusal was a dead end until reload; a priced result could not be re-asked → "Change
+   my answers", "Next: what each plan would cost", "Analyze another file".
+5. Refusals led with engine vocabulary ("territory T", "generation layers") →
+   `Blocker.summary`, one plain sentence, written and tested in Python; detail folded.
+6. Sticky masthead covered every jumped-to heading → `scroll-padding-top`.
+**Not changed, deliberately:** the headline's words, the palette, the two stamps, chart
+code. The `PLAN_DESC` windows live in the page (UI labels, not findings); if a schedule's
+window changes, they move with the spec. 1,793 passed; render test +10 assertions;
+wasm parity, audit_layout clean; bundle + case study rebuilt (digest only).
+
 ### Housekeeping
 
 - HANDOFF rewritten: the top now states the 2026-10-01 position directly, instead of three

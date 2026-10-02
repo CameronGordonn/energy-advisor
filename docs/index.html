@@ -14,10 +14,12 @@
 <style>
 /* ---- hero: the headline is the largest thing on the page by a wide margin, and it is
    allowed to run wider than the text column below it. Density contrast is the point. ---- */
-.hero h1{font-size:clamp(1.95rem,9.2vw,7.6rem)}
-.hero .lede{font-size:1.12rem;line-height:1.5;max-width:38ch;margin:1.8rem 0 0;color:var(--ink-2)}
+.hero h1{font-size:clamp(1.95rem,6.6vw,5.4rem)}
+/* Sized so the intake form below is on the first screen at 1280x800. At 7.6rem the
+   headline alone filled it, and a visitor's first scroll was spent finding the tool. */
+.hero .lede{font-size:1.12rem;line-height:1.5;max-width:46ch;margin:0;color:var(--ink-2)}
 .hero .lede b{color:var(--ink);font-weight:700}
-.hero-foot{display:flex;gap:2.5rem;align-items:flex-start;margin-top:2.2rem;flex-wrap:wrap}
+.hero-foot{display:flex;gap:2.5rem;align-items:flex-start;margin-top:1.6rem;flex-wrap:wrap}
 /* The stamp is pushed to the far edge so it lands under the end of the headline rather than
    trailing the lede with half the row left empty. It is the only thing out there, so it has
    to be placed on purpose. */
@@ -33,7 +35,7 @@
 #drop .small{font-family:var(--mono);font-size:.72rem;color:var(--ink-3);margin:0;
   letter-spacing:.03em}
 .btnrow{display:flex;gap:.6rem;justify-content:center;margin-top:1.5rem;flex-wrap:wrap}
-.assure{font-family:var(--mono);font-size:.72rem;line-height:1.6;color:var(--ink-2);
+.assure{font-family:var(--mono);font-size:.8rem;line-height:1.6;color:var(--ink-2);
   margin:1rem 0 0;letter-spacing:.02em}
 .assure b{color:var(--ink)}
 
@@ -72,6 +74,10 @@
   display:flex;justify-content:space-between;align-items:flex-end;gap:1.5rem;flex-wrap:wrap}
 .report-head h2{font-family:var(--display);font-stretch:118%;font-weight:700;
   text-transform:uppercase;font-size:clamp(1.5rem,3.6vw,2.5rem);line-height:.92;margin:0}
+/* Where a reader goes next from the top of a long report: on to the prices, or back to
+   the start with another file. Plain ruled buttons; the link is the document accent. */
+.report-actions{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center}
+.report-actions a{font-family:var(--mono);font-size:.78rem;letter-spacing:.03em}
 #reportMeta{font-family:var(--mono);font-size:.68rem;letter-spacing:.05em;text-transform:uppercase;
   color:var(--ink-3);margin:0 0 .5rem}
 .demo-banner{border:1px solid var(--ox);border-left-width:3px;padding:.85rem 1.1rem;
@@ -151,6 +157,35 @@ details.data summary:hover{color:var(--ox)}
   font-family:var(--mono);font-size:.82rem;color:var(--ink);background:var(--paper-2);
   border:1px solid var(--rule-2);border-radius:0;text-transform:none;letter-spacing:0}
 .fields select:hover{border-color:var(--ox)}
+/* Where on the bill each answer is printed. A homeowner has never seen "baseline
+   territory" until the form asks; the hint names the exact words on the statement. */
+.fields .hint{display:block;margin-top:.35rem;font-family:var(--sans);font-size:.8rem;
+  line-height:1.4;letter-spacing:0;text-transform:none;color:var(--ink-2)}
+.fields .hint i{font-style:normal;font-family:var(--mono);font-size:.76rem;color:var(--ink)}
+.formlede{max-width:64ch;color:var(--ink-2);font-size:.95rem}
+.formlede b{color:var(--ink)}
+/* The saving, as a figure — the one number the visitor came for, set in the ledger voice
+   above the sentence that qualifies it. --ink, not --ox: oxblood means the expensive
+   hours in this document's data, and a saving is the opposite. */
+.verdict .save{display:block;font-family:var(--display);font-stretch:118%;font-weight:700;
+  font-size:clamp(2rem,4.6vw,3rem);line-height:1;color:var(--ink);letter-spacing:-.01em}
+.verdict .save-k{display:block;font-family:var(--mono);font-size:.72rem;letter-spacing:.04em;
+  color:var(--ink-2);margin:.35rem 0 .8rem}
+#planTable .pdesc{display:block;font-family:var(--sans);font-size:.76rem;color:var(--ink-3);
+  font-weight:400;margin-top:.15rem}
+#planTable tr.win .pdesc{color:var(--ink-2)}
+.btnrow.left{justify-content:flex-start;margin-top:1.2rem}
+/* A refusal reason: the plain sentence leads, the engine's own reasoning folds away. */
+.reasons li .why{margin-top:.45rem}
+.reasons li .why summary{font-family:var(--mono);font-size:.7rem;letter-spacing:.04em;
+  color:var(--ink-3);cursor:pointer;text-transform:uppercase}
+.reasons li .why summary:hover{color:var(--ox)}
+.reasons li .why p{margin:.4rem 0 0;font-size:.86rem}
+.cando{margin:1.4rem 0 0;max-width:64ch}
+.cando h3{font-family:var(--display);font-stretch:112%;font-weight:700;text-transform:uppercase;
+  font-size:1rem;margin:0 0 .5rem}
+.cando ul{margin:0;padding-left:1.1rem;color:var(--ink-2);font-size:.92rem}
+.cando li{margin:.25rem 0}
 
 /* Refusals and assumptions read as a list of stated reasons, each with a hanging rule. */
 .reasons{list-style:none;margin:1.2rem 0;padding:0;max-width:70ch}
@@ -242,10 +277,11 @@ details.data summary:hover{color:var(--ox)}
   <div>
     <h1 class="display">When you<br>actually use<br>electricity</h1>
     <div class="hero-foot">
-      <p class="lede">Your utility meters you every hour and must hand you the file.
-      This reads it, shows you your own habits, and then <b>re-bills a year of them under
-      every rate plan you could be on</b> &mdash; or tells you exactly why it will not.
-      No account. No upload.</p>
+      <p class="lede">Find out which electricity rate plan is cheapest for <b>the way your
+      household actually uses power</b>. Download your hourly usage file from your utility,
+      drop it in below, and this re-bills a year of it under every plan you could be on
+      &mdash; or tells you plainly why it can&rsquo;t. No account. Nothing leaves your
+      computer.</p>
       <div class="stamp">Reconciled &plusmn;&#36;2<span>11 of 11 real bills</span></div>
     </div>
   </div>
@@ -267,9 +303,12 @@ details.data summary:hover{color:var(--ox)}
     <p class="assure"><b>Your file never leaves your computer.</b> The analysis runs inside
     this page; there is no server to send it to &mdash;
     <a href="./privacy.html">exactly what the page does request</a>.</p>
-    <p class="assure"><b>What comes back.</b> Your load shape, then a ranking of every plan
-    you could be on &mdash; priced for PG&amp;E households this engine has been proved
-    against, refused by name for the rest. Nothing here guesses.</p>
+    <p class="assure"><b>No file yet?</b> <a href="#help">Here is how to download it</a>
+    &mdash; about two minutes on your utility&rsquo;s website.</p>
+    <p class="assure"><b>What comes back.</b> When you use power, then every plan you could
+    be on, cheapest first &mdash; priced for PG&amp;E households this engine has been proved
+    against, and a plain reason instead of a number for everyone else. Nothing here
+    guesses.</p>
     <div id="status" hidden></div>
     <!-- The status box above is toggled with `hidden`, and a live region that is absent
          from the accessibility tree when the text arrives announces nothing. So the
@@ -296,6 +335,10 @@ details.data summary:hover{color:var(--ox)}
     <div>
       <p id="reportMeta"></p>
       <h2 id="resultTitle">Your electricity, at a glance</h2>
+    </div>
+    <div class="report-actions">
+      <a href="#priceSection" id="toPrice" hidden>Next: what each plan would cost &darr;</a>
+      <button type="button" id="again">Analyze another file</button>
     </div>
   </div>
 
@@ -384,6 +427,16 @@ details.data summary:hover{color:var(--ox)}
    <div id="priceGate" hidden>
      <div class="gate" id="priceGateText"></div>
      <ul class="reasons" id="priceGateList"></ul>
+     <div class="cando">
+       <h3>What you can still do</h3>
+       <ul>
+         <li>Read your usage report above &mdash; it is complete, and none of it depends on
+         pricing.</li>
+         <li id="cdRedo">If one of your answers was a guess, check it against your bill and
+         change it.</li>
+       </ul>
+       <div class="btnrow left"><button type="button" id="redoGate">Change my answers</button></div>
+     </div>
      <p class="prose">This is the difference between a tool that is independent and one
      that is selling you something: the refusal is the product. A number here would be
      cheap to produce and impossible for you to check.
@@ -392,42 +445,56 @@ details.data summary:hover{color:var(--ox)}
 
    <!-- (b) it can, once it knows the things only your bill knows -->
    <form id="factsForm" hidden>
-     <p class="prose">Your usage file says when you used power. It does not say what you
-     were charged for it &mdash; that depends on four things printed on your bill and
-     nowhere else. None of it is stored or sent anywhere.</p>
+     <p class="formlede">Your usage file says <em>when</em> you used power, not what you
+     paid for it. The rest is printed on your bill: open a recent PG&amp;E statement to the
+     page headed <b>Details of PG&amp;E Electric Delivery Charges</b> (usually page 2).
+     Nothing you choose here is stored or sent anywhere.</p>
      <div class="fields">
-       <label>Generation supplier
-         <select id="fSupplier">
-           <option value="3CE">3CE (Central Coast Community Energy)</option>
-           <option value="PG&amp;E">PG&amp;E (bundled)</option>
-           <option value="other">Another CCA &mdash; MCE, Ava, SVCE, Peninsula, SJCE&hellip;</option>
+       <label>Who supplies your power
+         <select id="fSupplier" aria-describedby="hSupplier">
+           <option value="3CE">Central Coast Community Energy (3CE)</option>
+           <option value="PG&amp;E">PG&amp;E itself &mdash; no separate supplier</option>
+           <option value="other">Another community supplier &mdash; MCE, Ava, SVCE, Peninsula, SJCE&hellip;</option>
          </select>
+         <span class="hint" id="hSupplier">If your bill has its own page headed <i>Details of
+         &hellip; Electric Generation Charges</i> from a company other than PG&amp;E, that
+         company supplies your power.</span>
        </label>
        <label>Baseline territory
-         <select id="fTerritory">
+         <select id="fTerritory" aria-describedby="hTerritory">
            <option value="T">T</option>
-           <option value="other">Anything else</option>
+           <option value="other">Another letter</option>
          </select>
+         <span class="hint" id="hTerritory">A single letter, printed beside <i>Baseline
+         Territory</i>.</span>
        </label>
-       <label>Baseline type
-         <select id="fHeat">
-           <option value="all">All-electric (Heat Source H)</option>
-           <option value="basic">Basic</option>
+       <label>Heat source
+         <select id="fHeat" aria-describedby="hHeat">
+           <option value="all">H &mdash; Electric (all-electric home)</option>
+           <option value="basic">Anything else (basic)</option>
          </select>
+         <span class="hint" id="hHeat">Printed beside <i>Heat Source</i>, just under the
+         territory.</span>
        </label>
        <label>CARE or FERA discount
-         <select id="fCare"><option value="yes">Yes</option><option value="no">No</option></select>
+         <select id="fCare" aria-describedby="hCare"><option value="yes">Yes</option><option value="no">No</option></select>
+         <span class="hint" id="hCare">Listed under <i>Enrolled Programs</i> if you have
+         it.</span>
        </label>
-       <label>Plug-in EV at home
-         <select id="fEv"><option value="no">No</option><option value="yes">Yes</option></select>
+       <label>Plug-in EV charged at home
+         <select id="fEv" aria-describedby="hEv"><option value="no">No</option><option value="yes">Yes</option></select>
+         <span class="hint" id="hEv">EV-only plans are left out of the ranking unless you
+         have one.</span>
        </label>
        <label>The plan you are on now
-         <select id="fPlan">
+         <select id="fPlan" aria-describedby="hPlan">
            <option value="">Not sure &mdash; just rank them</option>
          </select>
+         <span class="hint" id="hPlan">Printed beside <i>Rate Schedule</i>.
+         <i>Time-of-Use (Peak Pricing 4 - 9 p.m. Every Day)</i> is E-TOU-C.</span>
        </label>
      </div>
-     <div class="btnrow">
+     <div class="btnrow left">
        <button class="primary" id="priceBtn" type="submit">Price these plans on my usage</button>
      </div>
      <p class="small">Every plan is re-simulated on <em>your</em> intervals, not on a typical
@@ -463,6 +530,7 @@ details.data summary:hover{color:var(--ox)}
        <summary>What this assumes, and where it could be wrong</summary>
        <div class="body"><ul class="reasons" id="assumeList"></ul></div>
      </details>
+     <div class="btnrow left"><button type="button" id="redoOut">Change my answers</button></div>
    </div>
   </div>
  </section>
@@ -733,28 +801,81 @@ details.data summary:hover{color:var(--ox)}
       $(id).hidden = id !== which;
     });
     $("priceSection").hidden = false;
+    $("toPrice").hidden = false;
   }
 
+  // What each candidate plan IS, in the words on a PG&E statement rather than its code.
+  // Keyed by the schedule half of the engine's plan name ("E-TOU-C + 3CE"); the windows
+  // are the specs' own (pge_*_delivery_*.yaml), the supplier is the generation half.
+  var PLAN_DESC = {
+    "E-TOU-C": "Time-of-use: peak 4\u20139 p.m. every day",
+    "E-TOU-D": "Time-of-use: peak 5\u20138 p.m. on weekdays only",
+    "E-1": "Tiered: price rises with how much you use, not when",
+    "EV2-A": "EV plan: peak 4\u20139 p.m., cheapest midnight\u20133 p.m."
+  };
+  function planDesc(name) {
+    var parts = String(name).split(" + ");
+    var sched = parts[0].replace(/\s*\(.*\)$/, "");
+    var bits = [];
+    if (PLAN_DESC[sched]) bits.push(PLAN_DESC[sched]);
+    if (parts[1]) bits.push("power from " + parts[1]);
+    return bits.join("; ");
+  }
+
+  // A refusal reason leads with its plain sentence; the engine's full reasoning folds
+  // away under it, still one click from the reader. An item with no summary (an engine
+  // error, an assumption) shows its detail as the sentence.
   function reasonList(el, items) {
     el.innerHTML = items.map(function (it) {
-      return "<li>" + (it.code ? "<b>" + escapeHtml(it.code.replace(/_/g, " ")) + "</b>" : "") +
-             escapeHtml(it.detail || it) + "</li>";
+      var code = it.code ? "<b>" + escapeHtml(it.code.replace(/_/g, " ")) + "</b>" : "";
+      if (it.summary) {
+        return "<li>" + code + escapeHtml(it.summary) +
+          '<details class="why"><summary>The technical reason</summary><p>' +
+          escapeHtml(it.detail) + "</p></details></li>";
+      }
+      return "<li>" + code + escapeHtml(it.detail || it) + "</li>";
     }).join("");
   }
 
   function renderGate(blockers) {
     var list = [].concat(blockers);
-    $("priceGateText").textContent = list.length === 1 && list[0].code === "UTILITY_NOT_RECONCILED"
-      ? "No dollar figure is shown for this utility, and that is deliberate."
-      : "These rate specs do not describe your household, so no dollar figure is shown.";
+    var utilityOnly = list.length === 1 && list[0].code === "UTILITY_NOT_RECONCILED";
+    $("priceGateText").textContent = utilityOnly
+      ? "No price for this utility yet \u2014 and that is on purpose."
+      : "These answers describe a household this tool cannot price yet. Here is why.";
     reasonList($("priceGateList"), list);
+    // Answers can only be changed if there were answers: the utility gate refuses before
+    // asking anything, and the worked example never asked.
+    var canRedo = !utilityOnly && !isDemo;
+    $("cdRedo").hidden = !canRedo;
+    $("redoGate").hidden = !canRedo;
     setPriceState("priceGate");
+  }
+
+  function backToForm() {
+    setPriceState("factsForm");
+    var first = $("fSupplier");
+    if (typeof first.scrollIntoView === "function") {
+      first.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    try { first.focus({ preventScroll: true }); } catch (e) { first.focus(); }
   }
 
   function renderRecommendation(rec) {
     if (!rec || !rec.available) { renderGate((rec && rec.blockers) || []); return; }
 
-    $("verdict").innerHTML = '<span class="lbl">The answer</span>' + escapeHtml(rec.verdict);
+    // The saving, when there is one, is the figure the visitor came for. It is the
+    // winner's own delta against the plan they said they are on, over the days modelled —
+    // the same number the verdict sentence states, never an annualised extrapolation.
+    var top = rec.plans[0];
+    var saving = top && top.delta_vs_current < 0 ? -top.delta_vs_current : 0;
+    $("verdict").innerHTML = '<span class="lbl">The answer</span>' +
+      (saving > 0
+        ? '<span class="save">' + money(saving) + '</span><span class="save-k">less over the ' +
+          rec.days_modeled + " days modelled, by switching to " + escapeHtml(top.name) + "</span>"
+        : "") +
+      escapeHtml(rec.verdict);
+    $("redoOut").hidden = !!isDemo;
 
     // The plans arrive cheapest-first, so plans[0] is the floor every other row is read
     // against. The bar encodes exactly that gap and nothing else — zero-based, one colour,
@@ -778,6 +899,7 @@ details.data summary:hover{color:var(--ox)}
         : "";
       return "<tr" + (cls ? ' class="' + cls + '"' : "") + '><th scope="row">' +
         '<span class="pname">' + escapeHtml(p.name) + "</span>" +
+        (planDesc(p.name) ? '<span class="pdesc">' + escapeHtml(planDesc(p.name)) + "</span>" : "") +
         (p.eligibility ? '<span class="cond">conditional: ' + escapeHtml(p.eligibility) + "</span>" : "") +
         "</th><td>" + money(p.annual) + bar + "</td><td>" + delta + "</td></tr>";
     }).join("");
@@ -811,7 +933,7 @@ details.data summary:hover{color:var(--ox)}
   function preparePricing(d) {
     // The worked example ships its own recommendation; a visitor's file has to ask Python.
     if (caseStudy && isDemo) { renderRecommendation(caseStudy.recommendation); return; }
-    if (!pyPromise) { $("priceSection").hidden = true; return; }
+    if (!pyPromise) { $("priceSection").hidden = true; $("toPrice").hidden = true; return; }
     gateFor(d.utility);
   }
 
@@ -833,11 +955,14 @@ details.data summary:hover{color:var(--ox)}
       var sel = $("fPlan");
       sel.innerHTML = '<option value="">Not sure &mdash; just rank them</option>' +
         info.plans.map(function (n) {
-          return '<option value="' + escapeHtml(n) + '">' + escapeHtml(n) + "</option>";
+          var desc = planDesc(n);
+          return '<option value="' + escapeHtml(n) + '">' + escapeHtml(n) +
+                 (desc ? " \u2014 " + escapeHtml(desc) : "") + "</option>";
         }).join("");
       setPriceState("factsForm");
     } catch (err) {
       $("priceSection").hidden = true;
+      $("toPrice").hidden = true;
     }
   }
 
@@ -1134,6 +1259,16 @@ details.data summary:hover{color:var(--ox)}
   var drop = $("drop"), fileInput = $("file");
   function choose() { fileInput.click(); }
   $("factsForm").addEventListener("submit", function (e) { e.preventDefault(); priceIt(); });
+  $("redoGate").addEventListener("click", backToForm);
+  $("redoOut").addEventListener("click", backToForm);
+  // Back to the start with a different file: the drop zone, focused, and the picker open.
+  $("again").addEventListener("click", function () {
+    if (typeof drop.scrollIntoView === "function") {
+      drop.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    try { drop.focus({ preventScroll: true }); } catch (e) { drop.focus(); }
+    choose();
+  });
 
   $("pick").addEventListener("click", function (e) { e.stopPropagation(); choose(); });
   drop.addEventListener("click", choose);

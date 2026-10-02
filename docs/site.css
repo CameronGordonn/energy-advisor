@@ -80,6 +80,11 @@ h2.sec{font-family:var(--display);font-stretch:115%;font-weight:700;text-transfo
 /* ---- masthead: a document header, not a nav bar ---- */
 .masthead{border-bottom:3px solid var(--ink);background:var(--paper);
   position:sticky;top:0;z-index:30}
+/* The masthead is sticky, so every in-page jump — an anchor, or the tool's own
+   scrollIntoView on results and prices — has to stop short of it, or the heading it
+   jumped to lands underneath. The masthead wraps to two lines on a phone. */
+html{scroll-padding-top:4.5rem}
+@media (max-width:640px){html{scroll-padding-top:6.5rem}}
 .masthead .in{max-width:76rem;margin:0 auto;padding:.55rem 1.75rem;display:flex;
   align-items:baseline;justify-content:space-between;gap:1.5rem;flex-wrap:wrap;
   font-family:var(--mono);font-size:.68rem;letter-spacing:.05em;text-transform:uppercase}

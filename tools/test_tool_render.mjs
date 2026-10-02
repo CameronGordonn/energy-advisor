@@ -144,10 +144,24 @@ ok(doc.getElementById("flipNote").textContent.length > 30,
 ok(doc.querySelectorAll("#assumeList li").length >= 3,
    "the assumptions behind the ranking are listed");
 
+// Usability (session 31): a plan code is not a description. Every ranked plan says what it
+// is in a homeowner's words, the saving is shown as a figure, and the report links on to it.
+const descs = [...doc.querySelectorAll("#planTable tbody tr .pdesc")].map((e) => e.textContent);
+ok(descs.length === planRows.length && descs.every((t) => /power from/.test(t)),
+   "every ranked plan carries a plain description", descs.join(" | "));
+const winner = caseStudy.recommendation.plans[0];
+if (winner.delta_vs_current < 0) {
+  const save = doc.querySelector("#verdict .save");
+  ok(save && /^\$[\d,]+\.\d\d$/.test(save.textContent.trim()),
+     "a saving is stated as a figure above the verdict", save && save.textContent);
+}
+ok(!doc.getElementById("toPrice").hidden, "the report links on to the prices once they exist");
+
 // ⭐ The refusal. This is the honest-broker invariant as a DOM assertion: a blocked
 // household must see reasons and NOT A SINGLE dollar figure anywhere in the section.
 window.__renderGate([{
   code: "UTILITY_NOT_RECONCILED",
+  summary: "This tool has not yet been checked against a real SDG&E bill.",
   detail: "The bill engine has never reproduced a real SDG&E statement within 2 dollars.",
 }]);
 ok(!doc.getElementById("priceGate").hidden && doc.getElementById("priceOut").hidden,
@@ -163,6 +177,29 @@ ok(!/\$\d/.test(gateRegion), "no dollar figure survives a refusal",
    (gateRegion.match(/\$\d[\d.,]*/g) || []).join(" "));
 ok(/\u00b1\$2/.test(doc.getElementById("priceGate").textContent),
    "the refusal still quotes the rule it is enforcing");
+// The plain sentence leads; the engine's reasoning is folded beneath it, not dropped.
+const firstReason = doc.querySelector("#priceGateList li");
+ok(/checked against a real SDG&E bill/.test(firstReason.textContent) &&
+   firstReason.querySelector("details.why") !== null,
+   "a refusal leads with its plain sentence and folds the technical reason beneath it");
+ok(doc.getElementById("redoGate").hidden,
+   "a utility-level refusal offers no answers to change: none were asked for");
+
+// A scope refusal on the visitor's own file: their answers caused it, so they can change them.
+window.__renderInspection(inspection, false);
+window.__renderGate([{
+  code: "TERRITORY_NOT_AUTHORED",
+  summary: "Your bill lists baseline territory X, and this tool only has territory T so far.",
+  detail: "The committed PG&E specs carry the baseline allowance for territory T only.",
+}]);
+ok(!doc.getElementById("redoGate").hidden,
+   "a refusal caused by the visitor's answers offers to change them");
+doc.getElementById("redoGate").click();
+ok(!doc.getElementById("factsForm").hidden && doc.getElementById("priceGate").hidden,
+   "changing answers returns to the form instead of a dead end");
+const gateRegion2 = doc.getElementById("priceGateText").textContent +
+  " " + doc.getElementById("priceGateList").textContent;
+ok(!/\$\d/.test(gateRegion2), "no dollar figure survives a scope refusal either");
 
 console.log(fails === 0 ? "\nALL RENDER CHECKS PASSED" : `\n${fails} CHECK(S) FAILED`);
 process.exit(fails === 0 ? 0 : 1);

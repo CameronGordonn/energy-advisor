@@ -233,6 +233,33 @@ Conventions to preserve:
   text equivalent and should carry the value verbatim. A rotated axis label is a workaround
   for a width problem this chart does not have.
 
+## Usability pass (session 31) — what was added, and why it is shaped this way
+
+- **The hero is sized so the intake is on the first screen** at 1280x800
+  (`clamp(1.95rem,6.6vw,5.4rem)`, was 7.6rem max). The headline stays the display voice; it
+  just no longer costs the visitor a scroll to find the tool. The lede now says what the
+  tool is *for* (the cheapest plan for how you actually use power) before how it works.
+- **The facts form names the line on the bill for every answer** (`.fields .hint`, tied to
+  its select by `aria-describedby`), quoting the PG&E statement's own words — *Details of
+  PG&E Electric Delivery Charges*, *Baseline Territory*, *Heat Source*, *Enrolled
+  Programs*, *Rate Schedule* — checked against a real statement, not recalled. Option
+  values are unchanged; only their labels became plain.
+- **Every plan says what it is** (`.pdesc` under the code, and in the plan dropdown), from
+  `PLAN_DESC` in the page: the windows are the specs' own. A code is not a description.
+- **The saving is a figure** (`.verdict .save`), in `--ink` — never `--ox`, which means the
+  expensive hours. It is the winner's own `delta_vs_current` over the days modelled, never
+  annualised.
+- **No dead ends.** `#toPrice` links from the report head to the prices; `#again` returns to
+  the drop zone; `#redoGate` / `#redoOut` reopen the form. A refusal used to end the page
+  until reload. Redo is hidden for the utility-level gate (no answers were asked) and in
+  the worked example (no Pyodide, no form).
+- **A refusal leads with a plain sentence.** `Blocker.summary` is written in Python
+  (`src/report/recommend.py`) and tested for no `$<digit>` and no engine vocabulary
+  ("spec", "layer", "authored"…); the technical `detail` folds under it in `details.why`.
+  The page never invents refusal copy — contract 5's rule, extended to refusals.
+- **`html{scroll-padding-top}`** in `site.css`, because the masthead is sticky and every
+  in-page jump otherwise lands its heading underneath it (6.5rem on phones, where it wraps).
+
 ## The ranking is a chart too
 
 `#planTable` in `#priceOut` is the product's actual answer, and it was six mono figures in a

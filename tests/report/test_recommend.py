@@ -156,6 +156,33 @@ def test_the_refusal_explains_the_consequence_not_just_the_gap():
     assert "allowance" in detail and "credit" in detail
 
 
+@pytest.mark.parametrize(
+    ("utility", "update"),
+    [
+        (Utility.SDGE, {}),
+        (Utility.PGE, {"baseline_territory": "X"}),
+        (Utility.PGE, {"all_electric": False}),
+        (Utility.PGE, {"supplier": "MCE"}),
+        (Utility.PGE, {"supplier": "other"}),
+    ],
+)
+def test_every_refusal_opens_with_one_plain_sentence(utility, update):
+    """The page leads with ``summary`` and folds ``detail`` away, so the summary is the
+    whole refusal for most readers: one sentence, no dollar figure, and none of the
+    engine's own vocabulary — a homeowner has never seen the word "spec"."""
+    for b in blockers_for(utility, IN_SCOPE.model_copy(update=update)):
+        s = b.summary
+        assert s and s.endswith(".") and s.count(". ") <= 1, s
+        assert not __import__("re").search(r"\$\d", s), s
+        for jargon in ("spec", "layer", "authored", "committed", "Heat Source"):
+            assert jargon not in s, (jargon, s)
+    if update.get("supplier") == "other":
+        assert (
+            "your power supplier's"
+            in blockers_for(utility, IN_SCOPE.model_copy(update=update))[-1].summary
+        )
+
+
 # --- the answer, when there is one --------------------------------------------------------
 
 

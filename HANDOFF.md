@@ -8,7 +8,7 @@ how to run, open decisions, exact next action._
 **M0, M2 (PG&E) and M4 are done. M1 and M3 have complete, tested engines whose DoDs are
 blocked on data that does not exist yet. Do not fabricate a load or a bill to "finish" either.**
 
-**Measure, don't copy:** `PYTHONPATH=src python -m pytest -q` (1,788 passed on 2026-10-02),
+**Measure, don't copy:** `PYTHONPATH=src python -m pytest -q` (1,793 passed on 2026-10-02),
 `ruff check .`, `git fetch -q origin && git rev-list --count origin/main..main`, `git status`.
 Every session that copied a test count, a commit count or a working-tree claim forward
 published a wrong one. What stays true as it ages: **11/11 PG&E golden bills within ±$2
@@ -83,7 +83,11 @@ published a wrong one. What stays true as it ages: **11/11 PG&E golden bills wit
    zone is not pinned by it; the PCIA exclusion is an inference
    (`PCIA_EXCLUDED_BY_INFERENCE`). Counts toward nothing in the ±$2 claim.
 
-5. **The site prices** (session 28) for households the PG&E specs can be shown to describe
+5. **Site usability overhaul (session 31):** intake on the first screen, bill-line hints on
+   every pricing question, plain plan descriptions, a saving figure, no dead ends (change
+   answers / analyze another file / jump to prices), plain-sentence refusals
+   (`Blocker.summary`, tested in Python). Recorded in both design skills.
+   **The site prices** (session 28) for households the PG&E specs can be shown to describe
    (territory T, all-electric, 3CE, PCIA 2018) and refuses by name for everyone else, with
    four blocker codes and `RECONCILED_UTILITIES` tied by test to the golden-bill corpus.
    Session 30 did the visual overhaul: two stamps (claim in the hero, disclaimer at
