@@ -18,7 +18,7 @@ from pydantic import BaseModel, ConfigDict
 from greenbutton.models import LOCAL_TZ, IntervalSeries
 
 from .holidays import holiday_dates
-from .schema import EventAdder, Layer, Season, Service, TariffSpec, TouDef
+from .schema import EventAdder, Layer, Season, Service, Surcharge, TariffSpec, TouDef
 
 CENTS = 2
 
@@ -400,6 +400,7 @@ def charge_lines(
     service: Service = Service.CCA,
     territory: str | None = None,
     vintage: str | None = None,
+    jurisdiction: str | None = None,
 ) -> list[LineItem]:
     """Every line one ``(spec version, season)`` run bills, from bucketed kWh and a day count.
 
@@ -564,12 +565,137 @@ def charge_lines(
     pretax = sum(li.amount for li in sub)
     energy_sub = sum(li.amount for li in sub if li.name.startswith("Energy "))
     for sur in spec.surcharges:
-        if not sur.applies_to.covers(service):
-            continue
-        amt, rate = sur.amount(pretax=pretax, energy=energy_sub, kwh=total_kwh)
+        if not sur.applies_to.covers(service) or sur.bill_level:
+            continue  # bill-level lines are added by _bill_level_surcharges
+        sur.check_verified(service=service, care=care, jurisdiction=jurisdiction)
+        if sur.per_kwh is not None or sur.rate_by_jurisdiction is None:
+            amt, rate = sur.amount(pretax=pretax, energy=energy_sub, kwh=total_kwh)
+        else:
+            rate = sur.rate_for(jurisdiction)
+            if rate == 0.0:
+                continue  # a fee this city does not levy is not a $0.00 line on the bill
+            base = energy_sub if sur.of == "energy" else pretax
+            base -= _excluded(spec, sur, sub, total_kwh, care=care)
+            amt = base * rate
         sub.append(LineItem(name=sur.name, season=tag, rate=rate, amount=_r(amt)))
 
     return sub
+
+
+def _excluded(
+    spec: TariffSpec, sur: Surcharge, sub: list[LineItem], kwh: float, *, care: bool
+) -> float:
+    """Dollars a surcharge's ``exclude`` list removes from its base, for one run.
+
+    A name is either a line already billed in this run (the PCIA) or a non-bypassable
+    component folded into the energy rate (the Wildfire Fund charge, which SDG&E prints
+    as its own line and leaves out of the franchise fee base). Folded components have no
+    line of their own here, so their share is rebuilt as kWh x rate — the same identity
+    the NBT import floor rests on.
+    """
+    out = 0.0
+    nbc = spec.non_bypassable.components if spec.non_bypassable else {}
+    for name in sur.exclude:
+        lines = [li.amount for li in sub if li.name == name]
+        if lines:
+            out += sum(lines)
+        elif name in nbc:
+            out += kwh * nbc[name].for_customer(care=care, what=f"{name} (excluded from base)")
+        elif not any(a.name == name for a in spec.adders):
+            # An adder this customer does not pay (PCIA on a bundled bill) has no line and
+            # nothing to exclude; a name that matches NOTHING is a typo in the spec.
+            raise ValueError(
+                f"{spec.schedule_id}: surcharge {sur.name!r} excludes {name!r}, which is "
+                "neither a line of this run, an adder, nor a non-bypassable component"
+            )
+    return out
+
+
+def _bill_level_surcharges(
+    layers: list[LayerBill],
+    layer_specs: Sequence[Sequence[TariffSpec]],
+    imputed: LayerBill | None,
+    *,
+    service: Service,
+    care: bool,
+    jurisdiction: str | None,
+) -> list[LayerBill]:
+    """Add the surcharges whose base is another layer's bill — once per statement.
+
+    Today that is one line: SDG&E Schedule CCA's Electric Franchise Fee Equivalent
+    Surcharge, a franchise fee on the generation charges SDG&E *imputes* to a CCA
+    customer (its own Schedule EECC priced on their usage), because a CCA's generation
+    otherwise escapes the franchise fee that is embedded in bundled rates. The imputed
+    layer is priced by the caller through the same charge layer as everything else, so
+    this function only multiplies.
+    """
+    out: list[LayerBill] = []
+    for layer, versions in zip(layers, layer_specs, strict=True):
+        defs = _bill_level_defs(versions, service)
+        if not defs:
+            out.append(layer)
+            continue
+        if imputed is None:
+            raise MissingImputedGenerationError(
+                f"{layer.provider} {layer.schedule_id} {layer.layer.value} bills "
+                f"{[d.name for d in defs]} on the generation charges "
+                f"{defs[0].imputed_provider} would have billed this customer; pass "
+                "imputed_generation=<that provider's generation spec versions>."
+            )
+        extra: list[LineItem] = []
+        for sur in defs:
+            sur.check_verified(service=service, care=care, jurisdiction=jurisdiction)
+            rate = sur.rate_for(jurisdiction)
+            if rate == 0.0:
+                continue
+            extra.append(
+                LineItem(
+                    name=sur.name,
+                    quantity=imputed.total,
+                    unit="$ imputed",
+                    rate=rate,
+                    amount=_r(imputed.total * rate),
+                )
+            )
+        items = [*layer.line_items, *extra]
+        out.append(
+            layer.model_copy(
+                update={"line_items": items, "total": _r(sum(li.amount for li in items))}
+            )
+        )
+    return out
+
+
+def _bill_level_defs(versions: Sequence[TariffSpec], service: Service) -> list[Surcharge]:
+    """The bill-level surcharges a layer carries, identical across its versions or raise."""
+    seen: dict[str, Surcharge] = {}
+    for v in versions:
+        for sur in v.surcharges:
+            if not sur.bill_level or not sur.applies_to.covers(service):
+                continue
+            if sur.name in seen and seen[sur.name] != sur:
+                raise ValueError(
+                    f"{v.schedule_id}: bill-level surcharge {sur.name!r} differs between "
+                    "versions inside one statement, and a line billed once per statement "
+                    "cannot be split at a rate change. Split the statement instead."
+                )
+            seen[sur.name] = sur
+    return list(seen.values())
+
+
+def needs_imputed_generation(
+    layer_specs: Sequence[TariffSpec | Sequence[TariffSpec]], service: Service
+) -> str | None:
+    """The provider whose generation must be imputed for these layers, or ``None``."""
+    for s in layer_specs:
+        versions = [s] if isinstance(s, TariffSpec) else list(s)
+        for sur in _bill_level_defs(versions, service):
+            return sur.imputed_provider
+    return None
+
+
+class MissingImputedGenerationError(ValueError):
+    """A bill-level surcharge needs the imputed generation layer and was not given it."""
 
 
 # --- the billing function --------------------------------------------------
@@ -612,6 +738,7 @@ def compute_layer(
     service: Service = Service.CCA,
     territory: str | None = None,
     vintage: str | None = None,
+    jurisdiction: str | None = None,
     event_days: Sequence[date] | None = None,
     allow_before_effective: bool = False,
 ) -> LayerBill:
@@ -672,6 +799,7 @@ def compute_layer(
                 service=service,
                 territory=territory,
                 vintage=vintage,
+                jurisdiction=jurisdiction,
             )
         )
 
@@ -697,6 +825,8 @@ def compute_bill(
     service: Service = Service.CCA,
     territory: str | None = None,
     vintage: str | None = None,
+    jurisdiction: str | None = None,
+    imputed_generation: Sequence[TariffSpec] | None = None,
     event_days: Sequence[date] | None = None,
     observed_adjustments: list[LineItem] | None = None,
     climate_credit: float | None = None,
@@ -706,6 +836,13 @@ def compute_bill(
 
     Each element of ``specs`` is one layer, given either as a single spec or as several
     effective-dated versions of that layer (see :func:`compute_layer`).
+
+    ``jurisdiction`` is the household's city for city-dependent fees (SDG&E's franchise
+    fees) and, like ``territory``, raises when a spec needs it and it is missing.
+    ``imputed_generation`` is the generation spec a CCA customer's franchise fee
+    equivalent surcharge is computed on (SDG&E Schedule CCA); it is priced here on the
+    customer's own usage as a bundled customer, and is required only when a layer
+    carries such a line — :func:`needs_imputed_generation` says which provider.
     """
     layers = [
         compute_layer(
@@ -717,11 +854,33 @@ def compute_bill(
             service=service,
             territory=territory,
             vintage=vintage,
+            jurisdiction=jurisdiction,
             event_days=event_days,
             allow_before_effective=allow_before_effective,
         )
         for s in specs
     ]
+    imputed = None
+    if imputed_generation is not None and needs_imputed_generation(specs, service):
+        imputed = compute_layer(
+            series,
+            imputed_generation,
+            period_start,
+            period_end,
+            care=care,
+            service=Service.BUNDLED,
+            territory=territory,
+            event_days=event_days,
+            allow_before_effective=allow_before_effective,
+        )
+    layers = _bill_level_surcharges(
+        layers,
+        [[s] if isinstance(s, TariffSpec) else list(s) for s in specs],
+        imputed,
+        service=service,
+        care=care,
+        jurisdiction=jurisdiction,
+    )
     first = specs[0]
     tou_spec = first if isinstance(first, TariffSpec) else next(iter(first))
     usage = _usage(series, tou_spec, period_start, period_end)

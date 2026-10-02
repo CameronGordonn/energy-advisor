@@ -61,6 +61,8 @@ def baseline_annual_bill(
     care: bool,
     service: Service,
     territory: str | None,
+    jurisdiction: str | None = None,
+    imputed_generation: Sequence[TariffSpec] | None = None,
 ) -> float:
     """The no-solar bill: the customer's real load billed at retail, no exports.
 
@@ -78,6 +80,8 @@ def baseline_annual_bill(
             care=care,
             service=service,
             territory=territory,
+            jurisdiction=jurisdiction,
+            imputed_generation=imputed_generation,
             allow_before_effective=True,
         )
         total += bill.total
@@ -132,6 +136,8 @@ def evaluate(
         care=settings.care,
         service=settings.service,
         territory=settings.territory,
+        jurisdiction=settings.jurisdiction,
+        imputed_generation=settings.imputed_generation,
     )
     battery = battery or Battery()
 

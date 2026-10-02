@@ -141,6 +141,9 @@ def main() -> None:
         care=False,
         service=Service.BUNDLED,
         territory="coastal_basic",
+        # Outside the City of San Diego: the 5.78% Franchise Fee Differential is unverified
+        # for bundled customers and would refuse. The load is synthetic anyway.
+        jurisdiction="other",
         low_income=False,
         # Confirmed session 14: SDG&E's ACC Plus adder is $0.000/kWh for every residential
         # segment (D.22-12-056 Table 7), so this flag no longer moves a dollar here.

@@ -210,7 +210,11 @@ def monthly_totals(
     vintage: str | None = None,
 ) -> tuple[float, ...]:
     """The twelve monthly bills the engine computes for this allocation."""
-    specs = [quarter.delivery if layer == "delivery" else quarter.generation]
+    spec = quarter.delivery if layer == "delivery" else quarter.generation
+    # The alerts price the Total Rates Table, which carries no franchise fee: SDG&E's
+    # are city-dependent lines billed outside it. Strip them rather than invent a city
+    # for a figure that has none — session 31 added them to every TOU-DR1 delivery spec.
+    specs = [spec.model_copy(update={"surcharges": []})]
     series = _series(quarter, by_month)
     return tuple(
         compute_bill(

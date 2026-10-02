@@ -231,6 +231,7 @@ def test_the_event_count_decides_the_recommendation_not_the_rates():
         end,
         territory=ZONE,
         service=BUNDLED,
+        jurisdiction="other",
     ).total
     args = (load, _specs(), start, end)
     no_events = compute_bill(*args, territory=ZONE, service=BUNDLED, event_days=[]).total

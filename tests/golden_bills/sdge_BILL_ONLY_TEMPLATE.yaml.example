@@ -71,6 +71,13 @@ customer:
   # 2026 spread is ~0.035 $/kWh, about $210/yr on a 6,000 kWh household.
   vintage: '2018' # EXAMPLE — replace with the vintage printed on the bill
 
+  # City for SDG&E's franchise fees — `city_of_san_diego` or `other`. Inside the City of
+  # San Diego the statement prints a "City of San Diego Franchise Fee Differential"
+  # (5.78%) and, for a CCA customer, a 6.88% "Franchise Fee Equivalent Surcharge";
+  # elsewhere the differential is absent and the CCA surcharge is 1.1%. Read it off the
+  # service address, or off whether that differential line is printed at all.
+  jurisdiction: city_of_san_diego # EXAMPLE — replace from the bill
+
   # NOTE — `event_days` has NO effect on this path and TOU-DR-P CANNOT be reconciled
   # from printed buckets at all. The RYU Event Period Adder is billed on the kWh that
   # fell between 4 p.m. and 9 p.m. ON the days SDG&E called, which is strictly finer
@@ -140,6 +147,12 @@ expected:
     total:
   # Lines the engine does not model and takes as given (climate credit, observed
   # adjustments). Each one is an admission, not a fit — keep the list short and say why.
+  # Known to appear on SDG&E statements and NOT modelled (session 31, from SDCP's
+  # published specimen — notes/sdcp_specimen_bill_2026-10.md):
+  #   "State Regulatory Fee"                 $0.001/kWh; no authority located yet
+  #   "Economic Development Program Credit"  cents; source and rate unknown
+  #   "Power100" (or another CCA opt-up)     the customer's product choice, on the CCA side
+  # Transcribe each one printed here, by its printed name.
   observed_adjustments: {}
   electric_net_total: # the statement's electric total
 

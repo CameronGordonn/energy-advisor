@@ -22,7 +22,10 @@ def pieces(load_series, production, monthly_periods):
         "SDG&E", Vintage(application_year=2026, pto_date=date(2026, 4, 1))
     )
     settings = NbtSettings(
-        service=Service.BUNDLED, territory="coastal_basic", acc_plus_eligible=False
+        service=Service.BUNDLED,
+        territory="coastal_basic",
+        jurisdiction="other",
+        acc_plus_eligible=False,
     )
     return delivery, schedule, settings, monthly_periods
 

@@ -69,6 +69,7 @@ def run(specs, evening_share: float, **kw) -> BreakEven:
         period_start=START,
         period_end=END,
         territory=TERRITORY,
+        jurisdiction="other",
         **kw,
     )
 
@@ -229,4 +230,5 @@ def test_a_period_with_no_summer_evening_hours_refuses_rather_than_returning_zer
             period_start=date(2026, 12, 1),
             period_end=date(2027, 1, 31),
             territory=TERRITORY,
+            jurisdiction="other",
         )
