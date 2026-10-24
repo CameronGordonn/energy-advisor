@@ -9,8 +9,8 @@ The audience is homeowners checking their own utility bills, not developers. A v
 cannot read the chart cannot use the tool at all, because the chart **is** the output.
 
 Audit all four published pages: `docs/index.html` (the tool), `docs/methodology.html` (the
-writeup) and the two legal pages, which since session 30 use the same `.row`/`.rail` grid as
-the rest of the site. Target WCAG 2.1 AA.
+writeup) and the two legal pages, all one centred column of `.row` sections since
+session 32. Target WCAG 2.1 AA.
 
 ⚠ **The tool page has four states, not one**, and three of them are invisible to a plain
 page load: the report (`__renderInspection`), the priced ranking (`__renderRecommendation`)
@@ -45,12 +45,11 @@ announced**. The 24 `<title>`s stay (the render test counts them) and `#hourTabl
 `#monthTable` carry the same numbers as real tables. Both charts use `aria-labelledby`
 pointing at their visible caption, so the description cannot drift from the text beside it.
 
-**Every token clears AA.** Full matrix in the `design-system` skill. `--sul` is the exception
-and is a **fill only** — 1.89:1 on paper. Accent text is always `--ox`.
+**Every token clears AA** in both themes. Full matrix in the `design-system` skill.
 
 **Chart bars meet non-text contrast.** Bars are data, so they need 3:1 against the plate, not
-the 1.5:1 a hairline colour gives. `--mark` is 3.39 / 3.25; `--ox` on the sulphur band is
-4.58 / 3.62. **A border colour is not a data colour.**
+the 1.5:1 a hairline colour gives. `--mark` is 3.59 / 3.57 on a panel; `--ox` on the
+peak-window band is 4.78 / 5.77. **A border colour is not a data colour.**
 
 **Heading order is unbroken** on `index.html` — but only since session 30, and the previous
 note here was wrong in a way worth remembering. It claimed the finding cards sat "under the
@@ -97,7 +96,7 @@ and mutation-checked: deleting the announce or the focus call fails it.
 
 **`#results` is focused but does not paint a ring.** It is revealed, announced and focused
 (`tabindex="-1"`), and Chromium then applied the global `:focus-visible` outline to the whole
-region — at full report length a 4,700px oxblood box that reads as an error state.
+region — at full report length a 4,700px box that reads as an error state.
 `#results:focus{outline:none}` is scoped to that one element and to nothing else: it is a
 scroll-and-focus target, not a keyboard-reachable control, so the rule that **every
 interactive control shows a focus ring is untouched**. Do not generalise it.
@@ -151,11 +150,10 @@ rather than a table somebody retypes:
 PYTHONPATH=src python scripts/contrast_matrix.py --markdown
 ```
 
-⚠ **Check a fill's edge as well as the text on it.** `--band` against the plate is 1.09 light
-/ 1.25 dark. The sulphur highlight reads instantly in light mode on *hue*, but luminance is
-what survives dark mode, greyscale and most CVD — which is why the current-plan marker in
-`#planTable` carries a 2px `--ink-2` edge. The state it marks is also written in words in the
-"vs. yours" column, so it was never carried by colour alone.
+⚠ **Never let a fill carry meaning alone.** A tint against the page is ~1.1:1 in luminance;
+it reads on hue in light mode and nearly vanishes in dark mode and greyscale. The `#planTable`
+winner row is a tint **and** bold **and** first; the current plan is named in words ("your
+plan") in the last column.
 
 ## Constraints that override generic advice
 

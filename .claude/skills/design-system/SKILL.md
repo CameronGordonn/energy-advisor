@@ -14,79 +14,70 @@ Four published pages, served from `docs/` on GitHub Pages:
 - **`docs/privacy.html`**, **`docs/terms.html`** — the legal pages, prose only.
 
 **`docs/site.css` is the shared stylesheet** and the single source of truth for the palette,
-for `.vh` (visually hidden), for `.stamp`, `.gate`, `.row`/`.rail` and the `.doc` prose
-chrome. **All four pages link it** and keep only page-specific rules inline. No page defines
-a palette token of its own; if you find one, that is the bug. `methodology.html` was migrated
-in session 20 — it had carried a fourth hue (`--warn`) for caveats, which was deleted rather
-than aliased, because the system is two-colour.
+for `.vh` (visually hidden), `.gate`, `.row`, `.plate`, `details.fine`, buttons and the
+`.doc` prose chrome. **All four pages link it** and keep only page-specific rules inline. No
+page defines a palette token of its own; if you find one, that is the bug.
 
 Pages is the canonical home. `docs/index.html` carries its own `<!doctype html>`, `<html
 lang>`, and `<head>`, so it is **not** an Artifact — do not route it through the Artifact
 publisher without stripping the wrapper first, and prefer not to at all.
 
-## The idea
+## The idea (session 32 — replaces the session-12 "tariff sheet")
 
-The product exists to reproduce a utility bill to within $2, so the site is built as **the
-document it is about**: a tariff sheet. Two-colour offset print on manila. Rules and ledger
-columns do the structural work; **there is no border-radius anywhere on the site**, and
-adding one is a regression, not a refinement.
+**Get out of the way of the numbers.** White page, system fonts, one centred column (52rem),
+sentence-case headings, a little border-radius on boxes and buttons. The content — when you
+use power, what each plan costs, what would overturn the answer — is the design.
 
-**Every page is the same grid.** A `.row` is `8.5rem 1fr`: a left rail of mono
-margin-annotations (`.rail`, a number plus a two-or-three-word tag) and the content beside
-it. This is what stops the page being a stack of centred cards, and **all four pages now use
-it** — the legal pages were a single 42rem column adrift in a 76rem sheet until session 30,
-which made them read as though they came from a different site. Each `h2` there is its own
-`.row`, so its number sits in the margin the way a numbered clause sits on paper.
+**Why it changed.** Sessions 12–31 built the site as "the document it is about": manila
+paper, oxblood/sulphur two-colour print, 125%-width uppercase Archivo headlines, Space Mono
+on every label, a left rail of numbered margin notes, zero radius, and two rotated rubber
+stamps. Cameron (2026-10-23): it "way overdoes it, isn't simple, and takes away from the
+meaningful and insightful content by trying to look super bespoke." All of it was removed.
+**Do not reintroduce bespoke ornament** — stamps, margin rails, display/mono "voices",
+uppercase tracked labels, "Fig. 1 / Schedule A / Form A" numbering. If something needs
+emphasis, use size, weight and position.
 
-**Reflow is part of the system, not an afterthought.** `.row>*{min-width:0}` in `site.css` is
-load-bearing: a grid item's `min-width` is `auto` = min-content, so without it one `<pre>` or
-wide table drags its column past the viewport and the *page* scrolls sideways instead of the
-block. Anything that must scroll horizontally does so inside its own `overflow-x:auto` box,
-and that box needs `position:relative` if it contains a visually-hidden (`position:absolute`)
-caption. All four pages are checked at 1280 / 640 / 320 CSS px by `scripts/audit_layout.py`.
+What became of the old devices:
+- **The two stamps are now plain sentences in the same places.** The hero's claim is
+  `.proof` under the lede ("The bill engine reproduces 11 of 11 real PG&E bills to within
+  ±$2"). The pricing disclaimer is `.notabill` under the verdict ("A modelled estimate … not
+  a bill, and no amount is due"). Still two, still where session 30 put them.
+- **Rails are gone from the markup** on all four pages; `.row` is a plain section with a
+  hairline between sections.
+- **Self-hosted fonts are gone** (`docs/fonts/`, `fonts.css` deleted). The privacy page was
+  updated to say no web fonts are loaded at all.
 
-## The two stamps
-
-`.stamp` is the signature device, and **there are two of them, saying different things.**
-They were one until session 30, and the single stamp had gone quietly wrong.
-
-- **The hero stamps the claim**: `RECONCILED ±$2 / 11 OF 11 REAL BILLS`. That is what earns
-  the right to the dollar figures further down the page.
-- **The pricing section stamps the disclaimer**: `NOT A BILL / NO AMOUNT DUE`, in
-  `#priceOut`, beside the verdict. `.stamp.due` leans the other way so the two read as a
-  pair of impressions rather than a repeated motif.
-
-**Why it moved.** The stamp was authored in session 12 to say the thing the tool then did:
-it priced nothing. Session 28 made it price, and the stamp was left sitting directly under
-hero copy that promises to re-bill a year under every rate plan — still literally true, but
-reading as a retraction of the sentence above it, and 2,000px from the only figures it
-qualifies. A disclaimer belongs where the money is. **Cameron chose this split explicitly**;
-do not re-merge them without asking.
-
-No test pins `.stamp`. That is not permission to treat it as decoration.
+**Reflow is still part of the system.** `.row>*{min-width:0}` stays; anything that must
+scroll horizontally does so inside its own `overflow-x:auto` box (which needs
+`position:relative` if it holds a `.vh` caption). `body` sets `overflow-wrap:break-word` so a
+long URL in prose cannot widen the page. All four pages are checked at 1280 / 640 / 320 CSS px
+by `scripts/audit_layout.py`. `#planTable` keeps figures on one line but lets its header wrap
+below 560px, and tightens padding below 480px — at 320px the page otherwise scrolls sideways.
 
 ## The tokens
 
-Defined once in `docs/site.css`, and only there.
+Defined once in `docs/site.css`, and only there. **The names are legacy** (`--paper`, `--ox`,
+`--band`) and are kept because the chart code, the render test (`var(--accent)`) and
+`scripts/contrast_matrix.py` address them by name.
 
 ```
---paper --paper-2                   the manila grounds
---band                              the sulphur block behind the 4-9 p.m. hours
---ink --ink-2 --ink-3               text, strongest to faintest
---rule --rule-2                     hairlines
---ox  (= --accent)                  oxblood: accent TEXT, peak bars, rules, the stamps
---sul                               sulphur: a FILL ONLY, never text (1.89:1 on paper)
---mark                              non-highlighted chart bars — a data colour
---display --sans --mono             Archivo (wdth axis), Archivo, Space Mono
+--paper --paper-2        page background; the panel/tint background
+--band                   the light tint behind the 4-9 p.m. hours in the hour chart
+--ink --ink-2 --ink-3    text, strongest to faintest
+--rule --rule-2          hairlines; input/button borders
+--ox (= --accent)        the warm accent: the expensive hours, and nothing else
+--mark                   every other chart bar, and the ranking bars
+--link                   links and focus rings
+--sans                   system-ui stack (--display aliases it)
+--mono                   ui-monospace — code only
 ```
 
-**The hard colour rule: `--sul` is a fill, `--ox` is the ink.** Sulphur sits at 1.89:1 on
-paper and must never carry text. Accent text is always `--ox`.
+**The colour rule: `--accent` means the expensive hours.** It paints the five peak bars, the
+peak-window caption and the "Worth knowing" finding tag. Links are `--link`, the saving
+figure is `--ink`, the winner row is a neutral tint. Everything else is greyscale.
 
-**Type.** `Archivo` is variable on weight *and width* (62–125%), so one file gives both
-voices: `font-stretch:125%` + uppercase is the display voice (`.display`), normal width is
-body. `Space Mono` carries every number, label, stamp and axis — the ledger voice. Two
-families, both doing a specific job; do not add a third.
+**Type.** One family, the platform's own. Numbers use `font-variant-numeric:tabular-nums`
+(set on `body`) rather than a monospace face. Chart text is `var(--sans)`.
 
 ## The theme contract
 
@@ -99,7 +90,7 @@ Three states, and all three must be written:
 ```
 
 A token defined **only** inside a media query or `[data-theme]` block is a bug: the toggle
-breaks in one direction. `body` must always paint an explicit `background:var(--ground)`.
+breaks in one direction. `body` must always paint an explicit `background:var(--paper)`.
 
 ## Contrast — compute it, do not retype it
 
@@ -107,35 +98,26 @@ breaks in one direction. `body` must always paint an explicit `background:var(--
 PYTHONPATH=src python scripts/contrast_matrix.py --markdown
 ```
 
-That script reads the tokens **out of `site.css`'s own `:root` blocks**, so the numbers
-cannot drift from the palette the way a hand-maintained table does. Text needs 4.5; chart
-bars are graphics and need 3.0. Run it after any palette change and paste the result here.
+That script reads the tokens **out of `site.css`'s own `:root` blocks**. Text needs 4.5;
+chart bars are graphics and need 3.0. Run it after any palette change and paste the result.
 
-Current output (2026-09-20, palette unchanged since session 12):
+Current output (2026-10-23, session 32 palette):
 
 | pair | light | dark | needs | what it is |
 |---|---|---|---|---|
-| `--ink` on `--paper` | 14.21 | 15.18 | 4.5 | body text |
-| `--ink` on `--paper-2` | 12.66 | 14.06 | 4.5 | body text on a plate |
-| `--ink-2` on `--paper` | 7.16 | 8.91 | 4.5 | secondary text |
-| `--ink-2` on `--paper-2` | 6.38 | 8.25 | 4.5 | secondary text on a plate |
-| `--ink-3` on `--paper` | 5.07 | 4.94 | 4.5 | rail, tags, axis labels |
-| `--ink-3` on `--paper-2` | 4.52 | 4.58 | 4.5 | rail, tags, axis labels on a plate |
-| `--ox` on `--paper` | 5.60 | 4.88 | 4.5 | accent text, links, the stamps |
-| `--ox` on `--paper-2` | 4.99 | 4.52 | 4.5 | accent text on a plate |
-| `--mark` on `--paper` | 3.39 | 3.25 | 3.0 | chart bars (graphic) |
-| `--mark` on `--paper-2` | 3.02 | 3.01 | 3.0 | chart bars on a plate, ranking bars (graphic) |
-| `--ox` on `--band` | 4.58 | 3.62 | 3.0 | peak bars on the sulphur band (graphic) |
-| `--ink` on `--band` | 11.62 | 11.26 | 4.5 | the current plan's name, highlighted |
-| `--ink-2` on `--band` | 5.86 | 6.61 | 4.5 | the conditional-plan note on that row |
-| `--sul` on `--paper` | **1.89 — FILL ONLY** | 11.29 | 4.5 | never text |
-
-⚠ **A fill's own edge is a separate number from the text on it.** `--band` against the plate
-is **1.09 light / 1.25 dark**: the sulphur highlight reads instantly in light mode because
-the *hue* shift is large, but luminance is what survives dark mode and greyscale, and in dark
-the fill all but disappears. That is why the current-plan highlight in `#planTable` carries a
-2px `--ink-2` edge (6.38 / 8.25) — the edge is the part of the marker that is actually
-visible. Check the fill *and* its boundary whenever a fill means something.
+| `--ink` on `--paper` | 17.22 | 15.45 | 4.5 | body text |
+| `--ink` on `--paper-2` | 15.78 | 13.96 | 4.5 | body text on a panel |
+| `--ink-2` on `--paper` | 8.86 | 9.70 | 4.5 | secondary text |
+| `--ink-2` on `--paper-2` | 8.12 | 8.77 | 4.5 | secondary text on a panel |
+| `--ink-3` on `--paper` | 5.57 | 6.21 | 4.5 | tags, hints, axis labels |
+| `--ink-3` on `--paper-2` | 5.10 | 5.62 | 4.5 | tags, hints, axis labels on a panel |
+| `--link` on `--paper` | 6.52 | 8.11 | 4.5 | links |
+| `--link` on `--paper-2` | 5.97 | 7.34 | 4.5 | links on a panel |
+| `--ox` on `--paper` | 5.56 | 7.25 | 4.5 | peak-window caption, "worth knowing" tags |
+| `--ox` on `--paper-2` | 5.09 | 6.56 | 4.5 | accent text on a panel |
+| `--mark` on `--paper` | 3.91 | 3.95 | 3.0 | chart bars (graphic) |
+| `--mark` on `--paper-2` | 3.59 | 3.57 | 3.0 | ranking bars on a panel (graphic) |
+| `--ox` on `--band` | 4.78 | 5.77 | 3.0 | peak bars on the peak-window band (graphic) |
 
 ## Contracts a redesign must not break
 
@@ -201,20 +183,16 @@ These are enforced by CI, not by intent. Breaking one turns a job red.
 Two hand-rolled inline SVGs, no chart library: `#hourChart` (`viewBox="0 0 760 300"`) and
 `#monthChart` (`viewBox="0 0 760 240"`), built with a small `createElementNS` helper. Before
 touching either, **load the `dataviz` skill** — and note that where it and this file
-disagree, this file wins: the square bar ends and the absent legend are the house style, not
-oversights.
+disagree, this file wins: the absent legend is the house style, not an oversight.
 
 Conventions to preserve:
-- **Square bar ends.** No `rx`. Printed, not drawn.
-- **`--ox` means one thing: the expensive hours.** Peak bars are `--accent` (= `--ox`) on a
-  `--band` block; every other bar in every chart is `--mark`. Month bars are deliberately
-  `--mark`, not oxblood — reusing the accent for "just data" would drain it of meaning. This
-  is a rule about **chart data colours**: `--ox` stays the document accent for links, rail
-  numbers, `h3`, the stamps and pass marks, which is how `site.css` itself uses it. The
-  methodology page's eleven reconciliation-error bars were oxblood until session 20 and are
-  now `--mark` (3.02 light / 3.01 dark on the plate).
+- **`--accent` means one thing: the expensive hours.** Peak bars are `--accent` (= `--ox`)
+  on a `--band` block; every other bar in every chart is `--mark`, including the month bars
+  and the methodology page's reconciliation-error bars.
+- Chart text is `var(--sans)`, sentence case, no letter-spacing ("4–9 p.m. · priciest
+  hours", "Busiest: 6 p.m.", "Hour of day (local time)").
 - One series, so no legend; the plate header names it.
-- Axis and label text in `--ink-3` or `--ink`, never `--sul`.
+- Axis and label text in `--ink-3` or `--ink`.
 - Exactly one direct label (the busiest hour); never a number on every bar.
 - Per-bar `<title>` for pointer tooltips, plus `#hourTable` / `#monthTable` in text, because
   `role="img"` hides those titles from screen readers.
@@ -224,7 +202,7 @@ Conventions to preserve:
 - ⚠ **`BAND_LIFT` and `LABEL_LIFT` in `hourChart()` are a pair.** `T` kept the caption and
   the direct label apart but said nothing about the band's own overhang above the plot: with
   the band lifted 10px and the label at −10, the label's baseline landed exactly on the
-  band's top edge and the words sat half on sulphur, half on paper. 6 and 16 put 10px of
+  band's top edge and the words sat half on the band, half off it. 6 and 16 put 10px of
   paper between type and fill. Change one, recompute the other, and look at the screenshot.
 - **`monthChart` sets its ticks level, and that is deliberate.** They were rotated −42° and
   ran into the axis caption. Thirteen months across 698px leaves ~54px a tick and `"Jul 25"`
@@ -235,10 +213,9 @@ Conventions to preserve:
 
 ## Usability pass (session 31) — what was added, and why it is shaped this way
 
-- **The hero is sized so the intake is on the first screen** at 1280x800
-  (`clamp(1.95rem,6.6vw,5.4rem)`, was 7.6rem max). The headline stays the display voice; it
-  just no longer costs the visitor a scroll to find the tool. The lede now says what the
-  tool is *for* (the cheapest plan for how you actually use power) before how it works.
+- **The intake is on the first screen** at 1280x800. Since session 32 the h1 itself asks
+  what the tool is for ("Which electricity plan is cheapest for the way you actually use
+  power?").
 - **The facts form names the line on the bill for every answer** (`.fields .hint`, tied to
   its select by `aria-describedby`), quoting the PG&E statement's own words — *Details of
   PG&E Electric Delivery Charges*, *Baseline Territory*, *Heat Source*, *Enrolled
@@ -257,24 +234,21 @@ Conventions to preserve:
   (`src/report/recommend.py`) and tested for no `$<digit>` and no engine vocabulary
   ("spec", "layer", "authored"…); the technical `detail` folds under it in `details.why`.
   The page never invents refusal copy — contract 5's rule, extended to refusals.
-- **`html{scroll-padding-top}`** in `site.css`, because the masthead is sticky and every
-  in-page jump otherwise lands its heading underneath it (6.5rem on phones, where it wraps).
+- **The masthead is no longer sticky** (session 32), so `html{scroll-padding-top}` is a
+  token 1rem. If it is ever made sticky again, scroll padding must cover its height.
 
 ## The ranking is a chart too
 
 `#planTable` in `#priceOut` is the product's actual answer, and it was six mono figures in a
 column until session 30. Two rules now hold there:
 
-- **The winner outranks the status quo.** The loudest row used to be the reader's *current*
-  plan (a full-width sulphur fill) while the *recommended* plan was merely bold — a table
-  that shouted the status quo on a page whose whole job is to rank against it. The winner
-  carries **oxblood rules top and bottom** (the document accent used as a *rule*, which is
-  how `site.css` already uses `--ox` for links, rail numbers and the stamps); the current
-  plan keeps sulphur as a **highlighter on its name**, not a fill across the row.
+- **The winner outranks the status quo.** The winner row is a bold, tinted (`--paper-2`)
+  band; the current plan's name is semibold and the last column says "your plan" in words.
+  Never make the current plan the loudest row — the page's job is to rank against it.
 - **`.mbar` encodes the gap to the cheapest plan**, zero-based, so the winner's bar is
   correctly empty, growing right-to-left under the right-aligned figure. It carries a `.vh`
   text equivalent because that number is printed nowhere else. ⚠ It is `--mark` and **never**
-  `--ox`: painting the *cheapest* plan oxblood would invert the one chart rule the site has.
+  `--accent`: painting the *cheapest* plan in the expensive-hours colour inverts the rule.
 
 ## Verify
 

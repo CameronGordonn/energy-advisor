@@ -11,8 +11,6 @@ Thresholds (WCAG 2.1 AA):
 * **4.5** for text.
 * **3.0** for graphics — a chart bar is data and has to clear it against the plate it sits
   on; a hairline rule is not data and is exempt.
-* ``--sul`` is the standing exception: a **fill only**, never a text colour. It is reported
-  so the number stays visible, and it is expected to fail the text threshold on paper.
 
     PYTHONPATH=src python scripts/contrast_matrix.py [--markdown]
 """
@@ -33,16 +31,15 @@ PAIRS: tuple[tuple[str, str, float, str], ...] = (
     ("ink", "paper-2", 4.5, "body text on a plate"),
     ("ink-2", "paper", 4.5, "secondary text"),
     ("ink-2", "paper-2", 4.5, "secondary text on a plate"),
-    ("ink-3", "paper", 4.5, "rail, tags, axis labels"),
-    ("ink-3", "paper-2", 4.5, "rail, tags, axis labels on a plate"),
-    ("ox", "paper", 4.5, "accent text, links, the stamps"),
-    ("ox", "paper-2", 4.5, "accent text on a plate"),
+    ("ink-3", "paper", 4.5, "tags, hints, axis labels"),
+    ("ink-3", "paper-2", 4.5, "tags, hints, axis labels on a panel"),
+    ("link", "paper", 4.5, "links"),
+    ("link", "paper-2", 4.5, "links on a panel"),
+    ("ox", "paper", 4.5, "peak-window caption, 'worth knowing' tags"),
+    ("ox", "paper-2", 4.5, "accent text on a panel"),
     ("mark", "paper", 3.0, "chart bars (graphic)"),
     ("mark", "paper-2", 3.0, "chart bars on a plate, ranking bars (graphic)"),
-    ("ox", "band", 3.0, "peak bars on the sulphur band (graphic)"),
-    ("ink", "band", 4.5, "the current plan's name, highlighted"),
-    ("ink-2", "band", 4.5, "the conditional-plan note on that row"),
-    ("sul", "paper", 4.5, "FILL ONLY — never text"),
+    ("ox", "band", 3.0, "peak bars on the peak-window band (graphic)"),
 )
 
 
@@ -85,8 +82,7 @@ def main(markdown: bool) -> int:
                 cells.append("—")
                 continue
             value = ratio(tokens[fg], tokens[bg])
-            exempt = fg == "sul" and theme == "light"
-            passed = value >= threshold or exempt
+            passed = value >= threshold
             cells.append(f"{value:.2f}" + ("" if passed else " **FAIL**"))
             if not passed:
                 failures.append(f"--{fg} on --{bg} ({theme}): {value:.2f} < {threshold}")
@@ -108,10 +104,7 @@ def main(markdown: bool) -> int:
         for failure in failures:
             print(f"  - {failure}")
         return 1
-    print(
-        "every pair clears its threshold (--sul on --paper is the documented fill-only "
-        "exception and is not held to 4.5)"
-    )
+    print("every pair clears its threshold")
     return 0
 
 

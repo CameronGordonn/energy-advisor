@@ -9,123 +9,86 @@
 <meta property="og:description" content="Eleven real PG&amp;E statements, worst error twenty-two cents, and a full accounting of everything still assumed.">
 <meta property="og:type" content="article">
 <title>Reconciling a California Power Bill</title>
-<link rel="stylesheet" href="./fonts.css">
 <link rel="stylesheet" href="./site.css">
 <style>
-/* methodology.html — page-specific rules only.
-   Tokens, chrome (masthead, .sheet/.row/.rail, .plate, .gate, footer) and the type voices
-   all come from site.css. Nothing here redefines a palette token: this page used to carry
-   its own copy under different names (--ground/--surface/--accent-soft/--warn), which is
-   exactly how the two stylesheets drifted apart. The mapping was
-   --ground->--paper, --surface->--paper-2, --surface-2->--paper-2, and --warn deleted:
-   the shared palette is two-colour, ink plus oxblood, and a third amber hue for caveats
-   had no token behind it. Caveats are now carried by an ink rule and their own wording. */
-:root{--col:40rem}
+/* methodology.html — page-specific rules only. Tokens and chrome come from site.css. */
+:root{--col:42rem}
 
 /* ---------- title block ---------- */
-.title h1{font-size:clamp(1.85rem,5.6vw,4.2rem);max-width:16ch}
 .standfirst{font-size:1.15rem;line-height:1.55;color:var(--ink-2);max-width:var(--col);
-  margin:1.6rem 0 0}
-.standfirst em{color:var(--ink);font-style:normal;font-weight:700}
+  margin:1rem 0 0}
+.standfirst em{color:var(--ink);font-style:normal;font-weight:650}
 
-/* ---------- stat strip: a ruled ledger band, same device as index's .trust-figs ---------- */
-.strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(11rem,1fr));gap:0;
-  border-top:1px solid var(--ink);margin:2.4rem 0 0}
-.stat{border-left:1px solid var(--rule);padding:1rem 1.1rem}
-.stat:first-child{border-left:0;padding-left:0}
-.stat dt{font-family:var(--mono);font-size:.64rem;letter-spacing:.06em;text-transform:uppercase;
-  color:var(--ox);margin:0 0 .45rem}
-.stat dd{margin:0;font-family:var(--display);font-stretch:118%;font-weight:700;font-size:1.7rem;
-  line-height:1;color:var(--ink)}
-.stat dd small{display:block;font-family:var(--sans);font-stretch:100%;font-weight:400;
-  font-size:.8rem;color:var(--ink-2);margin-top:.35rem;line-height:1.4}
+/* ---------- headline figures ---------- */
+.strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(10rem,1fr));gap:1.25rem;
+  margin:2rem 0 0}
+.stat dt{font-size:.9rem;font-weight:600;color:var(--ink);margin:0 0 .2rem}
+.stat dd{margin:0;font-size:1.6rem;font-weight:700;line-height:1.1;color:var(--ink)}
+.stat dd small{display:block;font-weight:400;font-size:.85rem;color:var(--ink-2);
+  margin-top:.3rem;line-height:1.4}
 
 /* ---------- prose ---------- */
 p{max-width:var(--col);margin:0 0 1.15rem;color:var(--ink-2)}
 p strong,li strong{color:var(--ink)}
-ul{max-width:var(--col);margin:0 0 1.15rem;padding-left:1.15rem}
+ul{max-width:var(--col);margin:0 0 1.15rem;padding-left:1.25rem}
 li{margin-bottom:.6rem;color:var(--ink-2)}
 .lede{font-size:1.05rem;color:var(--ink-2);max-width:var(--col)}
-h3{font-family:var(--mono);font-size:.82rem;text-transform:uppercase;letter-spacing:.05em;
-  color:var(--ox);font-weight:700;margin:2.3rem 0 .7rem;max-width:var(--col)}
-code,.m{font-variant-numeric:tabular-nums}
-.m{font-family:var(--mono);font-size:.9em}
+h3{font-size:1.1rem;font-weight:650;color:var(--ink);margin:2.2rem 0 .6rem;max-width:var(--col)}
+.m{font-family:inherit}
 
 /* ---------- tables inside a .plate ---------- */
 /* position:relative is load-bearing: .vh is position:absolute, so without a positioned
-   ancestor its containing block is the page, it escapes this box's clipping, and a
-   visually-hidden caption at x=512 makes the whole PAGE scroll sideways at 400% zoom. */
+   ancestor it escapes this box's clipping and makes the PAGE scroll sideways at 400% zoom. */
 .scroll{overflow-x:auto;position:relative}
-table{border-collapse:collapse;width:100%;font-size:.86rem;
-  font-variant-numeric:tabular-nums;min-width:32rem}
+table{border-collapse:collapse;width:100%;font-size:.92rem;min-width:32rem}
 caption{text-align:left}
 th,td{text-align:left;padding:.5rem .7rem;border-bottom:1px solid var(--rule);
   vertical-align:baseline}
-thead th{font-family:var(--mono);font-size:.68rem;letter-spacing:.08em;text-transform:uppercase;
-  color:var(--ink-3);font-weight:700;white-space:nowrap}
+thead th{font-size:.85rem;color:var(--ink-3);font-weight:600;white-space:nowrap}
 tbody th{font-weight:400;color:var(--ink-2)}
 td{color:var(--ink)}
-td.n,th.n{text-align:right;font-family:var(--mono)}
+td.n,th.n{text-align:right}
 tbody tr:last-child th,tbody tr:last-child td{border-bottom:none}
 tfoot .total th,tfoot .total td{border-top:2px solid var(--rule-2);border-bottom:none;
   font-weight:700;color:var(--ink)}
-/* The recommended and current rows are named in words as well as marked: colour is never
-   the only carrier. --ox is text-only here; the tint on the current row is --paper. */
-.pass{color:var(--ox);font-family:var(--mono);font-weight:700}
-tr.cur th,tr.cur td{background:var(--paper);color:var(--ink)}
-tr.cur .lbl{font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;
-  color:var(--ink-2)}
-.hint{font-size:.8rem;color:var(--ink-2);margin:.9rem 0 0;max-width:60ch}
-.plate-head p{margin:0;max-width:none;color:inherit}
+/* The recommended and current rows are named in words as well as marked. */
+.pass{color:var(--ink);font-weight:600}
+tr.cur th,tr.cur td{background:var(--paper-2);color:var(--ink)}
+tr.cur .lbl{font-size:.85rem;color:var(--ink-2)}
+.hint{font-size:.88rem;color:var(--ink-2);margin:.9rem 0 0;max-width:62ch}
+.plate-head p{max-width:none;color:inherit}
 .plate .hint:last-child{margin-bottom:0}
 
-/* ---------- the reconciliation chart ----------
-   Bars are --mark, not --ox. Oxblood is the tool's "expensive hours" mark and a data
-   colour it is spent on loses that meaning; --mark clears 3:1 on the plate in both
-   themes (3.02 light / 3.01 dark). Square ends, no radius: printed, not drawn. */
+/* ---------- the reconciliation chart: --mark bars; the accent is for peak hours ---------- */
 .bar{transition:opacity .12s}
 .bar:hover{opacity:.72}
-.ax{font-family:var(--mono);font-size:11px;fill:var(--ink-3)}
-.axlabel,.dlabel{font-family:var(--mono);font-size:11px;fill:var(--ink-2);font-weight:700}
+.ax{font-family:var(--sans);font-size:11px;fill:var(--ink-3)}
+.axlabel,.dlabel{font-family:var(--sans);font-size:11px;fill:var(--ink-2);font-weight:600}
 #tip{position:fixed;pointer-events:none;opacity:0;transition:opacity .1s;z-index:40;
-  background:var(--ink);color:var(--paper);padding:.5rem .65rem;
-  font-family:var(--mono);font-size:.72rem;line-height:1.5;white-space:pre;
-  border:1px solid var(--ink)}
+  background:var(--ink);color:var(--paper);padding:.45rem .65rem;border-radius:6px;
+  font-size:.82rem;line-height:1.5;white-space:pre}
 
 /* ---------- findings ---------- */
-.findings{display:grid;gap:0;border-top:1px solid var(--rule);margin:1.6rem 0 0}
-.finding{display:grid;grid-template-columns:6.5rem 1fr;gap:1rem;padding:1.3rem 0;
-  border-bottom:1px solid var(--rule)}
-.finding .fnum{font-family:var(--mono);font-size:.68rem;letter-spacing:.06em;
-  text-transform:uppercase;color:var(--ink-3);padding-top:.2rem}
-.finding h3{font-family:var(--display);font-stretch:108%;font-weight:700;text-transform:uppercase;
-  font-size:1rem;line-height:1.2;letter-spacing:.005em;color:var(--ink);margin:0 0 .5rem;
-  max-width:46ch}
-.finding h3 em{font-style:italic}
-.finding p{font-size:.92rem;max-width:70ch;margin:0}
+.findings{margin:1.25rem 0 0}
+.finding{padding:1.1rem 0;border-bottom:1px solid var(--rule)}
+.finding:last-child{border-bottom:0}
+.finding .fnum{font-size:.85rem;color:var(--ink-3)}
+.finding h3{font-size:1.05rem;font-weight:650;line-height:1.35;color:var(--ink);margin:.1rem 0 .4rem}
+.finding p{font-size:.95rem;max-width:70ch;margin:0}
 .finding p+p{margin-top:.7rem}
 
 /* ---------- caveat flags ---------- */
-.flags{display:grid;grid-template-columns:repeat(auto-fit,minmax(14rem,1fr));gap:1.2rem;
-  margin:1.6rem 0 1.15rem}
-.flag{border-top:2px solid var(--ink);padding-top:.8rem}
-.flag .tag{display:block;font-weight:700;color:var(--ink-2);margin-bottom:.4rem}
-.flag p{font-size:.88rem;margin:0;max-width:none}
+.flags{display:grid;grid-template-columns:repeat(auto-fit,minmax(14rem,1fr));gap:1rem;
+  margin:1.5rem 0 1.15rem}
+.flag{background:var(--paper-2);border-radius:10px;padding:.9rem 1rem}
+.flag .tag{display:block;font-weight:650;color:var(--ink);margin-bottom:.3rem}
+.flag p{font-size:.92rem;margin:0;max-width:none}
 
-pre{background:var(--paper-2);border:1px solid var(--rule-2);padding:1rem 1.15rem;
-  overflow-x:auto;font-family:var(--mono);font-size:.8rem;line-height:1.65;margin:1.3rem 0;
-  color:var(--ink-2)}
+pre{background:var(--paper-2);border-radius:8px;padding:1rem 1.15rem;overflow-x:auto;
+  font-family:var(--mono);font-size:.82rem;line-height:1.65;margin:1.3rem 0;color:var(--ink-2)}
 pre b{color:var(--ink);font-weight:700}
 
-/* Visually hidden, still announced: table captions that the plate header shows in print. */
-/* .vh lives in site.css — shared with index.html's status announcer. */
-
 @media (prefers-reduced-motion:reduce){.bar,#tip{transition:none}}
-@media (max-width:820px){
-  .stat{border-left:0;padding-left:0;border-top:1px solid var(--rule)}
-  .stat:first-child{border-top:0}
-  .finding{grid-template-columns:1fr;gap:.35rem}
-}
 </style>
 </head>
 <body>
@@ -146,7 +109,6 @@ pre b{color:var(--ink);font-weight:700}
 
 <!-- ============================ TITLE ============================ -->
 <section class="row heavy title">
-  <div class="rail"><b>00</b>Methodology<br>Milestone M4<br>September 2026</div>
   <div>
     <h1 class="display">Reconciling a California Power Bill</h1>
     <p class="standfirst">An engine that prices a household's own metered intervals against the
@@ -177,7 +139,6 @@ pre b{color:var(--ink);font-weight:700}
 
 <!-- ============================ 01 THE GATE ============================ -->
 <section class="row">
-  <div class="rail"><b>01</b>Reconciliation<br>gate</div>
   <div>
     <h2 class="sec">The gate</h2>
 
@@ -194,7 +155,7 @@ pre b{color:var(--ink);font-weight:700}
 
     <div class="plate">
       <div class="plate-head">
-        <p>Fig. 1 &mdash; modeled minus billed, by statement</p>
+        <p>Modeled minus billed, by statement</p>
         <span class="src">scripts/reconcile_report.py &middot; gate &plusmn;$2.00</span>
       </div>
       <figure>
@@ -291,7 +252,6 @@ pre b{color:var(--ink);font-weight:700}
 
 <!-- ============================ 02 THE ENGINE ============================ -->
 <section class="row">
-  <div class="rail"><b>02</b>Bill engine<br>Method</div>
   <div>
     <h2 class="sec">How the engine computes a bill</h2>
 
@@ -355,7 +315,6 @@ pre b{color:var(--ink);font-weight:700}
 
 <!-- ============================ 03 CASE STUDY ============================ -->
 <section class="row">
-  <div class="rail"><b>03</b>Case study<br>One household</div>
   <div>
     <h2 class="sec">One household, end to end</h2>
 
@@ -525,14 +484,13 @@ care_baseline = 0.65 &times; standard</pre>
 
 <!-- ============================ 04 FINDINGS ============================ -->
 <section class="row">
-  <div class="rail"><b>04</b>Findings<br>Public sources</div>
   <div>
     <h2 class="sec">Five findings a generic calculator misses</h2>
     <p class="lede">These came out of building the engine, not out of looking for marketing copy.
     Each is checkable from public documents.</p>
 
     <div class="findings">
-      <div class="finding"><span class="fnum">Finding 01</span>
+      <div class="finding"><span class="fnum">Finding 1</span>
         <div>
           <h3>On SDG&amp;E, the nine-year NEM 3.0 vintage lock-in is currently worth nothing</h3>
           <p>Export rates under the Net Billing Tariff lock for nine years by application vintage,
@@ -553,7 +511,7 @@ care_baseline = 0.65 &times; standard</pre>
         </div>
       </div>
 
-      <div class="finding"><span class="fnum">Finding 02</span>
+      <div class="finding"><span class="fnum">Finding 2</span>
         <div>
           <h3>Export rates rise <em>within</em> a locked vintage, so a lock is not a flat number</h3>
           <p>The same tables show a 2026 mean full export rate of <span class="m">0.0883</span>
@@ -563,7 +521,7 @@ care_baseline = 0.65 &times; standard</pre>
         </div>
       </div>
 
-      <div class="finding"><span class="fnum">Finding 03</span>
+      <div class="finding"><span class="fnum">Finding 3</span>
         <div>
           <h3>On EV-TOU-5, roughly 45% of the super-off-peak delivery charge is non-bypassable</h3>
           <p>That schedule collapses its super-off-peak distribution charge &mdash;
@@ -577,7 +535,7 @@ care_baseline = 0.65 &times; standard</pre>
         </div>
       </div>
 
-      <div class="finding"><span class="fnum">Finding 04</span>
+      <div class="finding"><span class="fnum">Finding 4</span>
         <div>
           <h3>On TOU-DR1, 100% of the time-of-use price signal lives in the generation layer</h3>
           <p>The delivery total is <span class="m">0.32948</span> for <em>every</em> period in
@@ -594,7 +552,7 @@ care_baseline = 0.65 &times; standard</pre>
         </div>
       </div>
 
-      <div class="finding"><span class="fnum">Finding 05</span>
+      <div class="finding"><span class="fnum">Finding 5</span>
         <div>
           <h3>A perfect-foresight optimizer can settle worse than a dumb controller</h3>
           <p>The battery module always reports both a greedy time-of-use controller and a cvxpy
@@ -611,7 +569,6 @@ care_baseline = 0.65 &times; standard</pre>
 
 <!-- ============================ 05 ASSUMPTIONS ============================ -->
 <section class="row">
-  <div class="rail"><b>05</b>Assumed<br>Approximate<br>Unknown</div>
   <div>
     <h2 class="sec">What is still assumed, approximate, or unknown</h2>
     <p class="lede">Presented in full, because a methodology writeup that lists only its strengths
@@ -671,7 +628,6 @@ care_baseline = 0.65 &times; standard</pre>
 
 <!-- ============================ 06 REPRODUCING ============================ -->
 <section class="row">
-  <div class="rail"><b>06</b>Reproducing<br>this</div>
   <div>
     <h2 class="sec">Reproducing this</h2>
     <pre>conda env create -f environment.yml &amp;&amp; conda activate energy-advisor
