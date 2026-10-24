@@ -3,410 +3,167 @@
 _Rewrite this whole file whenever you finish a milestone or pause. Keep it current: state,
 how to run, open decisions, exact next action._
 
-## Status _(2026-09-09, end of session 24)_
+## Status _(2026-10-01, end of session 31)_
 
-**M0, M2 and M4 are done. M1 and M3 have complete, tested engines whose DoDs are blocked on
-data that does not exist yet. Do not fabricate a load or a bill to "finish" either.**
+**M0, M2 (PG&E) and M4 are done. M1 and M3 have complete, tested engines whose DoDs are
+blocked on data that does not exist yet. Do not fabricate a load or a bill to "finish" either.**
 
-**Over 1,600 tests green · ruff clean · 11/11 PG&E golden bills within ±$2 (worst +$0.22) ·
-both CI jobs green.** ⚠ **Do not copy a test count forward either** — same failure as the
-commit count below. Measure it: `PYTHONPATH=src python -m pytest -q`. It was 1,694 at the end
-of session 28 (2026-09-16); the sentence above is the part that stays true as it ages.
-
-> **`git status` is the authority on the working tree, not this line** — which is exactly why
-> it no longer states one. Earlier sessions' claims about what was uncommitted are spent.
-
-> **⚠ Do not read a commit count here.** Measure it: `git fetch -q origin && git rev-list
-> --count origin/main..main`. Every session that copied a number forward published a wrong one
-> — three times running, in both directions — because it was a cached value with no
-> invalidation. **So this line states no number.** What it states instead stays true as it
-> ages: **everything through session 24 is pushed**, and session 24 left nothing uncommitted.
-> A later session that has committed but not pushed makes that sentence stale in the one
-> direction a reader can detect by measuring.
+**Measure, don't copy:** `PYTHONPATH=src python -m pytest -q` (1,793 passed on 2026-10-02),
+`ruff check .`, `git fetch -q origin && git rev-list --count origin/main..main`, `git status`.
+Every session that copied a test count, a commit count or a working-tree claim forward
+published a wrong one. What stays true as it ages: **11/11 PG&E golden bills within ±$2
+(worst +$0.22); everything through session 30 is pushed; both CI jobs green.**
 
 | Milestone | State | What is missing |
 |---|---|---|
 | M0 — PG&E reconciliation | **Done** | — |
-| M1 — SDG&E + CCA overlay | **Engine complete, DoD split + blocked** | M1a: 3 ordinary SDG&E bills. M1b: one household's export + its own bill |
-| M2 — Rate optimizer | **Done for PG&E** | the SDG&E household; utility cross-check unavailable |
+| M1 — SDG&E + CCA overlay | **Engine + both harness paths built; DoD blocked** | M1a: 3 ordinary SDG&E bills (fee lines now built for TOU-DR1). M1b: one household's export + its own bill |
+| M2 — Rate optimizer | **Done for PG&E** | the SDG&E half, gated on M1 |
 | M3 — NEM 3.0 solar + battery | **Engine complete, DoD blocked** | one real household with export data |
-| M4 — Public methodology | **Done, live** | — |
+| M4 — Public methodology + site | **Done, live; site prices for the reconciled scope** | — |
 | M5 — First external users | **Materials drafted** (`RECRUITING.md`), nothing sent | gated on M1 — see the warning below |
 
 - **Repo:** https://github.com/CameronGordonn/energy-advisor (public, AGPL-3.0)
 - **Site:** https://camerongordonn.github.io/energy-advisor/ — a working tool, four pages.
 
 > **⚠ CONTEXT.** The Santa Cruz PG&E service ended July 2026; the last export in `data/` runs
-> to 2026-07-18, and the final statement is probably unreachable. The 11 committed golden
-> bills are unaffected. Cameron has **no plug-in EV**, so EV2-A / EV-TOU-5 are filtered out of
-> rankings by default.
+> to 2026-07-18. The 11 committed golden bills are unaffected. Cameron has **no plug-in EV**,
+> so EV2-A / EV-TOU-5 are filtered out of rankings by default. Dad is **no longer** an SDG&E
+> data source (decided 2026-09-16).
+
+> **⚠ GIT STATE.** The main checkout sits on a **detached HEAD at `main`** because `main` is
+> checked out in the linked worktree `../energy-advisor-m1a` (left by session 29, clean). A
+> commit made here is orphaned. Either `git worktree remove ../energy-advisor-m1a` and
+> `git switch main`, or work on a branch. **Two concurrent sessions need `git worktree`, not
+> one checkout** (session 29/30's collision).
 
 ---
 
-## THE BINDING CONSTRAINT — read before planning anything
+## Where things stand (sessions 25–31 in one place — detail is in SESSION_NOTES)
 
-**This project is data-starved, not code-starved.** Every engine on the SDG&E side is written
-and tested; none of it has ever met a real SDG&E bill. Almost all remaining *code* work is
-low-value polish — **but check that claim against the harness before believing it of a given
-path.** Session 24 found the reconciliation harness still PG&E-hardcoded while this file
-asserted the opposite, i.e. the "just add data" story was true of the specs and false of the
-code that would have consumed them. That gap is closed; the lesson is that "ready" should be
-demonstrated by a test, not by a sentence.
+**This project is data-starved, not code-starved — with one exception found in session 31.**
 
-The one input that changes the project's state is **a real SDG&E Green
-Button export plus three itemised bills**, and it unlocks M1, the SDG&E half of M2, and the
-right to show any San Diego user a dollar figure.
+1. **Both reconciliation paths exist.** The interval path (session 24, utility-general) and
+   the **bill-only path** (session 29, `src/tariffs/bucketed.py`) share one charge layer,
+   `tariffs.bill.charge_lines`. Parity is *measured*: bucketing the 11 PG&E golden bills'
+   real intervals and pricing the buckets lands on every line to the cent. Fill-in forms:
+   `tests/golden_bills/sdge_TEMPLATE.yaml.example` (M1b) and
+   `tests/golden_bills/sdge_BILL_ONLY_TEMPLATE.yaml.example` (M1a). Bill-only refusals by name:
+   a segment straddling a rate change (`SegmentStraddlesRateChangeError`), TOU-DR-P's event
+   adder (`TimingDependentChargeError`), missing buckets, bad tiling.
+   - **Scope limit:** the bill-only path takes SDG&E's bucketing as given, so it cannot test
+     `tou.rules` (the year-round super-off-peak window, weekends, holidays). A green M1a does
+     **not** retire that — it is M1b's job. M1a also never exercises the NBC import floor.
+   - **Ask implication:** prefer a statement inside one rate vintage (2026 TOU-DR1 changed
+     1/1, 4/1, 5/1, 6/1, 8/1; summer starts 6/1), or one that prints its sub-period blocks.
 
-Dad was the expected source and had not delivered as of 2026-09-09. **Treating him as the only
-source is a single point of failure.** The sequencing rule in the M5 warning already says
-recruit for data before sales — so the highest-leverage action available without him is to
-**recruit one SDG&E household as a validation user**. That closes M1's DoD and starts M5 at
-the same time.
+2. ⭐ **Session 31: M1a is NOT "transcription only" — a real SDCP bill would fail ±$2 today.**
+   SDCP publishes a complete specimen 2026 TOU-DR1 statement (`notes/sdcp_specimen_bill_2026-10.md`).
+   Every rate on it matches our specs to the fifth decimal, but it carries **~$8.41 of fee
+   lines the engine did not model** (City of San Diego Franchise Fee Differential 5.78%,
+   Franchise Fee Equivalent Surcharge 6.88%, State Regulatory Fee $0.001/kWh) plus the CEC
+   surcharge, an Economic Development credit and SDCP Power100 (an opt-in). **The first three
+   are not opt-ins, so expect them on any City of San Diego SDCP bill.** It's a specimen (placeholder IDs, internally
+   inconsistent arithmetic), so it counts toward nothing — but it moved the critical path.
+   **Built the same session** (next-action #2): the specimen now prices to $137.97 modelled,
+   $140.71 with the three unmodelled lines observed, vs $140.64 printed.
 
-**Session 23 searched the public internet for a substitute and there is none.** The public
-corpus is now six real exports across two repos (up from one), plus one MIT-licensed corpus of
-26 itemised SDG&E bills — but **the exports and the bills belong to different households**, so
-nothing public can reconcile a dollar. The search is done; do not re-run it. What it bought is
-a much harder-tested parser, not a milestone. See `notes/sdge_public_exports_2026-09.md`.
+3. **The public internet is exhausted for M1.** Session 23: six real SDG&E exports across two
+   repos, none paired with bills (`notes/sdge_public_exports_2026-09.md`). Session 28: the
+   26-bill `ookla-ariel-ride/SDGE-Analysis` corpus is NEM-2 true-up accruals, measured shut
+   (`notes/m1_without_dad_2026-09.md`). Session 31: utility/CCA bill-explainer pages hold one
+   specimen and nothing real; a second pass for a *real homeowner's solar bill* found several
+   (r/solar PG&E NBT page 1, two CPUC complaint dockets) and none usable — partial, NEM-2,
+   disputed-meter, or unredacted. **Do not re-run these searches.** M3 needs a recruited NBT
+   household: all pages of 1–3 statements plus the matching Green Button export.
 
-⭐ **Session 28 closed the last hope in that corpus, by measurement.** The 26 bills publish
-per-TOU-period kWh *and* printed $/kWh, which is exactly what `RECRUITING.md`'s Ask 1 says is
-enough to test the charge layer with no interval data — so it was tried. Four decompositions
-leave residuals swinging **−$67 to +$63** across the seven 2026 statements. **The household is
-NEM-2 with solar and its statements print "Payment Required This Month: No": they are true-up
-accruals, not payable bills.** The corpus's own author reports the same gap. Our per-period
-energy dollars reproduce their `printed_tou_energy_usd` *exactly*, so the failure is in what
-the statement total means, not in our rates. **Do not re-open this route**; full working in
-`notes/m1_without_dad_2026-09.md`, which also carries the M1 DoD question (A/B/C) that this
-leaves open for Cameron.
+4. **Tier-2 corroboration exists and is live:** `tests/published_impacts/` prices SDG&E's
+   three 2026 rate-alert figures through `compute_bill`. TOU-DR1 **delivery** is corroborated
+   (vintage-over-vintage delta catches a 0.3% rate error); **generation is not**; the climate
+   zone is not pinned by it; the PCIA exclusion is an inference
+   (`PCIA_EXCLUDED_BY_INFERENCE`). Counts toward nothing in the ±$2 claim.
 
----
+5. **Site usability overhaul (session 31):** intake on the first screen, bill-line hints on
+   every pricing question, plain plan descriptions, a saving figure, no dead ends (change
+   answers / analyze another file / jump to prices), plain-sentence refusals
+   (`Blocker.summary`, tested in Python). Recorded in both design skills.
+   **The site prices** (session 28) for households the PG&E specs can be shown to describe
+   (territory T, all-electric, 3CE, PCIA 2018) and refuses by name for everyone else, with
+   four blocker codes and `RECONCILED_UTILITIES` tied by test to the golden-bill corpus.
+   Session 30 did the visual overhaul: two stamps (claim in the hero, disclaimer at
+   `#priceOut` — **Cameron's call; do not re-merge without asking**), three a11y defects
+   fixed, `scripts/audit_layout.py` and `scripts/contrast_matrix.py` added.
 
-## ⚠ SESSION 25 UPDATE (2026-09-15) — read with the status above, which is otherwise unchanged
-
-**No milestone moved.** M1 and M3 remain blocked on the same data. What changed:
-
-1. **A second test tier exists and is live: `tests/published_impacts/`.** Utility-published
-   bill-impact figures from rate-change notices. Public documents, so **committable and
-   CI-runnable**, unlike `tests/golden_bills/`. **Nothing in it counts toward the ±$2 claim**
-   — no meter, no period, no interval data. Its README carries the boundary and
-   `test_no_src_module_references_this_tier` now enforces the half of it that can be
-   enforced: nothing under `src/` may reference these figures.
-   **~~The test covers the April 2026 fixture only.~~ Session 26 generalised it to all three
-   2026 quarters (Jan/Apr/Jun), 69 tests.** ⚠ And "generalising is cheap" was **wrong**: two
-   of the three quarters fail April's territory point assertion. See the session-26 note below
-   and the session-26 entry in SESSION_NOTES.md.
-
-2. **Next-action #2 is partially answered — by a figure, not a bill, and now by a test.**
-   SDG&E's April 2026 rate alert publishes $123/month for 400 kWh on **schedule TOU-DR1**
-   unbundled. Priced **through `compute_bill`** over the twelve months from the spec's own
-   effective date, `sdge_tou_dr1_delivery_2026-04-01.yaml` gives **$123.48 at baseline
-   territory `coastal_basic`, and no other territory lands within ±$0.50** (next nearest
-   $122.35). CARE $66.79 vs published $67. So the delivery layer's energy rate, fixed charge,
-   baseline allowance and baseline credit have outside corroboration — **the first ever to
-   touch TOU-DR1** — and it is a permanent gate, not a one-off measurement.
-   - ⚠ **The climate zone is NOT pinned by this, and an earlier draft of this entry said it
-     was.** Session 26 priced all three quarters through `compute_bill`: **no single territory
-     lands inside the ±$0.50 band in every cell** — June picks `coastal_all_electric`, and
-     January has nothing inside the band at all. The two coastal territories sit a stable
-     ~$1.05–1.13 apart while the published figure is a whole dollar carrying a ~$0.5–0.9 band,
-     so rounding decides the contest, not evidence. `coastal_basic` stands on a **domain
-     prior** — SDG&E Sheet 29294-E makes All-Electric available only on application — not on
-     arithmetic.
-     - ⚠ **A second correction: "the six non-coastal territories are >$2 off in every quarter"
-       is ALSO wrong.** June CARE puts `inland_basic` $1.41 off. What holds in all six cells:
-       the two nearest territories are always the coastal pair, third-nearest a further
-       $0.98–$1.77 out. Asserted by test now, in both forms.
-     See `notes/published_impacts_corpus.md` and `tests/published_impacts/README.md`.
-   - **Shape independence is proved by the engine**, not read off the YAML: five allocations
-     spanning all-on-peak to all-super-off-peak agree to 1c (per-line rounding). That is why
-     this is a point test and why invariant 6 is not in play for the delivery half.
-   - **Generation stays near-zero information and now asserts its own weakness.** Envelope
-     $30.73–$122.31 against an implied $71: it accepts 95.6% of its own width. Measured by
-     mutation: a 10x decimal shift on one generation cell does NOT trip it; scaling every
-     rate by 1/10 does.
-   **This is corroboration, not reconciliation. Next-action #2 still wants a bill.**
-
-3. **One load-bearing inference, encoded but still unsettled.** A CCA customer pays the
-   vintaged PCIA, but the arithmetic only matches with PCIA excluded. The test names it —
-   `PCIA_EXCLUDED_BY_INFERENCE = Service.BUNDLED` — and the test
-   `test_the_pcia_exclusion_is_load_bearing` asserts that no vintage in the table reaches the
-   published figure (nearest, 2009, is $6.63 out), so
-   a future edit that made one match fails loudly instead of inverting the assumption
-   silently. **It is still an inference about what SDG&E's number means.** Stream B settles it
-   across several quarters; one quarter cannot separate policy from coincidence.
-
-4. **CLI-PLAN phase B is half done.** Skill frontmatter written; the JSON schema and skill
-   body are Cameron's and are the critical path. Decisions D1–D5 recorded. Sources for
-   calibration are now on disk in `data/sources/` (gitignored).
-
-5. **Correction to next-action #0's search note.** Session 23 settled that no public
-   household publishes an export *and* its bills — still true. Session 25 re-searched and
-   found a **different artifact class** (published bill-impact figures), which is what item
-   1 above is built on. Do not re-run either search.
-
-**Paste-ready prompts for the next sessions, including a parallel-stream split with model
-and effort per stream: `notes/session25_handoff_prompts.md`.** ⚠ **Streams A, B and C are all
-spent** (A and B in session 25, and session 26 finished the tier-2 work A's prompt scoped).
-That file's "what is available to work on" list is stale apart from items 0 and 3 — **dad's
-data or a recruited SDG&E user, and Cameron's JSON schema + skill body for CLI-PLAN phase B,
-which no session can do for him.**
-
-_This is an insert, not the full rewrite CLAUDE.md asks for at a pause. The status table
-above and the next-action list below remain accurate; a wholesale rewrite would have
-discarded accumulated context this session did not read in full. Next session that
-completes a milestone should do the real rewrite._
+6. **ACC tables re-imported 2026-09-16, byte-identical.** The floating NBT00 table expires
+   **2026-12-31** for both utilities; a test fails on 2027-01-01. No 2027 vintage published.
 
 ---
-
-## ⚠ SESSION 26 UPDATE (2026-09-16) — tier 2 now covers three quarters, not one
-
-**No milestone moved. `data/` is still PG&E-only; M1 and M3 blocked on the same data.**
-1,651 tests green (+44), ruff clean, 11/11 reconciliation unchanged. Full detail in the
-session-26 entry of SESSION_NOTES.md; the short version:
-
-1. **`tests/published_impacts/` is parameterized over all three 2026 SDG&E alerts** (Jan/Apr/
-   Jun), 69 tests. New `tier2.py` holds the shared probe machinery; fixtures are found by
-   **glob** and carry a `vintage:` field, so a fixture added without a test now fails loudly.
-   That is the gap that let stream B's two fixtures sit untested.
-
-2. ⭐ **April's territory point test passed by luck and has been retired.** Two of three
-   quarters fail it. No single territory reproduces every published figure inside SDG&E's own
-   rounding band. The generalisable lesson, now README design rule 3: **the alert states
-   neither the TOU allocation NOR the baseline territory, and every unstated parameter gets
-   the feasibility treatment.** A figure that happens to round your way does not pin a
-   parameter the document never stated.
-
-3. **The residual was chased before any tolerance was chosen, and it is not a spec defect.**
-   It never exceeds $0.36 beyond the publisher's own rounding. No rate error fits (non-CARE
-   averages +$0.65 but CARE +$0.03, where a rate error would give +$0.42). A territory mix is
-   LP-feasible but only at a non-credible corner. **No spec changed; `src/` untouched; the
-   reconcile run is unmoved, which is the gate that proves it.**
-
-4. ⭐ **The replacement test needs no territory: the vintage-over-vintage delta.** Each alert
-   publishes the figure it replaces, and the engine's change agrees across all eight
-   territories to a few cents while the levels span ~$4.3. So differencing tests the filing
-   itself. Mutation-measured at a **0.3% energy-rate error**.
-
-5. **Seven spec mutations, all seven trip.** The surprise: the cell-by-cell "which territories
-   land inside the band" table is the **strongest** assertion in the tier (6 of 7), sharper
-   than the ±$1.00 feasibility test (5 of 7) — pinning exact set membership beats pinning a
-   tolerance.
-
-**Still true and unchanged: this is corroboration of the DELIVERY layer only, it counts toward
-nothing in the ±$2 claim, and next-action #2 still wants a bill.**
-
-6. **The public site now documents tier 2** — `docs/METHODOLOGY.md` §1.1 and the matching
-   `methodology.html` block, inside section 01 where the ±$2 gate is defined, because the
-   point of the section is the line the evidence does NOT cross. Checked in Chromium at
-   1280/390 in both themes; no chart or token touched, so no design contract is in play.
-   ⚠ Also fixed there: `README.md` and both methodology files had printed **"1,582 tests"**
-   since ~session 22. Now "over 1,600" — a claim that stays true as it ages, which is the
-   same fix the commit-count warning at the top of this file needed three times.
-
----
-
----
-
-## ⚠ SESSION 28 UPDATE (2026-09-16) — the ACC re-import: measured, nothing moved, expiry found
-
-**No milestone moved. `data/` is still PG&E-only.** Next-action #4 below is rewritten with the
-result; `notes/acc_reimport_2026-09.md` holds the evidence and the re-run commands. Short
-version:
-
-1. **Both utilities' ACC sources are byte-identical to what is committed**, verified by sha256
-   after the CPUC's 2026 ACC adoption (D.26-09-007, 2026-09-03), and a real re-import
-   reproduces the committed tables byte-for-byte. The adoption has not reached either
-   utility's published export pricing. Both ACC test files green.
-
-2. ⭐ **The floating (NBT00) table has a publisher-stated expiry — 2026-12-31, for both
-   utilities.** Every "the lock-in is worth $0" finding is a claim about the currently
-   published floating table, which is not frozen the way the vintage tables are. That is now a
-   test that fails on 2027-01-01 rather than a fact nothing would have noticed going stale.
-
-3. **`verified:` in the ACC manifests** separates "old" from "stale" — the date the publisher
-   was confirmed to still serve these bytes, kept only while the source sha256 is unchanged.
-
-4. **Finding 01 on the public site now carries its own date and expiry** (`docs/METHODOLOGY.md`
-   and `methodology.html`). Prose only; no design or DOM contract touched.
-
-5. **The legal pages are finished and will never be lawyer-reviewed** — Cameron's standing
-   decision. Terms gained the counterparty, acceptable use, third-party services, governing
-   law and venue, severability/waiver/entire-agreement and an age line; privacy gained the
-   controller, CCPA/CPRA, DNT/GPC and retention. Both say plainly they were not written by a
-   lawyer. **This is no longer an M5 gate.**
-
-6. **Both open accessibility defects are closed.** A new always-present `#announcer` live
-   region (`#status` could never be one — it is toggled with `hidden`), and focus now moves
-   into `#results` when it is revealed. Four new assertions in the render test,
-   mutation-checked. `.vh` moved into `site.css`.
-
-7. ⭐ **The public-bill route to M1 is measured shut, and the remaining ask is one ordinary
-   non-solar SDG&E statement** — see the binding-constraint section above, next-action #1, and
-   `notes/m1_without_dad_2026-09.md`. M1's DoD is now **split into M1a/M1b** (Cameron's
-   decision); see ROADMAP.
-
-8. ⭐ **THE SITE PRICES NOW.** `src/report/recommend.py` ranks plans for households the specs
-   can be shown to describe and refuses by name for the rest. The old answer — "no dollars,
-   invariant 1" — was wrong: the gate is met for PG&E. The real limit is that **the PG&E specs
-   describe one household** (territory T, all-electric, 3CE, PCIA 2018). That is now a derived
-   scope, four named blocker codes, and a `RECONCILED_UTILITIES` constant tied by test to the
-   golden-bill corpus. The browser runs the whole pricing stack and `test_engine_wasm.mjs`
-   checks **dollar parity with CPython to the cent**. ROADMAP's "web UI = Later" is formally
-   overridden there. Full detail in SESSION_NOTES.
-   - ⚠ **`docs/case-study.json` is generated from gitignored `data/`** by
-     `scripts/build_case_study.py`. CI cannot rebuild it. It carries the engine digest and
-     `tests/report/test_case_study.py` fails when the bundle moves without it — **regenerate
-     it whenever `docs/engine.js` changes**, or the site publishes numbers its own engine no
-     longer produces.
-
-9. **Not done, and next:** the visual half of the site overhaul (all four pages, the
-   design-system skill rewrite, a recomputed contrast matrix) and the **M1a bill-only
-   harness**. Neither is started.
 
 ## EXACT NEXT ACTION
 
-**0. Check for dad's SDG&E data first, every session.** `ls -lt data/` — look for anything
-SDG&E-shaped. Not arrived as of 2026-09-09 (`data/` unchanged since July 19; PG&E only). If it
-has landed it outranks everything below.
-  - **First command:** `PYTHONPATH=src python scripts/inspect_export.py FILE.csv`. It
-    auto-detects the utility and reports interval length, coverage, gaps, DST handling and any
-    export register **before anything tries to price it**.
-  - **The parser has now met FIVE real SDG&E exports, and refused three of the five on first
-    contact.** Sessions 13 and 23. Every refusal was a stated fact about "the" SDG&E format
-    being wrong: `Duration` instead of `END TIME` and 12-hour times (13); a **true 25-hour DST
-    fall-back day** where PG&E sums both hours (13); a **two-digit year** `3/1/24` against a
-    hardcoded `%m/%d/%Y` (23). All fixed and tested. **Expect a sixth file to break it a fourth
-    way; budget the session. If it refuses the file, fix the parser, not the file.**
-  - **What session 23's corpus survey settled, so it is not re-hunted** — full detail in
-    `notes/sdge_public_exports_2026-09.md`. **15-minute, spring-forward and a populated export
-    register are now all exercised** against real files: a full year of 15-minute NEM data
-    spanning both 2024 DST transitions, Apache-2.0, from `steevschmidt/NEC-220.87-Methods`.
-    `Net` **is** pre-netted, and `Total Usage` on a solar account is the **NET** sum, not the
-    consumption sum. **None of that closes M1** — no public household publishes an export
-    *and* its bills.
-  - **What the bills must tell us:** schedule, climate zone, CARE status, bundled vs CCA — and
-    if a CCA, which one, which SDCP cohort, and the **PCIA vintage** (which moves more money
-    than the choice of CCA does).
-  - ⭐ **The harness is now utility-general, so the answer to "what stands between his bill and
-    a reconciliation run" is: nothing but transcription.** _(Session 24. The old wording here —
-    "no overlay work stands between his bill and a reconciliation run" — was **wrong**: the
-    SPECS were ready, the HARNESS was not. It globbed PG&E's filename, called PG&E's parser
-    regardless of the fixture's `utility:` field, and called `compute_bill` with no territory,
-    no vintage and no event days, so an SDG&E fixture could not have been priced at all.)
-    **Copy `tests/golden_bills/sdge_TEMPLATE.yaml.example` to `sdge_<MM-DD-YYYY>.yaml`, fill
-    in the `customer:` block and the printed dollars, drop the export in `data/`, run
-    `PYTHONPATH=src python scripts/reconcile_report.py`.** The harness picks the SDG&E parser
-    off the fixture's `utility:`, finds the export by SDG&E's own filename patterns, and
-    refuses the fixture BY NAME if the climate zone, PCIA vintage, supplier or event days are
-    missing. See session 24 in SESSION_NOTES.md.
-  - **If he is CARE *and* on a CCA**, check open decision 9 first, before anything else.
+**0. Check for SDG&E data first, every session.** `ls -lt data/`. If a bill or export has
+landed it outranks everything below.
+  - Export → `PYTHONPATH=src python scripts/inspect_export.py FILE.csv` first. The parser has
+    refused 3 of 5 real SDG&E exports on first contact; **if it refuses, fix the parser, not
+    the file.**
+  - Bill only → copy `sdge_BILL_ONLY_TEMPLATE.yaml.example` to `sdge_<MM-DD-YYYY>.yaml`, transcribe,
+    run `PYTHONPATH=src python scripts/reconcile_report.py`. Expect it to miss by the fee
+    lines in #2 until they're built.
+  - **What the bill must tell us:** schedule, climate zone, CARE, bundled vs CCA, which CCA
+    and cohort, **PCIA vintage**, **city** (franchise fee), and any CCA opt-up product.
+  - If the household is **CARE and on a CCA**, read open decision 9 first.
 
-**1. Get ONE ordinary SDG&E bill. Not a validation user — a bill.** ⭐ **Session 28 made this
-ask much smaller than it used to be.** The public 26-bill corpus was measured shut as an M1
-route (see below and `notes/m1_without_dad_2026-09.md`), and what that leaves is not "recruit
-a validation user" but **one redacted statement from one ordinary — i.e. non-solar, non-NEM —
-SDG&E household**, whose total is a payable amount a tariff can reproduce. No export, no year
-of 15-minute data, no privacy conversation. A friend, a colleague, one post.
-  - **Only the interval half needs more.** The parser and the interval→TOU-bucket step still
-    want an export from the *same* household; that is the part that genuinely needs a willing
-    participant, and it is M1b under the DoD split proposed in the note.
-  - The fuller Ask 1 / Ask 2 framing is still in `RECRUITING.md` and still correct; this is
-    the cheapest end of it, separated out because it is now the whole critical path.
+**1. Get ONE ordinary SDG&E bill.** One redacted statement from one non-solar, non-NEM SDG&E
+household — no export, no year of data. A friend, a colleague, one post. Three such bills
+close M1a. `RECRUITING.md` Ask 1/Ask 2 is still the fuller framing. **This is the only thing
+that moves a milestone.**
 
-**2. Get an SDG&E bill in front of the TOU-DR1 specs.** Session 23 audited the one piece of
-outside evidence and it came back clean — but for the wrong schedule. 26 itemised bills in
-`ookla-ariel-ride/SDGE-Analysis` (MIT) turn out to be an **EV-TOU-5** household, and against
-EV-TOU-5 our rates reproduce the printed ones **exactly**: six cells across three vintages
-all differ by precisely 0.02099, which is the NBC/PPP bundle our specs itemise and SDG&E
-prints as separate line items rather than inside the Rate/kWh row. Pinned by
-`test_our_delivery_rate_less_the_import_floor_is_what_sdge_printed`.
-  - **What that buys:** invariant 4's import floor (0.02099/kWh; 44.6% of EV-TOU-5's
-    super-off-peak delivery charge, 6.5% elsewhere) is confirmed against a real bill, and
-    open decision 1's 5/1 window-only filing gains outside corroboration.
-  - **What it does NOT buy:** it is corroboration, not reconciliation — unaudited extraction,
-    NEM-2-netted kWh, no interval data. And **TOU-DR1's period-flat UDC — the ⭐ fact that
-    100% of its TOU signal lives in generation — is still unvalidated by any bill.** That is
-    the schedule almost every SDG&E household is actually on, and the one M1 needs. Note the
-    irony worth carrying: the only externally validated SDG&E schedule is EV-TOU-5, which is
-    filtered out of rankings by default because Cameron has no EV.
-  - ⭐ **Sessions 25–26 changed what "unvalidated" means here, precisely.** TOU-DR1's
-    **delivery** layer is now corroborated against SDG&E's own published figures across
-    **three independently filed alerts** (1/1, 4/1, 6/1 2026), by tests that go through
-    `compute_bill` — energy rate, fixed charge, baseline allowance, baseline credit. It does
-    **not** pin the climate zone (see the correction above). The sharpest of those tests is
-    the **vintage-over-vintage delta**, which needs no territory at all: the levels span
-    ~$4.3 across territories but the *change* between vintages agrees across all of them to a
-    few cents, so differencing cancels both the unstated territory and any constant
-    methodology residual. Mutation-measured: a **0.3% delivery energy-rate error** trips it.
-  - **TOU-DR1 GENERATION is still unvalidated by anything**, and that is where 100% of the
-    schedule's TOU signal lives, so every load-shift and battery conclusion on the schedule
-    still rests on untested numbers. The feasibility test over the published bundled figure
-    accepts 95.6% of its own width and must not be described as corroboration. Note also that
-    the corpus is **three quarters of delivery evidence but only two of generation** — the 6/1
-    filing moved the UDC and left EECC alone, so June's generation layer is April's numbers.
-    **A bill is still the ask, and generation is the half it has to price.**
+**2. SDG&E fee lines — BUILT (session 31, branch `sdge-fee-lines`); what is left.**
+The City of San Diego Franchise Fee Differential, the CCA Franchise Fee Equivalent Surcharge
+(on imputed EECC) and the CEC surcharge are modelled, cited and tested
+(`tests/tariffs/test_sdge_franchise_fees.py`). **`jurisdiction` is now a required customer
+fact** for TOU-DR1 (`city_of_san_diego` | `other`), in both fixture templates. Remaining, in
+order — detail in `notes/sdcp_specimen_bill_2026-10.md` § "Built":
+  1. ✔ **Extended to TOU-DR2 / TOU-DR-P, and bundled-in-city settled (session 32).**
+     Schedule EECC (Sheet 30030-E) has its own 5.78% clause, so bundled households pay it on
+     generation too, as a second line. **EV-TOU-5 still refuses in the city**: its schedule
+     sheet was not found. Find it, then drop `bundled` from its `unverified_for`.
+  2. **State Regulatory Fee** ($0.001/kWh) — find the authority; until then it is an
+     observed adjustment in fixtures (the bill-only template says so).
+  3. **FFES base gap** — Schedule CCA says imputed EECC (48.76 on the specimen), the
+     specimen prints 49.71. Settle against a real CCA statement; do not fit.
+  4. **Refused branches** (`UnverifiedChargeError`): CARE on any franchise line; a CCA
+     customer in the city on TOU-DR2 / TOU-DR-P / EV-TOU-5 (no PCIA in those specs); EV-TOU-5
+     in the city. The first bundled city bill should also show whether SDG&E prints the
+     delivery and generation differentials as one line or two.
+  5. Economic Development Program Credit, SDCP Power100 — observed adjustments for now.
 
-**3. Wire TOU-DR-P into a ranking — but decide the day-selection rule first.** The engine
-half is done (session 21: it loads, bills, and refuses to price without an explicit event
-assumption). What is missing is (b), the reporting band, and it is blocked on a modeling
-decision rather than on code: a forecast has to choose WHICH days to assume, and "hottest N
-days", "last year's actual dates" and "Monte Carlo over count and timing" give materially
-different answers. Surface it as a decision. Note this is gated behind the SDG&E candidate
-set anyway — `ALL_PGE_CANDIDATES` is still the only one — which is itself gated on a real
-household. See open decision 2.
+**3. Small corrections from session 31 (no data needed):**
+  - `tests/tariffs/test_sdge_layers.py` — the docstring of
+    `test_our_delivery_rate_less_the_import_floor_is_what_sdge_printed` over-generalises: a
+    non-NEM TOU-DR1 statement prints delivery net of WF-NBC only (0.00591), not the whole
+    0.02099 bundle. Scope it to NEM statements.
+  - Baseline allowance: specimen prints 8.8/day Coastal winter, spec says 9.2 (a real 2024
+    statement agrees with 9.2). Re-check Sheet 29294-E's current revision; change nothing
+    without the sheet.
 
-**4. The ACC tables — RE-IMPORTED 2026-09-16. Nothing moved; the next move now has a date.**
-Full detail and the re-run commands: `notes/acc_reimport_2026-09.md`.
-  - **The measurement.** All eight committed tables' sources were re-fetched and hashed after
-    the CPUC's 2026 ACC adoption (2026-09-03, D.26-09-007): SDG&E's three CSVs and PG&E's
-    36 MB zip, including each of its five member CSVs, are **byte-identical** to the recorded
-    `source_sha256`. The importer was re-run on four of them and the rebuilt tables are
-    byte-identical to the committed `.csv.gz`, which clears the importer too. Both ACC test
-    files are green. **Do not re-download before 2027-01-01 unless something else prompts it.**
-  - ⭐ **What the check found instead: the floating (NBT00) table has a publisher-stated
-    expiry, and both utilities' end on the same day — 2026-12-31.** SDG&E's readme makes its
-    current-year file effective for the current year only; PG&E's makes its floating file
-    effective for calendar 2025 and 2026. Every "the lock-in is worth $0" finding here is a
-    claim about the *currently published* floating table — the vintage tables are frozen, the
-    floating one is not — so those findings can change with a republish that touches no file
-    in this repo. **Nothing would have noticed; now
-    `test_the_floating_table_has_not_outlived_its_own_effective_window` fails on 2027-01-01**
-    if the tables have not been re-imported. The window is derived from each table's own
-    horizon, so a re-import moves it without editing a constant.
-  - **The product answer available today, with a date on it:** the 2026 vintage lock-in is
-    worth exactly **$0 observable on both utilities**, and the first date that can change is
-    the republish due before 2027-01-01, which will carry D.26-09-007's ACC. **When the
-    re-import happens, the two tests that say whether the vintage question has become real are
-    `test_sdge_vintages_are_one_table_wearing_three_labels` and
-    `test_pge_vintages_that_collapse_into_one_table[2026-current]`. If either fails, restate
-    the ⭐ findings — in this file, `test_acc_pge.py`'s module docstring, and finding 01 of
-    `docs/METHODOLOGY.md` + `methodology.html` — rather than patching them.**
-  - **The 2027 vintage is still unpublished, and still a test.** SDG&E's page offers 2023-2026
-    only; PG&E's zip holds five vintages and no 2027 — and that zip is still the 2024-12-18
-    build, which is *why*: a 2027 vintage needed a December 2025 refresh that never came.
-    2027 is the last application year that earns a nine-year lock-in, so it is the last vintage
-    the "when to install" question can ever turn on. `Vintage(application_year=2027, ...)`
-    raising `MissingAccTableError` is correct behaviour, not a bug, and
-    `test_the_2027_vintage_still_has_no_published_table` asserts it for both utilities.
-    **When it fails, that is the signal to import** — not to delete the test.
-  - **Manifests now separate "old" from "stale".** `retrieved:` is when the bytes were fetched;
-    the new `verified:` list is when the publisher was confirmed to still serve them.
-    `carry_forward_verifications()` (in `src/nem3/acc.py`, so it is tested) keeps prior dates
-    only while the source sha256 is unchanged.
+**4. TOU-DR1 GENERATION is still unvalidated by any real bill**, and 100% of the schedule's TOU
+signal lives there. The first real bill must price generation, not just delivery.
 
-> **⚠ READ BEFORE STARTING M5 — M1 and M5 are coupled.** M5 targets San Diego (SDG&E) users,
-> and **the engine has never reproduced a single real SDG&E bill.** (The *parser* has now met
-> one real export — session 13 — which is a different and much weaker claim.) The
-> rate specs are tariff-exact across all five 2026 vintages — calendar 2026 is now covered
-> end to end, 8/1 being the last vintage SDG&E published — which is necessary but **not
-> sufficient**: sending dollar figures to five strangers without a reconciled SDG&E bill would
-> violate invariant 1 (reconciliation-gated), which is the product's entire trust claim.
-> **The consequence is a sequencing rule, and it is good news:** the FIRST recruit who supplies
-> an export *plus* three bills closes M1's DoD, and only then does the SDG&E path earn the
-> right to produce dollar figures for the other four. Recruit for data before sales, and tell
-> the first one or two people plainly what they are. A PG&E recruit needs no such caveat —
-> that path is reconciled 11/11.
+**5. TOU-DR-P ranking** — engine done; session 27 decided to report a break-even instead of
+forecasting event days. Gated behind an SDG&E candidate set, which is gated on M1.
+
+**6. ACC re-import before 2027-01-01**, when the utilities republish with D.26-09-007's ACC.
+If `test_sdge_vintages_are_one_table_wearing_three_labels` or
+`test_pge_vintages_that_collapse_into_one_table[2026-current]` fails, restate the ⭐ vintage
+findings (here, `test_acc_pge.py`'s docstring, finding 01 of `docs/METHODOLOGY.md` +
+`methodology.html`) rather than patching them. `notes/acc_reimport_2026-09.md` has the commands.
+
+> **⚠ READ BEFORE STARTING M5 — M1 and M5 are coupled.** M5 targets San Diego users, and **the
+> engine has never reproduced a single real SDG&E bill.** Sending dollar figures to strangers
+> before that would violate invariant 1. Sequencing rule: the first recruit who supplies bills
+> closes M1a; only then does the SDG&E path earn the right to show anyone a dollar. Recruit
+> for data before sales. A PG&E recruit needs no such caveat.
 
 ---
 
@@ -553,21 +310,26 @@ Four pages in `docs/`, served by GitHub Pages: `index.html` (the tool), `methodo
   `docs/engine.js` is **generated** from `src/` by `scripts/build_web_engine.py`, and
   `tests/report/test_web_engine.py` fails if it goes stale. Rebuild after touching
   `src/greenbutton/` or `src/report/inspect.py`.
-- **The tool prices NOTHING, deliberately.** Load shape needs no reconciliation gate; dollars
-  do, and that gate is met for PG&E but not SDG&E. **Enforced by tests, not intent** — no
-  money-shaped field may exist on `Inspection`, findings may not contain `$`, `¢` or `/kWh`,
-  and the jsdom test scans every computed region.
+- **The tool prices — inside a derived scope (session 28).** `src/report/recommend.py` ranks
+  plans only for households the PG&E specs can be shown to describe and refuses by name
+  otherwise; `test_engine_wasm.mjs` checks dollar parity with CPython to the cent. The
+  **load-shape half still never prices**: the jsdom test scans those six regions for
+  `$<digit>` and separately asserts `#planTable` IS dollar-denominated, and the `Inspection`
+  model may carry no money-shaped field. ⚠ `docs/case-study.json` is built from gitignored
+  `data/` and pins the engine digest — **regenerate it whenever `docs/engine.js` changes**.
 - **Design (session 12): the site is built as the document it is about — a tariff sheet.**
   Two-colour offset print on manila (oxblood + sulphur), **zero border-radius anywhere**, a
-  left rail of mono section numbers, ledger rows instead of stat cards, and a rotated
-  `NOT A BILL / NO AMOUNT DUE` stamp. Type is **Archivo** (variable *width* axis — one file
+  left rail of mono section numbers, ledger rows instead of stat cards, and **two** rotated
+  stamps since session 30 — the claim (`RECONCILED ±$2 / 11 OF 11 REAL BILLS`) in the hero,
+  the disclaimer at `#priceOut` beside the verdict. Cameron's call; do not re-merge. Type is **Archivo** (variable *width* axis — one file
   gives the expanded display voice and the body) plus **Space Mono** for every number and label.
 - **Two colour rules are load-bearing.** `--sul` is a **FILL, never text** (1.89:1 on paper);
   accent text is always `--ox`. And **`--ox` means "the expensive hours" and nothing else** —
   Fig. 2's month bars are `--mark` for exactly this reason.
-- **`T = 64` on the hour chart is not spare whitespace.** It exists so the peak-band caption
-  cannot collide with the "busiest hour" direct label, which happens whenever the busiest hour
-  falls inside the band — the common case. This has been broken and re-fixed twice.
+- **`T = 64`, `BAND_LIFT = 6` and `LABEL_LIFT = 16` on the hour chart are not spare
+  whitespace.** They stop the peak-band caption and the band's own overhang colliding with the
+  "busiest hour" label, which happens whenever the busiest hour falls inside the band — the
+  common case. Broken and re-fixed three times.
 - **The render test pins the DOM**, including *exactly* 25 `#hourChart rect` (24 bars + 1 band)
   of which exactly 5 are `var(--accent)`. Adding a decorative `<rect>` to either chart breaks
   it — use `<path>`, `<line>` or CSS. Restructure the markup and update the test **in the same
@@ -580,7 +342,7 @@ Four pages in `docs/`, served by GitHub Pages: `index.html` (the tool), `methodo
 
 ```bash
 conda activate energy-advisor    # env prefix: /home/cameron/miniforge3/envs/energy-advisor
-pytest -q                                                   # 1,582 tests; golden tests skip if data/ absent
+PYTHONPATH=src python -m pytest -q                          # measure the count; golden tests skip if data/ absent
 ruff check . && ruff format --check .
 PYTHONPATH=src python scripts/reconcile_report.py           # 11 line-item comparisons (the trust artifact)
 PYTHONPATH=src python scripts/reconcile_report.py --write-readme
@@ -591,6 +353,9 @@ PYTHONPATH=src python scripts/build_web_engine.py           # regenerate docs/en
 npm install --prefix tools && node tools/test_engine_wasm.mjs && node tools/test_tool_render.mjs
 pip install playwright && python -m playwright install chromium   # optional local extra, NOT in CI
 PYTHONPATH=src python scripts/screenshot_site.py            # LOOK at the pages; jsdom does no layout
+PYTHONPATH=src python scripts/audit_layout.py               # reflow, heading order, th/scope (Playwright)
+python scripts/contrast_matrix.py                           # contrast derived from site.css tokens
+PYTHONPATH=src python scripts/build_case_study.py           # after build_web_engine.py; needs data/
 PYTHONPATH=src python scripts/build_acc_tables.py --utility 'SDG&E' --vintage 2026 --source FILE.csv --citation '...'
 PYTHONPATH=src python scripts/build_acc_tables.py --utility 'PG&E'  --vintage 2026 --source FILE.csv --citation '...'
 ```
@@ -637,7 +402,7 @@ baseline rose while delivery *fell* — a summer-peaked load feels the generatio
   pending task.** This is a personal project for his own use, so a legal review was never
   going to happen and leaving it on the list made M5 look blocked on something nobody
   intended to do. Both pages were completed to the best of the assistant's ability in session
-  29 — terms gained the counterparty, acceptable use, third-party services, governing law and
+  28 — terms gained the counterparty, acceptable use, third-party services, governing law and
   venue, severability/waiver/entire-agreement and an age line; privacy gained the controller,
   CCPA/CPRA, DNT/GPC and retention. **What remains true and must stay on the pages: they say
   plainly that they were written by the author and not by a lawyer.** Keep them accurate as
@@ -799,15 +564,12 @@ cell for cell.
     are NEM-2 true-up accruals, measured in `notes/m1_without_dad_2026-09.md`.
   - **M1b — interval layer:** one household's export priced end to end against its own bill.
     The half that tests the parser and the interval→TOU-bucket step.
-  - **What still stands between a bill and a run is transcription** (session 24's finding):
-    the harness dispatches on `utility:`, threads the customer facts and gates on them. What
-    does **not** exist yet is the M1a path — a fixture and harness that take *bucketed kWh*
-    instead of an export. That is the next build, and it is the thing that will consume the
-    first real bill. It can be validated today against the 11 PG&E golden bills, by bucketing
-    their real intervals and checking the bill-only result against the full-interval one.
+  - Both harness paths exist (sessions 24 and 29). What still stands between a real SDCP
+    bill and a pass is the **fee lines** in next-action #2 (session 31).
 - **M3 DoD** — one real household with solar/export interval data.
-- **Full validation of `src/greenbutton/sdge.py`** — session 13 fixed it against one real
-  export (60-min, November). A 15-minute file, and any file spanning March, are still unseen.
+- **Full validation of `src/greenbutton/sdge.py`** — five real exports met (sessions 13, 23),
+  including 15-minute, both DST transitions and a populated export register. Still unseen:
+  any export paired with its own bill (M1b).
 - **M2's PG&E cross-check is unavailable, not pending** — PG&E's Rate Plan Comparison returns
   "no service agreement eligible for rate enrollment" for this account. `--pge-comparison FILE`
   is built and waiting.
@@ -843,7 +605,8 @@ cell for cell.
     exactly one credited bill exists, which cannot distinguish the candidate rules. Settle
     that against a second credited bill before wiring it in.
 - **CEC surcharge on SDG&E** — PG&E specs carry $0.0003/kWh; SDG&E's Total Rates Tables show no
-  such column on any 2026 vintage, so it is deliberately NOT asserted either way.
+  such column. ⚠ **Session 31: the SDCP specimen bills it** ("State Surcharge Tax", 251 x 0.0003
+  = $0.08, on the CCA side). Build it with next-action #2.
 - **SDG&E minimum bill** ($0.329/day, CARE $0.164) comes from the 2018 sheet; no 2026 table
   restates it. Confirm before shipping a figure that depends on the floor binding.
 
@@ -874,5 +637,5 @@ cell for cell.
 
 ---
 
-Do **not** build CLI / API / Docker / deployment / web UI — roadmap "Later", gated behind the
-M5 verdict.
+Do **not** build CLI / API / Docker / deployment — roadmap "Later", gated behind the M5
+verdict. (The web UI half of that rule was formally overridden in session 28: the site prices.)

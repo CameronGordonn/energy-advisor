@@ -102,6 +102,13 @@ region — at full report length a 4,700px oxblood box that reads as an error st
 scroll-and-focus target, not a keyboard-reachable control, so the rule that **every
 interactive control shows a focus ring is untouched**. Do not generalise it.
 
+**Form hints are announced with their control (session 31).** Each `.fields select`
+carries `aria-describedby` pointing at its `.hint`, so a screen reader hears *where on the
+bill* to look along with the label, not only the label. A refusal's technical reason is a
+native `<details>`, keyboard-operable with no script. The new "Change my answers" and
+"Analyze another file" controls are real `<button>`s and move focus where they send the
+reader (the first select; the drop zone), matching what `#results` already does.
+
 ## Open defects
 
 None known on any of the four pages. `index.html`'s live-region and focus items were closed

@@ -48,11 +48,13 @@ from .bill import (
     Bill,
     LayerBill,
     LineItem,
+    _bill_level_surcharges,
     _r,
     _rate_subperiods,
     _usage,
     charge_lines,
     minimum_bill_line,
+    needs_imputed_generation,
 )
 from .schema import Service, TariffSpec
 
@@ -228,7 +230,9 @@ def compute_layer_from_usage(
     service: Service = Service.CCA,
     territory: str | None = None,
     vintage: str | None = None,
+    jurisdiction: str | None = None,
     allow_before_effective: bool = False,
+    surcharges: bool = True,
 ) -> LayerBill:
     """:func:`tariffs.bill.compute_layer`, taking printed buckets instead of a series.
 
@@ -266,6 +270,8 @@ def compute_layer_from_usage(
                 service=service,
                 territory=territory,
                 vintage=vintage,
+                jurisdiction=jurisdiction,
+                surcharges=surcharges,
             )
         )
 
@@ -289,6 +295,8 @@ def compute_bill_from_usage(
     service: Service = Service.CCA,
     territory: str | None = None,
     vintage: str | None = None,
+    jurisdiction: str | None = None,
+    imputed_generation: Sequence[TariffSpec] | None = None,
     observed_adjustments: list[LineItem] | None = None,
     climate_credit: float | None = None,
     allow_before_effective: bool = False,
@@ -310,10 +318,32 @@ def compute_bill_from_usage(
             service=service,
             territory=territory,
             vintage=vintage,
+            jurisdiction=jurisdiction,
             allow_before_effective=allow_before_effective,
         )
         for s in specs
     ]
+    imputed = None
+    if imputed_generation is not None and needs_imputed_generation(specs, service):
+        imputed = compute_layer_from_usage(
+            segments,
+            imputed_generation,
+            period_start,
+            period_end,
+            care=care,
+            service=Service.BUNDLED,
+            territory=territory,
+            allow_before_effective=allow_before_effective,
+            surcharges=False,  # the base is EECC's charges, not the fees on them
+        )
+    layers = _bill_level_surcharges(
+        layers,
+        [[s] if isinstance(s, TariffSpec) else list(s) for s in specs],
+        imputed,
+        service=service,
+        care=care,
+        jurisdiction=jurisdiction,
+    )
     modeled = (
         [LineItem(name="California Climate Credit", amount=_r(climate_credit))]
         if climate_credit

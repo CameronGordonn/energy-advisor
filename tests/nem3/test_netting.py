@@ -33,6 +33,10 @@ def _settle(load, production, delivery, schedule, periods, **kw):
         # bundled one does not. Supplying it is mandatory for CCA service (the biller
         # refuses to guess a vintage), and harmless for bundled.
         vintage=kw.pop("vintage", "2018"),
+        # City-dependent franchise fees: outside the City of San Diego, a CCA customer
+        # still pays the 1.1% equivalent surcharge on the EECC SDG&E imputes to them.
+        jurisdiction=kw.pop("jurisdiction", "other"),
+        imputed_generation=tuple(load_spec_versions("TOU-DR1", Layer.GENERATION, provider="SDG&E")),
         acc_plus_eligible=kw.pop("acc_plus_eligible", False),
         **kw,
     )

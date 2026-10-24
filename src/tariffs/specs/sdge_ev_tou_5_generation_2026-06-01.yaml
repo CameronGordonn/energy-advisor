@@ -44,3 +44,28 @@ energy:
   winter_on_peak:        {standard: 0.19990, care: 0.1299350}
   winter_off_peak:       {standard: 0.14337, care: 0.0931905}
   winter_super_off_peak: {standard: 0.07410, care: 0.0481650}
+
+# --- FRANCHISE FEE DIFFERENTIAL on generation (session 32) -------------------------------
+# Schedule EECC carries its own 5.78% clause, so a BUNDLED household in the City of San Diego
+# pays the differential on its generation as well as on its delivery (the delivery spec's
+# line). This is what settled the bundled case TOU-DR1's delivery line used to refuse.
+# Consistent with Schedule CCA: a CCA customer pays 6.88% of imputed EECC in the city and
+# 1.1% outside it; the 5.78-point difference is this differential.
+# NOT on the imputed layer: Schedule CCA imputes EECC's *charges*, and this is a fee on
+# them, so compute_bill prices the imputed layer with surcharges=False.
+# Not yet checked against a real bundled statement; none exists in this repo.
+surcharges:
+  - name: City of San Diego Franchise Fee Differential (generation)
+    applies_to: bundled
+    rate_by_jurisdiction: {city_of_san_diego: 0.0578, other: 0.0}
+    of: pretax
+    # care: whether the base is before or after the CARE discount is not settled; Schedule
+    #   E-CARE says nothing about franchise fees.
+    unverified_for: [care]
+    citation: >-
+      SDG&E Schedule EECC, "Franchise Fees", Sheet 13, Cal. P.U.C. Sheet 30030-E (Advice
+      3167-E): "A Franchise Fee Differential of 5.78% will be applied to the total bills
+      calculated under this schedule, including DWR charges, for all customers residing
+      within the corporate limits of the City of San Diego." Applicability (Sheet 1, Cal.
+      P.U.C. Sheet 30018-E): customers receiving UDC bundled service. Retrieved 2026-10-23
+      (sdge.com/sites/default/files/elec_elec-scheds_eecc.pdf).

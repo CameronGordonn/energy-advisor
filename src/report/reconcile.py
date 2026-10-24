@@ -33,7 +33,7 @@ from pydantic import BaseModel
 
 from greenbutton import parse_pge_interval_csv, parse_sdge_interval_csv
 from greenbutton.models import IntervalSeries, ParseReport, Utility
-from tariffs.bill import LineItem, compute_bill
+from tariffs.bill import LineItem, compute_bill, needs_imputed_generation
 from tariffs.bucketed import (
     UsageSegment,
     compute_bill_from_usage,
@@ -309,7 +309,7 @@ def cross_check_printed_usage(
 
 # --- customer facts the tariff cannot know ---------------------------------
 
-CUSTOMER_FACTS = ("service", "territory", "vintage", "event_days")
+CUSTOMER_FACTS = ("service", "territory", "vintage", "jurisdiction", "event_days")
 """The bill-time arguments that are facts about the household, not about the tariff.
 
 Same list, same names and same reasoning as ``compute_bill``'s keyword arguments.
@@ -358,6 +358,13 @@ def required_customer_facts(
                     "service",
                     spec,
                     f"bills {sur.name!r} only to {sur.applies_to.value} customers",
+                )
+            if sur.rate_by_jurisdiction is not None and _billed(sur.applies_to):
+                _note(
+                    "jurisdiction",
+                    spec,
+                    f"bills {sur.name!r} at a rate set by the customer's city "
+                    f"({sorted(sur.rate_by_jurisdiction)})",
                 )
         base = spec.baseline
         if base is not None and base.allowances and base.territory is None:
@@ -433,6 +440,8 @@ def customer_facts(fixture: dict, specs: Sequence[TariffSpec], *, name: str = "f
         out["territory"] = str(territory)
     if (vintage := block.get("vintage")) is not None:
         out["vintage"] = str(vintage)
+    if (jurisdiction := block.get("jurisdiction")) is not None:
+        out["jurisdiction"] = str(jurisdiction)
     if (event_days := block.get("event_days")) is not None:
         out["event_days"] = _as_dates(event_days, name)
     return out
@@ -535,6 +544,13 @@ def reconcile(
         specs_dir=specs_dir,
     )
     facts = customer_facts(fixture, [*deliv, *gen], name=name)
+    # SDG&E Schedule CCA bills a CCA customer a franchise fee on the generation SDG&E
+    # would have charged them; the delivery spec names whose schedule that is.
+    service = facts.get("service", Service.CCA)
+    if (imputed_provider := needs_imputed_generation([deliv, gen], service)) is not None:
+        facts["imputed_generation"] = load_spec_versions(
+            spec_ids["delivery"], Layer.GENERATION, provider=imputed_provider, specs_dir=specs_dir
+        )
 
     # Which usage evidence this fixture carries is settled BEFORE its expectations are
     # read: a fixture with no usage at all is refused as that, not as a missing

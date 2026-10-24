@@ -48,7 +48,7 @@ import pandas as pd
 from pydantic import BaseModel, ConfigDict
 
 from greenbutton.models import COL_KWH, LOCAL_TZ, Direction, IntervalSeries
-from tariffs.bill import LayerBill, compute_layer
+from tariffs.bill import LayerBill, _bill_level_surcharges, compute_layer
 from tariffs.schema import Layer, Service, TariffSpec
 
 from .acc import COMPONENTS, ExportRateSchedule
@@ -84,6 +84,13 @@ class NbtSettings:
     # customer never pays it, so it stays optional. Like `territory`, it is a customer
     # fact the biller refuses to guess.
     vintage: str | None = None
+    # The household's city, for SDG&E's franchise fees — required whenever the delivery
+    # spec carries a city-dependent fee, refused rather than guessed, like `territory`.
+    jurisdiction: str | None = None
+    # SDG&E Schedule CCA's franchise fee equivalent surcharge is billed on the EECC
+    # generation SDG&E *imputes* to a CCA customer; these are those spec versions. Only
+    # needed for CCA service on a spec that carries the line, and refused when missing.
+    imputed_generation: tuple[TariffSpec, ...] | None = None
     low_income: bool = False
     """Drives the ACC Plus tier. NBT's definition is broader than CARE — it also covers
     resident-owners in disadvantaged communities and customers in California Indian
@@ -92,6 +99,10 @@ class NbtSettings:
     """False for NEM/NEM2 transition customers, change-of-party buyers, non-residential
     customers, and code-mandated systems (Sheet 57353-E)."""
     cca_export_terms: CcaExportTerms | None = None
+
+
+def _versions(spec: TariffSpec | Sequence[TariffSpec]) -> list[TariffSpec]:
+    return [spec] if isinstance(spec, TariffSpec) else list(spec)
 
 
 # --- credit ledger ---------------------------------------------------------------------
@@ -308,10 +319,30 @@ def settle_period(
         service=settings.service,
         territory=settings.territory,
         vintage=settings.vintage,
+        jurisdiction=settings.jurisdiction,
         allow_before_effective=allow_before_effective,
     )
     d_bill = compute_layer(imports, delivery, period_start, period_end, **kw)
     g_bill = compute_layer(imports, generation, period_start, period_end, **kw)
+    # Bill-level surcharges (a CCA's franchise fee equivalent) are non-volumetric, so no
+    # export credit reaches them (NBT SC 2.d); they ride on the gross like the fixed charge.
+    imputed = None
+    if settings.imputed_generation is not None and settings.service is Service.CCA:
+        imputed = compute_layer(
+            imports,
+            list(settings.imputed_generation),
+            period_start,
+            period_end,
+            **{**kw, "service": Service.BUNDLED, "vintage": None},
+        )
+    d_bill, g_bill = _bill_level_surcharges(
+        [d_bill, g_bill],
+        [_versions(delivery), _versions(generation)],
+        imputed,
+        service=settings.service,
+        care=settings.care,
+        jurisdiction=settings.jurisdiction,
+    )
     d_spec = (
         delivery
         if isinstance(delivery, TariffSpec)

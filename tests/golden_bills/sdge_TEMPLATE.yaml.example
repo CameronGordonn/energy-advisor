@@ -53,6 +53,13 @@ customer:
   # 2026 spread is ~0.035 $/kWh, about $210/yr on a 6,000 kWh household.
   vintage: '2018' # EXAMPLE — replace with the vintage printed on the bill
 
+  # City for SDG&E's franchise fees — `city_of_san_diego` or `other`. Inside the City of
+  # San Diego the statement prints a "City of San Diego Franchise Fee Differential"
+  # (5.78%) and, for a CCA customer, a 6.88% "Franchise Fee Equivalent Surcharge";
+  # elsewhere the differential is absent and the CCA surcharge is 1.1%. Read it off the
+  # service address, or off whether that differential line is printed at all.
+  jurisdiction: city_of_san_diego # EXAMPLE — replace from the bill
+
   # Event days actually called by SDG&E in this period. Required ONLY on TOU-DR-P, which
   # carries the RYU adder. `[]` prices the explicit zero-event case, which is a decision
   # on the record rather than a silent default.

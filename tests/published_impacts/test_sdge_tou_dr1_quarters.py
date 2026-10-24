@@ -130,6 +130,7 @@ def test_every_shape_meters_exactly_the_published_monthly_kwh(quarter):
                 date(year, month, tier2.calendar.monthrange(year, month)[1]),
                 territory="coastal_basic",
                 service=tier2.PCIA_EXCLUDED_BY_INFERENCE,
+                jurisdiction="other",
             )
             assert bill.total_kwh == pytest.approx(quarter.monthly_kwh, abs=1e-6), (
                 f"{name} {year}-{month:02d}"

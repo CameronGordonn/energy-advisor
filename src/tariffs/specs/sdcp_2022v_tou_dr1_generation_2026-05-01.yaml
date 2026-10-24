@@ -67,3 +67,10 @@ energy:
   winter_on_peak:        {standard: 0.23072, care: 0.23072}
   winter_off_peak:       {standard: 0.15317, care: 0.15317}
   winter_super_off_peak: {standard: 0.06703, care: 0.06703}
+
+# Electrical Energy Surcharge (Rev. & Tax. Code §40016), collected by the CCA and printed
+# on its section of the SDG&E statement as "State Surcharge Tax" (SDCP specimen: 251 kWh
+# -> $0.08). Rate: CDTFA Special Notice L-1020 (December 2025), "The California Energy
+# Commission (CEC) set the electrical energy surcharge rate for the 2026 calendar year to
+# remain at three-tenths mill ($.0003) per kilowatt-hour", retrieved 2026-10-01. Session 31.
+energy_commission_tax_per_kwh: 0.0003

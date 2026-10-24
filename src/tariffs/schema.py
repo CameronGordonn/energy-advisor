@@ -537,30 +537,115 @@ class Surcharge(_Base):
 
     name: str
     rate: float | None = None
+    rate_by_jurisdiction: dict[str, float] | None = None
+    """Percent rate keyed by the customer's ``jurisdiction`` — SDG&E's franchise fees.
+
+    A municipal fee is a fact about the *city*, which no tariff can know, so like
+    ``territory`` and the PCIA ``vintage`` it is supplied at bill time and raises when
+    omitted. Every jurisdiction the fee can meet must be a key, including the ones it
+    does not charge (``other: 0.0``): an unlisted jurisdiction raises rather than reading
+    as zero, because zero is the convenient answer.
+    """
     of: str | None = Field(
-        default=None, description="Which running subtotal to apply to: 'pretax' | 'energy'"
+        default=None,
+        description=(
+            "Which base to apply to: 'pretax' | 'energy' (this run's own subtotals) | "
+            "'imputed_generation' (the bill a bundled customer would have paid for "
+            "generation — SDG&E Schedule CCA's franchise fee equivalent surcharge)"
+        ),
     )
+    exclude: list[str] = Field(default_factory=list)
+    """Names removed from a ``pretax`` base: lines of this run (e.g. the PCIA), or
+    components of ``non_bypassable`` folded into the energy rate (e.g. the Wildfire Fund
+    charge), whose kWh x rate is subtracted. A name matching neither raises at bill time."""
+    imputed_provider: str | None = None
+    """For ``of: imputed_generation`` only: whose generation schedule is imputed."""
     per_kwh: float | None = None
     applies_to: AppliesTo = AppliesTo.ALL
+    unverified_for: list[str] = Field(default_factory=list)
+    """Cases this line is known to apply to but whose arithmetic no source settles:
+    ``bundled`` / ``cca`` (service) or ``care``. Billing such a case raises
+    :class:`UnverifiedChargeError` instead of guessing — the loader's UNVERIFIED rule,
+    applied to one branch of a line rather than to a whole spec."""
     citation: str
 
     @model_validator(mode="after")
     def _exactly_one_form(self) -> Surcharge:
-        percent = self.rate is not None and self.of is not None
+        if self.rate is not None and self.rate_by_jurisdiction is not None:
+            raise ValueError(f"surcharge {self.name!r}: give rate OR rate_by_jurisdiction")
+        has_rate = self.rate is not None or self.rate_by_jurisdiction is not None
+        percent = has_rate and self.of is not None
         flat = self.per_kwh is not None
         if percent == flat:
             raise ValueError(
                 f"surcharge {self.name!r}: give either rate+of (percent) or per_kwh (flat), "
                 "not both and not neither"
             )
+        if (self.of == "imputed_generation") != (self.imputed_provider is not None):
+            raise ValueError(
+                f"surcharge {self.name!r}: imputed_provider is required with, and only "
+                "with, of: imputed_generation"
+            )
+        if self.exclude and self.of != "pretax":
+            raise ValueError(f"surcharge {self.name!r}: exclude applies only to of: pretax")
+        if bad := sorted(set(self.unverified_for) - {"bundled", "cca", "care"}):
+            raise ValueError(f"surcharge {self.name!r}: unknown unverified_for case(s) {bad}")
         return self
 
+    @property
+    def bill_level(self) -> bool:
+        """Billed once per statement from another layer's charges, not per run."""
+        return self.of == "imputed_generation"
+
+    def rate_for(self, jurisdiction: str | None) -> float:
+        """The percent rate for this customer; raises on a missing or unknown jurisdiction."""
+        if self.rate_by_jurisdiction is None:
+            if self.rate is None:
+                raise ValueError(f"surcharge {self.name!r} is flat-rate, not a percentage")
+            return self.rate
+        if jurisdiction is None:
+            raise MissingJurisdictionError(
+                f"{self.name} is billed at a rate that depends on the customer's city "
+                f"({self.rate_by_jurisdiction}); pass jurisdiction=... There is "
+                "deliberately no default: the fee is a fact about where the household is."
+            )
+        if jurisdiction not in self.rate_by_jurisdiction:
+            raise ValueError(
+                f"{self.name}: unknown jurisdiction {jurisdiction!r}; this spec publishes "
+                f"{sorted(self.rate_by_jurisdiction)}"
+            )
+        return self.rate_by_jurisdiction[jurisdiction]
+
+    def check_verified(self, *, service: Service, care: bool, jurisdiction: str | None) -> None:
+        """Raise :class:`UnverifiedChargeError` if this customer hits an unsettled branch.
+
+        A branch that bills nothing (rate 0 for this jurisdiction) is not unsettled: there
+        is no arithmetic left to be wrong about.
+        """
+        hit = [c for c in self.unverified_for if c == service.value or (c == "care" and care)]
+        if hit and self.rate_for(jurisdiction) != 0.0:
+            raise UnverifiedChargeError(
+                f"{self.name} applies to this customer ({', '.join(hit)}"
+                f"{f', {jurisdiction}' if jurisdiction else ''}) but its base for that case is "
+                f"not settled by any source this repo holds. Citation: {self.citation} "
+                "Refusing to bill a guessed amount; see the spec's comment for what would "
+                "settle it."
+            )
+
     def amount(self, *, pretax: float, energy: float, kwh: float) -> tuple[float, float | None]:
-        """(amount, reported rate)."""
+        """(amount, reported rate) for a fixed-rate surcharge; see :meth:`rate_for`."""
         if self.per_kwh is not None:
             return kwh * self.per_kwh, self.per_kwh
         base = energy if self.of == "energy" else pretax
         return base * self.rate, self.rate
+
+
+class MissingJurisdictionError(ValueError):
+    """A city-dependent fee was billed without saying which city the household is in."""
+
+
+class UnverifiedChargeError(ValueError):
+    """A line applies to this customer, but no source settles how it is computed for them."""
 
 
 class NonBypassable(_Base):

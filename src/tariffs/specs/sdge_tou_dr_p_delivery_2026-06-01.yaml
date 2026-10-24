@@ -267,3 +267,29 @@ non_bypassable:
 # summer 0.19848 / 0.15523 / 0.08247, winter 0.25057 / 0.17606 / 0.09329, plus the RYU
 # adder). The two layers re-sum to SDG&E's printed Total Electric Rate and Total Adjusted
 # CARE Rate on all twelve cells — asserted in `test_tou_dr_p.py`, not trusted here.
+
+# --- FRANCHISE FEE DIFFERENTIAL (session 32) --------------------------------------------
+# The same city-dependent line TOU-DR1 carries (see that spec for the specimen measurement
+# that fixed its base): TOU-DR-P's delivery is billed under Schedule TOU-DR
+# (its rate table, note 1), and Schedule TOU-DR prints the identical clause.
+# `jurisdiction` (city_of_san_diego | other) is supplied at bill time and raises when
+# omitted. Not in the Total Rates Tables, so it does not move tier-2 figures.
+surcharges:
+  - name: City of San Diego Franchise Fee Differential
+    rate_by_jurisdiction: {city_of_san_diego: 0.0578, other: 0.0}
+    of: pretax
+    # Base = delivery charges less the Wildfire Fund / DWR Bond component, as measured on
+    # TOU-DR1. A bundled household's generation pays its own line on the generation spec.
+    exclude:
+      - Wildfire Fund / DWR Bond
+    # cca: this spec carries no PCIA, which the CCA base must exclude, so a CCA customer's
+    #   base cannot be formed here.
+    # care: whether the base is before or after the CARE discount is not settled.
+    unverified_for: [cca, care]
+    citation: >-
+      SDG&E Schedule TOU-DR, "Franchise Fee Differential", Sheet 4, Cal. P.U.C.
+      Sheet 29915-E (Advice 3167-E): "A Franchise Fee Differential of 5.78% will be applied
+      to the monthly billings calculated under this Schedule for all customers within the
+      corporate limits of the City of San Diego." Retrieved 2026-10-23
+      (sdge.com/sites/default/files/elec_elec-scheds_tou-dr.pdf). Base exclusions
+      as measured on TOU-DR1 against SDCP's published 2026 specimen statement.

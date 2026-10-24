@@ -233,6 +233,12 @@ def _sdge_specs(*, generation_provider: str = "SDG&E", schedule: str = "TOU-DR1"
     return [*deliv, *gen]
 
 
+# A bundled Coastal household outside the City of San Diego: every fact the TOU-DR1 specs
+# demand, on the branch that bills no franchise differential (which is unverified for
+# bundled customers inside the city — see the delivery spec).
+BUNDLED_OUTSIDE_CITY = {"service": "bundled", "territory": "coastal_basic", "jurisdiction": "other"}
+
+
 def _sdge_fixture(customer: dict | None) -> dict:
     """A fixture skeleton with NO `expected:` block.
 
@@ -251,8 +257,9 @@ def _sdge_fixture(customer: dict | None) -> dict:
 
 def test_sdge_specs_demand_the_facts_the_engine_would_raise_on():
     need = required_customer_facts(_sdge_specs())
-    assert set(need) == {"service", "territory", "vintage"}
+    assert set(need) == {"service", "territory", "vintage", "jurisdiction"}
     assert "coastal_basic" in need["territory"]
+    assert "city_of_san_diego" in need["jurisdiction"]
     assert "PCIA vintage" in need["vintage"]
 
 
@@ -267,9 +274,14 @@ def test_pge_specs_demand_only_service():
     assert set(required_customer_facts(specs)) == {"service"}
 
 
-@pytest.mark.parametrize("fact", ["service", "territory", "vintage"])
+@pytest.mark.parametrize("fact", ["service", "territory", "vintage", "jurisdiction"])
 def test_an_sdge_fixture_missing_one_fact_fails_by_name(fact):
-    full = {"service": "cca", "territory": "coastal_basic", "vintage": "2018"}
+    full = {
+        "service": "cca",
+        "territory": "coastal_basic",
+        "vintage": "2018",
+        "jurisdiction": "city_of_san_diego",
+    }
     del full[fact]
     with pytest.raises(MissingCustomerFactError) as e:
         customer_facts(_sdge_fixture(full), _sdge_specs(), name="sdge_fake.yaml")
@@ -282,7 +294,7 @@ def test_an_sdge_fixture_with_no_customer_block_names_every_missing_fact():
     with pytest.raises(MissingCustomerFactError) as e:
         customer_facts(_sdge_fixture(None), _sdge_specs(), name="sdge_fake.yaml")
     msg = str(e.value)
-    assert all(f in msg for f in ("service", "territory", "vintage"))
+    assert all(f in msg for f in ("service", "territory", "vintage", "jurisdiction"))
 
 
 def test_tou_dr_p_additionally_demands_event_days():
@@ -290,12 +302,19 @@ def test_tou_dr_p_additionally_demands_event_days():
     assert "event_days" in required_customer_facts(specs)
     with pytest.raises(MissingCustomerFactError, match="event_days"):
         customer_facts(
-            _sdge_fixture({"service": "bundled", "territory": "coastal_basic"}),
+            _sdge_fixture(dict(BUNDLED_OUTSIDE_CITY)),
             specs,
             name="sdge_fake.yaml",
         )
     facts = customer_facts(
-        _sdge_fixture({"service": "bundled", "territory": "coastal_basic", "event_days": []}),
+        _sdge_fixture(
+            {
+                "service": "bundled",
+                "territory": "coastal_basic",
+                "jurisdiction": "other",
+                "event_days": [],
+            }
+        ),
         specs,
         name="sdge_fake.yaml",
     )
@@ -309,6 +328,7 @@ def test_supplied_facts_reach_compute_bill_in_its_own_vocabulary():
                 "service": "cca",
                 "territory": "inland_all_electric",
                 "vintage": 2018,  # YAML may hand us an int; the tariff keys are strings
+                "jurisdiction": "city_of_san_diego",
                 "event_days": ["2026-09-05"],
             }
         ),
@@ -318,6 +338,7 @@ def test_supplied_facts_reach_compute_bill_in_its_own_vocabulary():
     assert facts["service"].value == "cca"
     assert facts["territory"] == "inland_all_electric"
     assert facts["vintage"] == "2018"
+    assert facts["jurisdiction"] == "city_of_san_diego"
     assert facts["event_days"] == [date(2026, 9, 5)]
     assert set(facts) <= set(CUSTOMER_FACTS)
 
@@ -446,7 +467,7 @@ def test_a_complete_sdge_fixture_gets_all_the_way_through_compute_bill(tmp_path)
     """
     from tariffs.bill import compute_bill
 
-    fx = _sdge_period_fixture({"service": "bundled", "territory": "coastal_basic"})
+    fx = _sdge_period_fixture(dict(BUNDLED_OUTSIDE_CITY))
     series = _sdge_series(tmp_path)
     with pytest.raises(KeyError, match="expected"):
         reconcile(fx, series, name="sdge_fake.yaml")
@@ -484,7 +505,9 @@ def test_the_climate_zone_the_fixture_supplies_actually_moves_the_bill(tmp_path)
     specs = _sdge_specs()
 
     def credit(zone: str) -> float:
-        fx = _sdge_period_fixture({"service": "bundled", "territory": zone})
+        fx = _sdge_period_fixture(
+            {"service": "bundled", "territory": zone, "jurisdiction": "other"}
+        )
         bill = compute_bill(
             series,
             [
@@ -638,10 +661,20 @@ def test_the_two_paths_agree_on_the_sdge_charge_structure(tmp_path):
     deliv, gen = _sdge_layers()
     ps, pe = date(2026, 1, 1), date(2026, 1, 31)
     facts = customer_facts(
-        _sdge_period_fixture({"service": "cca", "territory": "coastal_basic", "vintage": "2018"}),
+        _sdge_period_fixture(
+            {
+                "service": "cca",
+                "territory": "coastal_basic",
+                "vintage": "2018",
+                "jurisdiction": "city_of_san_diego",
+            }
+        ),
         [*deliv, *gen],
         name="sdge_fake.yaml",
     )
+    # Both franchise lines are reached: the per-run differential, and the bill-level
+    # equivalent surcharge priced on the EECC SDG&E imputes to a CCA customer.
+    facts["imputed_generation"] = load_spec_versions("TOU-DR1", Layer.GENERATION, provider="SDG&E")
     from_intervals = compute_bill(series, [deliv, gen], ps, pe, **facts)
     segments = segments_from_series(series, [deliv, gen], ps, pe)
     from_printed = compute_bill_from_usage(segments, [deliv, gen], ps, pe, **facts)
@@ -652,6 +685,8 @@ def test_the_two_paths_agree_on_the_sdge_charge_structure(tmp_path):
     # The blocks this test exists for were actually reached.
     assert "Baseline Credit" in from_printed.layers[0].bucket()
     assert any("Power Charge Indifference" in n for n in from_printed.layers[0].bucket())
+    assert "City of San Diego Franchise Fee Differential" in from_printed.layers[0].bucket()
+    assert "Franchise Fee Equivalent Surcharge" in from_printed.layers[0].bucket()
 
 
 # --- refusals: what printed buckets cannot do -------------------------------
@@ -659,7 +694,7 @@ def test_the_two_paths_agree_on_the_sdge_charge_structure(tmp_path):
 
 def test_a_fixture_with_neither_an_export_nor_printed_kwh_is_refused_not_skipped():
     """A skipped reconciliation reads as a passing one in a green run."""
-    fx = _sdge_period_fixture({"service": "bundled", "territory": "coastal_basic"})
+    fx = _sdge_period_fixture(dict(BUNDLED_OUTSIDE_CITY))
     with pytest.raises(NoUsageEvidenceError) as e:
         reconcile(fx, None, name="sdge_fake.yaml")
     msg = str(e.value)
@@ -673,7 +708,7 @@ def test_printed_kwh_that_contradicts_the_export_is_refused_by_period(tmp_path):
     disagreement is reported per TOU period with both numbers, and neither is used.
     """
     series = _sdge_series(tmp_path)  # 0.5 kWh every hour of January 2026
-    fx = _sdge_period_fixture({"service": "bundled", "territory": "coastal_basic"})
+    fx = _sdge_period_fixture(dict(BUNDLED_OUTSIDE_CITY))
     truth = segments_from_series(series, list(_sdge_layers()), date(2026, 1, 1), date(2026, 1, 31))
     wrong = dict(truth[0].kwh)
     wrong["on_peak"] = wrong["on_peak"] + 40.0
@@ -689,7 +724,7 @@ def test_printed_kwh_that_contradicts_the_export_is_refused_by_period(tmp_path):
 def test_a_transcription_inside_the_printing_tolerance_is_accepted(tmp_path):
     """SDG&E prints kWh to the whole kWh; the tolerance exists for that and nothing more."""
     series = _sdge_series(tmp_path)
-    fx = _sdge_period_fixture({"service": "bundled", "territory": "coastal_basic"})
+    fx = _sdge_period_fixture(dict(BUNDLED_OUTSIDE_CITY))
     truth = segments_from_series(series, list(_sdge_layers()), date(2026, 1, 1), date(2026, 1, 31))
     rounded = {p: round(v) for p, v in truth[0].kwh.items()}
     fx["printed_usage"] = {
@@ -754,6 +789,7 @@ def test_segments_split_at_the_statements_own_blocks_price_fine():
         date(2026, 5, 14),
         service=Service.BUNDLED,
         territory="coastal_basic",
+        jurisdiction="other",
     )
     assert [layer.layer for layer in bill.layers] == [Layer.DELIVERY, Layer.GENERATION]
     assert bill.total_kwh == 400.0
@@ -837,6 +873,7 @@ def test_tou_dr_p_cannot_be_reconciled_from_printed_buckets_at_all():
             date(2026, 6, 30),
             service=Service.BUNDLED,
             territory="coastal_basic",
+            jurisdiction="other",
         )
     msg = str(e.value)
     assert "RYU" in msg and "16:00-21:00" in msg and "interval data" in msg
@@ -857,6 +894,7 @@ def test_the_interval_path_still_bills_the_event_adder(tmp_path):
         date(2026, 1, 31),
         service=Service.BUNDLED,
         territory="coastal_basic",
+        jurisdiction="other",
         event_days=[date(2026, 1, 15)],
         allow_before_effective=True,
     )

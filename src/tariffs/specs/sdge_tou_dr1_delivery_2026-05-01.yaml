@@ -178,3 +178,64 @@ non_bypassable:
     4/1/2026 sheet (in force through May 2026), retrieved 2026-09-07; classed
     non-bypassable per PG&E Schedule NBT Cal. P.U.C. Sheet 57359-E SC 2.f. CARE WF-NBC
     exemption: Sheet 29953-E note 3 and the CARE table's note 1.
+
+# --- FRANCHISE FEES (session 31) -------------------------------------------------------
+# Two city-dependent lines SDG&E prints under "Taxes & Fees on Electric Charges". Both
+# depend on the household's CITY, a customer fact supplied at bill time as `jurisdiction`
+# (city_of_san_diego | other) that raises when omitted — the `territory` pattern.
+# Neither is in the Total Rates Tables, so neither moves the published-impact (tier 2)
+# figures, which are city-neutral; pass jurisdiction="other" to reproduce those.
+#
+# Measured against SDCP's published specimen statement (2/12-3/13/26, TOU-DR1, Coastal,
+# SDCP 2021V, 251 kWh; notes/sdcp_specimen_bill_2026-10.md):
+#   Franchise Fee Differential     printed 82.01 x 5.78% = 4.74   ours 4.74 (base exact)
+#   Franchise Fee Equivalent Surch printed 49.71 x 6.88% = 3.42   ours 48.76 x 6.88% = 3.35
+# The second base is NOT reproduced: Schedule CCA says "imputed Schedule EECC", and the
+# imputed EECC on that statement is 48.76 (printed as its own "Electricity Generation"
+# line), yet the surcharge prints a 49.71 base. The 0.95 (~1.95%) gap is unexplained and
+# deliberately not fitted to one specimen whose own SDCP lines do not add up either.
+# Worth -$0.07 there. Settle it against a real CCA statement.
+surcharges:
+  - name: City of San Diego Franchise Fee Differential
+    rate_by_jurisdiction: {city_of_san_diego: 0.0578, other: 0.0}
+    of: pretax
+    # Base on the specimen = every delivery charge EXCEPT the PCIA and the Wildfire Fund
+    # charge (92.42 - 8.93 - 1.48 = 82.01, exact). Both are excluded because neither is
+    # SDG&E revenue: the WF-NBC/DWR-BC is the state's, the PCIA recovers above-market
+    # procurement. WF-NBC is folded into our energy rate, so it is removed as kWh x rate.
+    exclude:
+      - Power Charge Indifference Adjustment (vintaged)
+      - Wildfire Fund / DWR Bond
+    # bundled (settled session 32): this sheet applies 5.78% to "the monthly billings
+    #   calculated under this Schedule", i.e. the delivery charges. A bundled household's
+    #   generation is billed under Schedule EECC, which carries its own identical clause
+    #   (Sheet 30030-E) — so it is billed on the GENERATION spec, as its own line, and this
+    #   base stays delivery-only. Not yet checked against a real bundled statement.
+    # care: whether the base is before or after the CARE discount is not settled; Schedule
+    #   E-CARE says nothing about franchise fees.
+    unverified_for: [care]
+    citation: >-
+      SDG&E Schedule TOU-DR1, "Franchise Fee Differential", Cal. P.U.C. Sheet 29955-E
+      ("A Franchise Fee Differential of 5.78% will be applied to the monthly billings
+      calculated under this Schedule for all customers within the corporate limits of the
+      City of San Diego"), and the same 5.78% in Schedule CCA Sheet 3, Cal. P.U.C. Sheet
+      23574-E, for CCA customers. Both retrieved 2026-10-01. Base (excluding PCIA and
+      WF-NBC) derived exactly from SDCP's published 2026 specimen statement.
+  - name: Franchise Fee Equivalent Surcharge
+    applies_to: cca
+    rate_by_jurisdiction: {city_of_san_diego: 0.0688, other: 0.011}
+    of: imputed_generation
+    imputed_provider: SDG&E
+    # care: whether SDG&E imputes EECC at the CARE or the standard rate is not settled
+    # (see open decision 9 — how CARE composes with a CCA is already contested).
+    unverified_for: [care]
+    citation: >-
+      SDG&E Schedule CCA, "Electric Franchise Fee Equivalent Surcharge", Cal. P.U.C.
+      Sheets 23574-E and 19741-E: "Pursuant to Decision 97-10-087, the Utility will
+      collect franchise fees on the commodity portion (i.e., EECC charges) of CCA energy
+      charges. The Utility will impute its own Schedule EECC to customers taking service
+      under this schedule and compute a franchise fee equivalent surcharge based on
+      imputed Schedule EECC." Rates 6.88% within the City of San Diego and 1.1% elsewhere
+      from SDG&E, "Calculating the Franchise Fees on Electric Energy Supplied by Others"
+      (sdge.com, retrieved 2026-10-01). Unresolved -$0.07 base gap on SDCP's specimen:
+      see the comment above.

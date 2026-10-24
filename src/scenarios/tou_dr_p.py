@@ -144,14 +144,19 @@ def break_even(
     period_end: date,
     care: bool = False,
     territory: str,
+    jurisdiction: str,
 ) -> BreakEven:
     """Compare TOU-DR-P against TOU-DR1 over one period, selecting no event days.
 
     ``dr1`` and ``dr_p`` are each [delivery, generation]. Both are priced as BUNDLED:
     Schedule EECC-TOU-DR-P is closed to CCA and Direct Access customers, so a CCA household
     must be excluded from this comparison before it is run, not corrected afterwards.
+
+    ``jurisdiction`` is the household's city: TOU-DR1 carries the City of San Diego
+    Franchise Fee Differential, which is unverified for bundled customers and so refuses
+    rather than biasing one side of the comparison.
     """
-    kw = dict(care=care, service=Service.BUNDLED, territory=territory)
+    kw = dict(care=care, service=Service.BUNDLED, territory=territory, jurisdiction=jurisdiction)
     cost_dr1 = compute_bill(series, dr1, period_start, period_end, event_days=[], **kw).total
     # event_days=[] is the explicit zero-event case, which the engine requires to be asked
     # for rather than defaulted to — the whole point being that "no events" is an assumption.

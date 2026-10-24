@@ -2,6 +2,376 @@
 
 Running log of decisions made and decisions pending. Newest first.
 
+## 2026-10-23 — Session 32 (franchise fee differential on every SDG&E schedule)
+
+Branch `sdge-fee-lines`. (The same session's site redesign is on `site-plain-redesign`,
+recorded in that branch's notes.) Cameron chose the comprehensive fix over a blanket
+refusal for the gap session 31 left: TOU-DR2 / EV-TOU-5 / TOU-DR-P billed in the City of
+San Diego with no differential and no refusal. Full write-up:
+`notes/sdcp_specimen_bill_2026-10.md` § "Closed in session 32".
+
+- **⭐ Schedule EECC has its own 5.78% clause** (Sheet 30030-E), which settles the bundled
+  case session 31 refused: a bundled city household pays the differential on delivery AND on
+  generation. 25 specs gained a line (delivery: TOU-DR2 ×4, TOU-DR-P, EV-TOU-5 ×5;
+  generation: all 15 SDG&E EECC specs); TOU-DR1 delivery's `unverified_for` dropped
+  `bundled`. Sheet numbers in every citation were read from the PDFs, retrieved 2026-10-23.
+- **Material dollar impact, flagged:** a bundled City of San Diego bill goes from a refusal
+  to ~5.78% above an outside-city one. Sourced, not chosen — but unvalidated against a real
+  bundled bill.
+- **EV-TOU-5 refuses in the city**: its schedule sheet was not found. CARE stays refused
+  everywhere (E-CARE is silent). CCA on the three non-DR1 schedules in the city refuses (no
+  PCIA in those specs).
+- Engine: `surcharges=False` on the imputed layer (`compute_layer`,
+  `compute_layer_from_usage`, `charge_lines`) so EECC's differential stays out of the
+  Schedule CCA base. Specimen still 48.76 / 3.35 / 137.97.
+- Verified: 1,831 passed; ruff clean; wasm parity; render test; 11/11 PG&E unchanged;
+  bundle + case study rebuilt (digest only).
+
+## 2026-10-01 — Session 31 (status check; the SDCP specimen bill priced; the 09-20 notes merged)
+
+Full working: `notes/sdcp_specimen_bill_2026-10.md`.
+
+**No milestone moved. `data/` is still PG&E-only (unchanged since 2026-07-19).** Measured at
+session start: 1,772 passed, ruff clean, `origin/main..main` = 0, tree clean. Sessions 29 and
+30 (both 2026-09-20) had left their entries in `notes/_pending_session_notes_{m1a,site}.md`
+because they ran concurrently; both are merged below, in order, and the pending files are
+deleted. Since they were written: `m1a-bill-harness` was merged (39f4d69) and the bundle and
+case study were rebuilt (f3ad8d4), so **the one failing test both entries describe is fixed**.
+
+### ⭐ The internet search, re-aimed: one usable document, and it is a specimen
+
+Cameron asked for a fresh search for anything usable. Session 23's search was for an export +
+bill pair and is not re-run. M1a only needs an **ordinary non-solar statement**, which is a
+different target, so that is what was searched.
+
+**Found: San Diego Community Power's "Understanding your bill" page embeds a complete four-page
+2026 SDG&E statement** — TOU-DR1, Coastal, SDCP 2021 vintage, 2/12-3/13/26, 30 days,
+73/115/63 kWh, every dollar line, $140.64. **It is a specimen** (placeholder account and meter
+numbers; its own SDCP lines don't equal kWh x rate; Power100 bills 250 kWh of 251). It does
+not count toward M1a or invariant 1. Local copies in gitignored
+`data/sources/sdcp_specimen_bill_2026-03/`:
+
+```
+687e282fcec5702a2495a46d0dea2dcb3d9af106606c8c0e28b70c6800ab43c9  page1.png
+65d20d3e05305c25514b9ea8dbfa5f0011a6b3ae779f3cd9b767f87a57e94035  page2.png
+ebf44f9575596080e1b16771f1935892f843aa10605ff94ef9f9e4fd0df6e93f  page3.png
+5b569846f7d95c20f332cfd797142cd7d254e677c8dbc399b731888f0f668a1a  page4.png
+```
+
+**Priced through `compute_bill_from_usage`, every rate it prints is ours to the fifth decimal**
+(delivery, Base Services, baseline credit, PCIA-2021, WF-NBC, SDCP winter, and bundled EECC on
+SDG&E's offsetting generation line). Ours $129.80 vs printed $140.64. The −$10.84 is
+**entirely** six unmodelled lines ($10.98) less the specimen's own $0.12 inconsistency and a
+$0.02 two-line rounding. Nothing unexplained.
+
+### ⭐ The finding: M1a is not "transcription only" — a third time
+
+The unmodelled lines are on every ordinary City-of-San-Diego SDCP bill: **Franchise Fee
+Differential 5.78%** (base = electric charges less PCIA and WF-NBC — derived exactly),
+**Franchise Fee Equivalent Surcharge 6.88%** (CCA only; base $49.71 **not derived**, do not
+fit it), **State Regulatory Fee $0.001/kWh** (never seen before; no authority located),
+the **CEC surcharge $0.0003/kWh** (first SDG&E-territory document showing it billed — HANDOFF
+had it as "deliberately not asserted"), an Economic Development Program Credit, and SDCP's
+**Power100** opt-in. Items 1–3 alone are ~$8.41 on a $140 bill, so **the first real SDCP bill
+would fail ±$2 today**. Session 24 and session 29 each found "ready" was a sentence; this is
+the same lesson one layer down, measured before a real bill instead of on one. It is also
+**code + citation work that needs no household data** — the best build available while
+waiting. Not started this session; it is HANDOFF next-action #2.
+
+### Two disagreements with the repo, recorded, nothing changed
+
+- **Baseline:** the specimen prints 264 kWh for 30 Coastal winter days (8.8/day); our spec
+  says 9.2 (276). A cropped *real* 2024 CEA statement (`mykwhnow/static-website`, GPL-3.0)
+  prints 276 for the same shape. Spec unchanged; weak evidence against it.
+- **How SDG&E prints delivery:** this non-NEM TOU-DR1 statement prints 0.34101 = our rate −
+  WF-NBC (0.00591) only, with PPP/ND/CTC inside it.
+  `test_our_delivery_rate_less_the_import_floor_is_what_sdge_printed`'s docstring says SDG&E
+  always strips the whole 0.02099 bundle — true of the NEM-2 EV-TOU-5 corpus it was measured
+  on, probably because NEM statements bill NBCs on gross usage as a separate line. Numbers
+  right, docstring over-general. Matters to whoever maps printed lines to `expected:`.
+
+### Second search, for a REAL homeowner's solar bill — found, none usable
+
+Cameron asked again, specifically for a real (not specimen) solar bill. Searched homeowner
+venues (Reddit via re-hosts, TMC, diysolarforum, Substack, CPUC complaint filings, GitHub code
+search). Real solar bills exist: a PG&E NBT statement page 1 posted to r/solar (SVCE,
+2026-09-10), two CPUC complaint dockets (C.26-03-034 SDG&E, C.25-06-009 PG&E) with homeowners'
+statements, and the already-known NEM-2 corpus. **None is usable**: page 1 only, or NEM-2, or a
+faulty-meter dispute, plus see-through redaction / full PII on the public ones. Forums 403.
+The r/solar page does show the **$36.18 PG&E climate credit on a 2026-09-10 statement** —
+outside corroboration of `climate_credit.yaml`'s 2026 Aug/Sep move. Table and reasoning in
+`notes/sdcp_specimen_bill_2026-10.md` § "Second pass". **Do not re-run.**
+
+### ⭐ Built: the SDG&E fee lines (branch `sdge-fee-lines`, Cameron approved)
+
+City of San Diego Franchise Fee Differential (5.78%), Schedule CCA's Franchise Fee
+Equivalent Surcharge (6.88% in the city / 1.1% elsewhere, on **imputed** EECC), and the CEC
+surcharge on the SDCP specs. On the specimen: **4.74 exact, 3.35 vs 3.42, 0.08 exact**;
+modelled $137.97, and with the three still-unmodelled lines observed, $140.71 vs $140.64.
+Design and every decision in `notes/sdcp_specimen_bill_2026-10.md` § "Built". The calls:
+
+- **`jurisdiction` is a new customer fact**, refused when missing — the `territory`
+  pattern. Every SDG&E TOU-DR1 caller now states one; synthetic/demo callers say `other`.
+- **Unsettled branches raise `UnverifiedChargeError`**: bundled-in-city differential (is
+  EECC in the base?), and CARE on either line. Neither is reachable from a source we hold.
+- **The FFES 0.95 base gap is pinned as a known -$0.07, not fitted** to one specimen.
+- **Tier 2 strips the surcharges** before pricing rate alerts (no franchise fee is in a
+  Total Rates Table) — inventing a city for a city-less figure would have been the fudge.
+- NBT netting: the equivalent surcharge is non-volumetric, so no export credit offsets it.
+- ⚠ **Only TOU-DR1 carries the lines.** A bundled City-of-San-Diego household on TOU-DR2 /
+  EV-TOU-5 / TOU-DR-P is billed without the differential and without a refusal. Follow-up.
+
+Measured: **1,788 passed** (+16), ruff clean, 11/11 PG&E unchanged (worst +$0.22), node
+wasm-parity and render checks green, `docs/engine.js` + `docs/case-study.json` rebuilt (digest
+only; every case-study number unchanged), M3 demo figures unchanged.
+
+### Site usability overhaul (Cameron: "overhaul the usability of the website")
+
+Looked at all four states before touching anything; the problems were all about a
+homeowner getting stuck, not about the visual system, which was left alone.
+1. Hero filled the first screen; the tool was below the fold → headline resized, lede says
+   what the tool is for.
+2. The pricing form asked for "Baseline territory: T / Anything else" and "Heat Source H"
+   with no hint where to look → every field names the printed line on a PG&E statement
+   (wording read off a real statement in `data/`, not recalled).
+3. Plans were codes ("E-TOU-C + 3CE") → plain description under each; saving shown as a
+   figure.
+4. A refusal was a dead end until reload; a priced result could not be re-asked → "Change
+   my answers", "Next: what each plan would cost", "Analyze another file".
+5. Refusals led with engine vocabulary ("territory T", "generation layers") →
+   `Blocker.summary`, one plain sentence, written and tested in Python; detail folded.
+6. Sticky masthead covered every jumped-to heading → `scroll-padding-top`.
+**Not changed, deliberately:** the headline's words, the palette, the two stamps, chart
+code. The `PLAN_DESC` windows live in the page (UI labels, not findings); if a schedule's
+window changes, they move with the spec. 1,793 passed; render test +10 assertions;
+wasm parity, audit_layout clean; bundle + case study rebuilt (digest only).
+
+### Housekeeping
+
+- HANDOFF rewritten: the top now states the 2026-10-01 position directly, instead of three
+  stacked "SESSION N UPDATE" banners. Stale statements fixed: "the tool prices NOTHING",
+  "M1a harness … not started", the `pytest # 1,582 tests` line, the single `NOT A BILL` stamp,
+  `T = 64`, "15-minute / March SDG&E files still unseen" (session 23 saw both), and the
+  closing "do not build web UI" (formally overridden in session 28).
+- ⚠ The main checkout is on a **detached HEAD at `main`**, because `main` is checked out in
+  the linked worktree `../energy-advisor-m1a` left by session 29. Harmless, but committing here
+  makes an orphan commit. Remove that worktree (`git worktree remove ../energy-advisor-m1a`)
+  or `git switch` to a branch before committing.
+
+## 2026-09-20 — Session 30 (the visual half of the site overhaul: four pages, two stamps, and three defects on "clean" pages)
+
+HANDOFF's session-28 item 9. `src/` untouched; `docs/engine.js` and `docs/case-study.json`
+untouched.
+
+### ⭐ The stamp is now two stamps, and the split was Cameron's call
+
+`NOT A BILL / NO AMOUNT DUE` sat under hero copy promising to re-bill a year under every rate
+plan. Defensible but no longer obviously right: the device was authored in session 12 to say
+the thing the tool then did — price nothing — and session 28 made it price. Three options
+were put up with consequences; Cameron chose the split. **The hero stamps the claim**
+(`RECONCILED ±$2 / 11 OF 11 REAL BILLS`), **`#priceOut` stamps the disclaimer**, beside the
+verdict, where the money actually is. `.stamp.due` leans the other way. No test pins `.stamp`.
+**Recorded in the design-system skill as a decision: do not re-merge without asking.**
+
+### The design-system skill was wrong in four places
+
+Three were flagged in the brief; the fourth surfaced while checking the first.
+
+⭐ **Contract 2 was reversed, and the replacement is not "it prices now" either.** The tests
+cover less than the old text implied: `test_the_inspection_carries_no_dollar_figures` guards
+the **`Inspection` model's field names** and its JSON — one Python object, nothing about the
+page. The page half is the jsdom test, which scans the six load-shape regions for `$<digit>`
+*and separately asserts `#planTable` IS dollar-denominated*. So the boundary is three-part
+(load-shape half never prices / R2 prices on purpose / a refusal stays clean), and the real
+limit is the **derived one-household scope** with its four blocker codes, not a refusal.
+
+Also fixed: `site.css:93`'s "a tool that deliberately prices nothing"; the skill's description
+saying "two published pages" against a body saying four. The **accessibility skill** was stale
+in the same direction and was updated too.
+
+### ⭐ Three live accessibility defects on pages the skills recorded as clean
+
+New `scripts/audit_layout.py` — Playwright over all four pages at 1280/640/320, and over the
+tool page in **both** its closed and open states, checking reflow, heading skips over the
+**accessibility tree**, and `th`/`scope`. It found faults on its first run:
+
+1. **`h2 → h4` in the report.** The a11y skill said the finding cards sat under a "What
+   stands out" `h3`. **That `h3` was not in the page.** Added.
+2. **`h1 → h3` on first load.** Section 02 had no heading, and `#results`' `h2` is out of the
+   tree while `hidden`. Added an `h2.sec` — the section was the only `.row` without one.
+3. **~45 bare `th`s** across `index.html`'s generated tables. `methodology.html` has had
+   `scope` since session 20; nobody had ever walked the tool page.
+
+A fourth came from the screenshots: focusing `#results` painted a **4,700px oxblood focus
+ring** around the report. Suppressed on that element only — it is a scroll-and-focus target,
+not a control; the global rule is untouched.
+
+**Reflow was clean everywhere**, including after the legal-page restructure.
+
+### Contrast is now derived from the stylesheet, not retyped
+
+New `scripts/contrast_matrix.py` reads the tokens out of `site.css`'s own `:root` blocks.
+**The palette did not change and every recorded number reproduced exactly** — the hand table
+had been right, and is now a derivation. One correction: `index.html` quoted `--ink-2` on
+`--band` as 6.61; that is the **dark** figure, light is **5.86** and light is the binding one.
+
+⭐ **The finding that changed a design decision: a fill's EDGE is a different number from the
+text on it.** `--band` against the plate is **1.09 light / 1.25 dark** — the sulphur reads
+instantly in light on *hue*, but luminance is what survives dark mode, and the current-plan
+marker was invisible there. It now carries a 2px `--ink-2` edge (6.38 / 8.25).
+
+### The legal pages joined the site; both charts had collisions
+
+`privacy.html` and `terms.html` were a 42rem column adrift in a 76rem sheet. Both now use the
+`.row`/`.rail` grid, **one row per `h2`**, numbered clauses with their numbers in the margin.
+Measure unchanged. Fell out of it: `.gate` had no `max-width` (a refusal's rule ran wider than
+its own reasons) and `.doc .callout` butted two paragraphs together.
+
+**`#hourChart`**: the direct label's baseline landed exactly on the band's top edge whenever
+the busiest hour was inside the band — the common case. `T = 64` was doing its job; the band's
+own 10px overhang was the uncovered part. Now `BAND_LIFT = 6` / `LABEL_LIFT = 16`, commented
+as a pair. **Third distinct way that corner has broken.**
+
+**`#monthChart`**: rotated `−42°` ticks ran into the axis caption. The rotation is **gone** —
+13 months across 698px leaves ~54px a tick and `"Jul 25"` needs ~33px. `monthLabel()`
+compresses for the **axis only**; the `<title>` and `#monthTable` keep the engine's string.
+
+No `<rect>` added or removed, so the pinned counts are untouched.
+
+### The ranking now reads as a ranking
+
+⭐ **The hierarchy was inverted**: the loudest row was the reader's *current* plan (full-width
+sulphur) and the *recommended* plan was merely bold. Winner now carries oxblood rules top and
+bottom; the current plan keeps sulphur as a highlighter on its **name**. New `.mbar` encodes
+**the gap to the cheapest plan**, zero-based, with a `.vh` text equivalent.
+
+⚠ **Tradeoff flagged rather than chosen silently:** the obvious move is an accent-coloured
+winner bar. `--ox` means "the expensive hours" as a data colour, so painting the *cheapest*
+plan oxblood inverts the site's one chart rule. All bars are `--mark`; the winner is marked
+with `--ox` **as a rule**, which is how `site.css` already uses it.
+
+### ⚠ The bundle test fails, and it is the parallel session's
+
+`pytest -q` → **1 failed, 1771 passed**, on `test_the_committed_bundle_matches_src`. The
+parallel `src/` session is working in **this same working tree** (`src/tariffs/bill.py`,
+`src/report/reconcile.py`, new `src/tariffs/bucketed.py`, uncommitted). Demonstrated, not
+assumed: `git stash push -- src tests` → that test passes → `git stash pop`. `docs/engine.js`
+is byte-identical to `origin/main`.
+
+**Whoever lands that `src/` work must regenerate `docs/engine.js` AND `docs/case-study.json`**
+— the case study carries the bundle digest and is built from gitignored `data/`, so only
+someone with `data/` can. The repo's standing stale-cache hazard, firing.
+
+Baseline before this session: 1,711 passed, both node checks green. Node checks still green
+(42 render assertions, dollar parity to the cent); ruff clean.
+
+## 2026-09-20 — Session 29 (the bill-only path: M1a can be reconciled by transcription)
+
+Full working: `notes/m1a_harness_2026-09.md`. Branch `m1a-bill-harness`, not merged.
+
+**No milestone moved and no SDG&E dollar was earned.** `data/` is still PG&E-only. What
+moved is the harness, and the reason it needed to move is a repeat of session 24's lesson
+in a new place: HANDOFF said the harness was "utility-general and needs nothing but
+transcription", and that was true of the *interval* path and false of the path M1a's DoD
+actually requires. `reconcile()` took an `IntervalSeries` positionally,
+`load_interval_series()` globbed `data/`, and every dollar test skipped when the export was
+absent — so a fixture with a statement and no export could not be reconciled at all, which
+is exactly the fixture M1a is defined by. **"Ready" was a sentence again, not a test.**
+
+### ⭐ The two paths are one charge layer, and that is measured on real bills
+
+`tariffs.bill.charge_lines` was extracted out of `compute_layer` and is now the only copy
+of the per-run charge construction; `tariffs/bucketed.py` feeds it the statement's printed
+kWh instead of a bucketed series. The claim that they agree is not asserted by
+construction — it is measured on the eleven PG&E golden bills, the only place this repo
+holds a real export **and** a real statement: bucket the real intervals, price the buckets,
+and every line item, every layer total and the net land **exactly** on the interval path's,
+with the statements still reconciling. Two parametrized tests, 22 cases.
+
+Mutation-measured: collapsing the sub-period split — the single most plausible way to make
+a straddling statement "work" — fails **14** tests, 12 of them parity cases on the golden
+bills themselves.
+
+### ⭐ The scope finding that belongs in the recruiting ask, not in the code
+
+The bill-only path loses within-period timing. Charge by charge on TOU-DR1 that costs
+almost nothing — the fixed charge, the baseline credit, the CARE discount, the PCIA and the
+minimum bill are all functions of `(days, total kWh, per-period kWh)`. **Two exceptions:**
+
+1. **Sub-period boundaries, and this one bites.** SDG&E filed five 2026 TOU-DR1 vintages
+   (1/1, 4/1, 5/1, 6/1, 8/1) and its summer starts 6/1, so an ordinary 30-day statement
+   straddles a boundary more often than not, and the two layers can change on different
+   dates. Printed buckets never say which side of the change the kWh fell on. The fixture
+   schema therefore takes a **list** of segments, one per block the statement itself
+   prints, and a segment that spans a boundary raises `SegmentStraddlesRateChangeError`
+   naming the date to split at — never split pro rata. **If a real statement spans a change
+   and does not itemise its own sub-periods, that month is unreconcilable without interval
+   data and no harness work fixes it.** So the ask gains two lines: prefer a period inside
+   one vintage, and ask for the sub-period blocks.
+2. **TOU-DR-P cannot be reconciled from printed buckets at all.** The RYU adder is billed
+   on kWh inside 16:00–21:00 *on the days SDG&E called*, finer than any printed bucket.
+   `TimingDependentChargeError`, by name — reading the absent number as zero was the
+   obvious alternative and it is the flattering one.
+
+### Two measurements taken while enumerating, worth keeping
+
+- **TOU-DR1's delivery layer does not use the TOU split.** Its energy rate is 0.33539 in
+  all six season/period cells, so five allocations of the same 400 kWh spanning all-on-peak
+  to all-super-off-peak give delivery $120.53 every time, while generation spans
+  $16.48–$139.68. **The whole information content of the printed split, on TOU-DR1, is the
+  generation line.**
+- **The Minimum Bill can never bind on TOU-DR1 at 2026 rates.** 30-day floor $9.87 standard
+  / $4.92 CARE against a Base Services Charge of $23.80 / $5.91, with delivery monotone in
+  kWh. The spec's citation flags its 2018-filing values as unconfirmed; that flag does not
+  matter for an ordinary bill, because the line is structurally unreachable. It would matter
+  on a NEM account in M3.
+
+### The honest boundary on what M1a will prove
+
+The bill-only path takes **SDG&E's own bucketing as given**. It tests our rates and charge
+structure; it cannot test `tou.rules` — the year-round super-off-peak window (still
+evidenced by SDG&E's customer-facing publications rather than a located tariff sheet), the
+weekend table, the holiday calendar. **A green M1a does not retire that caveat.** That is
+the line between M1a and M1b and it is why M1b still needs an export from the same
+household. Stated because it is exactly the kind of thing a passing reconciliation makes
+easy to forget.
+
+Corollary worth recording: an M1a household is non-solar and non-NEM by definition, so
+**nothing in M1a exercises the non-bypassable-charge import floor** (differentiation
+invariant 4). M1a does not corroborate it.
+
+### Refusals added, all needing no data
+
+`NoUsageEvidenceError` (neither export nor printed kWh — an error, not a skip, because a
+skip reads as a pass), `PrintedUsageDisagreementError` (both present and disagreeing beyond
+0.5 kWh per period, reported per period with both numbers and never averaged — that
+comparison is the only direct measurement of M1b's bucketing claim available),
+`SegmentCoverageError`, `SegmentStraddlesRateChangeError`, `UnbucketedPeriodError`.
+
+New `tests/golden_bills/sdge_BILL_ONLY_TEMPLATE.yaml.example` — `.yaml.example` for the
+same load-bearing reason as the existing template. It carries no dollars **and no kWh**: a
+load is an expectation too, so every bucket ships blank and is refused by period name,
+asserted by test.
+
+### ⚠ One failing test, deliberately left failing
+
+`tests/report/test_web_engine.py::test_the_committed_bundle_matches_src`. `bill.py` is
+bundled into `docs/engine.js` and this session changed it. `docs/` is owned by a parallel
+session, so the rebuild was not run here. Fix on merge:
+`PYTHONPATH=src python scripts/build_web_engine.py`, then regenerate `docs/case-study.json`
+(it pins the bundle digest). `src/tariffs/bucketed.py` is deliberately **not** in `MODULES`
+— the browser does not transcribe fixtures.
+
+Counts, measured not copied: **1,771 passed, 1 failed** (that one), from 1,711 passed on
+`main`. +61 tests. ruff clean.
+
+### ⚠ Working-tree collision, for the record
+
+Both sessions ran in the same checkout. Session 29 created `m1a-bill-harness`; the docs
+session then checked out `site-overhaul` over it, so this work was committed from a linked
+worktree instead and the shared tree was returned to the docs session untouched. **Two
+concurrent sessions need `git worktree`, not one checkout.**
+
 ## 2026-09-16 — Session 28 (the ACC re-import: a measured negative, and the expiry nobody had noticed)
 
 ### Later in session 28 — the legal pages, two a11y defects, and the M1 route

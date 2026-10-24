@@ -66,14 +66,16 @@ RECONCILED_BILL_MINIMUM = 3
 class Blocker(BaseModel):
     """One reason this household cannot be shown a dollar figure.
 
-    ``code`` is stable and testable; ``detail`` is what the page shows a human. Both are
-    required — a blocker that cannot be explained to the visitor is not honest, and one
-    that cannot be asserted in a test rots.
+    ``code`` is stable and testable; ``summary`` is one plain sentence a homeowner reads
+    first, with no tariff vocabulary; ``detail`` is the full technical reason behind it.
+    All three are required — a blocker that cannot be explained to the visitor is not
+    honest, and one that cannot be asserted in a test rots.
     """
 
     model_config = ConfigDict(frozen=True)
 
     code: str
+    summary: str
     detail: str
 
 
@@ -221,6 +223,12 @@ def scope_blockers(facts: HouseholdFacts, scope: AuthoredScope) -> list[Blocker]
         out.append(
             Blocker(
                 code="TERRITORY_NOT_AUTHORED",
+                summary=(
+                    f"Your bill lists baseline territory {facts.baseline_territory}, and this "
+                    "tool only has the rates for territory "
+                    f"{', '.join(sorted(scope.territories)) or 'none'} so far — the amount of "
+                    "cheaper baseline electricity you get depends on it."
+                ),
                 detail=(
                     f"The committed {scope.utility.value} specs carry the baseline allowance "
                     f"for territory {', '.join(sorted(scope.territories)) or 'none'} only, and "
@@ -235,6 +243,10 @@ def scope_blockers(facts: HouseholdFacts, scope: AuthoredScope) -> list[Blocker]
         out.append(
             Blocker(
                 code="HEAT_SOURCE_NOT_AUTHORED",
+                summary=(
+                    "This tool only has the all-electric version of the baseline allowance "
+                    "so far, and your home is on the basic one."
+                ),
                 detail=(
                     "The authored baseline is the all-electric (Heat Source H) allowance. "
                     "A basic-allowance household gets a different quantity of baseline kWh "
@@ -247,6 +259,15 @@ def scope_blockers(facts: HouseholdFacts, scope: AuthoredScope) -> list[Blocker]
         out.append(
             Blocker(
                 code="SUPPLIER_NOT_AUTHORED",
+                summary=(
+                    "This tool does not have "
+                    + (
+                        "your power supplier's"
+                        if facts.supplier == "other"
+                        else f"{facts.supplier}'s"
+                    )
+                    + f" rates yet — only {' and '.join(sorted(scope.suppliers))}."
+                ),
                 detail=(
                     f"Generation layers exist for {', '.join(sorted(scope.suppliers))}. "
                     f"{facts.supplier} has none, and a CCA's generation rates are its own "
@@ -270,6 +291,11 @@ def utility_blocker(utility: Utility) -> Blocker | None:
         return None
     return Blocker(
         code="UTILITY_NOT_RECONCILED",
+        summary=(
+            f"This tool has not yet been checked against a real {utility.value} bill, so it "
+            f"does not show {utility.value} customers a price. Your usage report above is "
+            "still complete."
+        ),
         detail=(
             f"The bill engine has never reproduced a real {utility.value} statement "
             "within ±$2, because no such statement has ever been available to test "
