@@ -5,11 +5,11 @@
 
 Exit 0: the file parses as a ``TariffSpec`` with no ``UNVERIFIED`` fields — schema-valid,
 which is all this checks. It says nothing about whether the transcribed numbers are RIGHT;
-that is CLI-PLAN.md's D2 span check plus a human diff against the source, neither of which
-lives here. See CLI-PLAN.md phase C ("Done when: one spec generated end to end and passes
+that is dev/CLI-PLAN.md's D2 span check plus a human diff against the source, neither of which
+lives here. See dev/CLI-PLAN.md phase C ("Done when: one spec generated end to end and passes
 schema validation") and phase D (the scoring loop this gate feeds).
 
-This is the "one command" CLI-PLAN.md's Permissions section calls for: an unattended
+This is the "one command" dev/CLI-PLAN.md's Permissions section calls for: an unattended
 `claude -p` run needs a way to check its own output without a general interpreter, because
 `PYTHONPATH=src python ...` — this repo's documented invocation — is not covered by a
 `Bash(python *)` allow rule. See .claude/settings.json and validate_spec.sh.

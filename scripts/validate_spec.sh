@@ -4,7 +4,7 @@
 #   scripts/validate_spec.sh build/candidates/some_candidate.yaml
 #
 # This exists so an unattended `claude -p` run has exactly ONE command to allowlist
-# (see .claude/settings.json) instead of a general interpreter. CLI-PLAN.md's Permissions
+# (see .claude/settings.json) instead of a general interpreter. dev/CLI-PLAN.md's Permissions
 # section measured that `PYTHONPATH=src python ...` — this repo's documented invocation —
 # is NOT covered by a `Bash(python *)` allow rule, and that granting `python *` to an
 # unattended run is the wrong shape regardless. This script is the wrapper: Claude Code's

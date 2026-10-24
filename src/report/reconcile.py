@@ -55,7 +55,7 @@ INTERVAL_GLOBS: dict[Utility, tuple[str, ...]] = {
     # SDG&E's portal writes the meter shape (``Electric_60_Minute_<from>_<to>_<run>.csv``,
     # prefixed ``PV_`` on a solar account) and, on the documented range shape, an
     # ``sdge``-prefixed name. Both are real: the four exports surveyed in
-    # notes/sdge_public_exports_2026-09.md use the former. Deliberately NOT a bare
+    # dev/notes/sdge_public_exports_2026-09.md use the former. Deliberately NOT a bare
     # ``*.csv`` — data/ also holds gas interval and billing-summary exports, and picking
     # one of those up would be a wrong bill rather than a missing one.
     Utility.SDGE: (

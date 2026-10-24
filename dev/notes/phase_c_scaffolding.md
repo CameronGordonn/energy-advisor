@@ -1,10 +1,10 @@
 # Phase C scaffolding — validation wrapper, permission rule, driver skeleton
 
-Written 2026-09-15, stream C of `notes/session25_handoff_prompts.md`. Scope was fixed by
-that prompt: build the parts of CLI-PLAN.md phase C that don't depend on the JSON schema
+Written 2026-09-15, stream C of `dev/notes/session25_handoff_prompts.md`. Scope was fixed by
+that prompt: build the parts of dev/CLI-PLAN.md phase C that don't depend on the JSON schema
 (Cameron's, per rule 1), verify every CLI/permission fact against the docs rather than
-memory (rule 3), and never run `claude` (rule 2). Findings only — SESSION_NOTES.md and
-HANDOFF.md are stream A's, untouched here.
+memory (rule 3), and never run `claude` (rule 2). Findings only — dev/SESSION_NOTES.md and
+dev/HANDOFF.md are stream A's, untouched here.
 
 ## What exists now
 
@@ -30,7 +30,7 @@ HANDOFF.md are stream A's, untouched here.
 
 ## Why a wrapper script at all — the finding this executes on
 
-CLI-PLAN.md's Permissions section (session 1) measured that `PYTHONPATH=src python ...`
+dev/CLI-PLAN.md's Permissions section (session 1) measured that `PYTHONPATH=src python ...`
 — this repo's own documented invocation — is **not** matched by a `Bash(python *)` allow
 rule, and separately that granting a general `python *` allow rule to an unattended run
 is the wrong shape regardless (it would let a misbehaving run execute anything, not just
@@ -49,7 +49,7 @@ depend on, and where each is confirmed:
 - **The exact claim stream C asked me to re-verify**: "Claude Code checks file
   permissions against `Edit(path)` and `Read(path)` rules only. If you write a path rule
   for `Write`, ... Claude Code accepts the rule but never consults it, and warns at
-  startup" — `permissions.md`, verbatim. Confirms CLI-PLAN.md's session-1 finding exactly;
+  startup" — `permissions.md`, verbatim. Confirms dev/CLI-PLAN.md's session-1 finding exactly;
   no scaffolding here uses a `Write(...)` rule as a result.
 - **Bash rule syntax**: `Tool(specifier)`, parentheses literal, `*` for prefix matching,
   a trailing `*` with a preceding space also matches the bare command
@@ -83,7 +83,7 @@ depend on, and where each is confirmed:
   non-bare `-p` session loads the ordinary way. Flagging this because an earlier draft of
   this scaffolding assumed `--add-dir` was needed unconditionally and that assumption
   didn't survive reading the doc page.
-- **Exit code is not the gate**: nothing new here — CLI-PLAN.md's own phase-A measurement
+- **Exit code is not the gate**: nothing new here — dev/CLI-PLAN.md's own phase-A measurement
   ("`is_error: false` does NOT mean the task succeeded ... six denials ... still reported
   exit 0") is why the driver reads `is_error` / `permission_denials` / `structured_output`
   from the JSON body rather than `$?`. Re-confirmed, not re-discovered.
@@ -128,7 +128,7 @@ and `ruff format --check` pass on `validate_spec.py`.
   a driver that invents a candidate spec to make its own gate go green would be exactly
   the failure CLAUDE.md's reconciliation-gated invariant exists to catch, just one layer
   removed.
-- **No calibration diff.** CLI-PLAN.md phase C's own "Done when" line is "one spec
+- **No calibration diff.** dev/CLI-PLAN.md phase C's own "Done when" line is "one spec
   generated end to end and passes schema validation" — schema validity, not a ground-truth
   match. The diff against a committed spec (CEA or 3CE, "parsed pydantic object, not file
   bytes") is real work but it's scoring logic, which rule 1 reserves and which CLI-PLAN's

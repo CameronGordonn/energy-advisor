@@ -1,7 +1,7 @@
 """The author-rate-spec extraction schema: does it accept ground truth and reject the gaps?
 
 `.claude/skills/author-rate-spec/extraction-schema.json` is the JSON Schema the generator is
-constrained by (CLI-PLAN.md phase B). It exists to close the three gaps CLI-PLAN measured in
+constrained by (dev/CLI-PLAN.md phase B). It exists to close the three gaps CLI-PLAN measured in
 `src/tariffs/schema.py` — pydantic enforces structure thoroughly and content not at all:
 
   1. any non-empty string passes as a `citation`                    -> D2 `evidence`

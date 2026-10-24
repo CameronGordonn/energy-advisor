@@ -1,7 +1,7 @@
 # Stream B — PCIA disambiguation + corpus growth (2026-09-15)
 
 > **STATUS 2026-09-16 (session 26): this file's recommendations have been absorbed.** Both
-> softenings it asked for are done, in HANDOFF.md, the April fixture and the tests. One of its
+> softenings it asked for are done, in dev/HANDOFF.md, the April fixture and the tests. One of its
 > own claims was corrected in the process — "all six other territories remain far off, >$2, in
 > every quarter" is not right; June CARE puts `inland_basic` $1.41 off. And the territory
 > finding went further than this file states: **no single territory fits every cell**, not just
@@ -10,8 +10,8 @@
 > superseded by that test, which does the same work in CI instead of in a scratch script.
 
 Written for: the next Claude Code session (and stream A / Cameron reconciling parallel work).
-Scope per `notes/session25_handoff_prompts.md`: settle the PCIA inference across quarters,
-grow the fixture corpus. Per that brief, this file — not SESSION_NOTES.md or HANDOFF.md —
+Scope per `dev/notes/session25_handoff_prompts.md`: settle the PCIA inference across quarters,
+grow the fixture corpus. Per that brief, this file — not dev/SESSION_NOTES.md or dev/HANDOFF.md —
 is where stream B's findings live; stream A owns those two.
 
 **Do not edit `tests/published_impacts/sdge_2026-04_tou_dr1.yaml`'s existing fields.**
@@ -96,7 +96,7 @@ earlier CLI-PLAN work).
 
 Verifying the two new quarters through `compute_bill` (script below) surfaced something
 worth flagging under CLAUDE.md's "surface the decision, don't pick silently" rule, because
-it revises a claim already written into HANDOFF.md and the April fixture.
+it revises a claim already written into dev/HANDOFF.md and the April fixture.
 
 Session 25's original claim: "coastal_basic is the only [of eight] territory that rounds to
 the published $123" for April. True of April's numbers. **Not true of the other two
@@ -154,9 +154,9 @@ reproducible without rerunning anything ad hoc.
 `tests/published_impacts/test_sdge_2026_04_tou_dr1.py` were being actively written by
 (apparently) stream A in this same working tree while this session ran — the April fixture
 changed under this session mid-task (a `measured_by_engine_2026_09_15` block and an updated
-PCIA note appeared between two reads). Per the session-17/19/21/22 lesson in SESSION_NOTES.md
+PCIA note appeared between two reads). Per the session-17/19/21/22 lesson in dev/SESSION_NOTES.md
 (parallel sessions share one working tree and one git index), this session made no edits to
-that fixture or to HANDOFF.md/SESSION_NOTES.md, to avoid clobbering in-flight work. The two
+that fixture or to dev/HANDOFF.md/SESSION_NOTES.md, to avoid clobbering in-flight work. The two
 new SDG&E fixtures and the PG&E provenance fixture are new files and carry no such risk.
 Whoever commits should use `git add` with explicit paths per file, not a bare `git add -A`,
 so each stream's work lands as its own commit.

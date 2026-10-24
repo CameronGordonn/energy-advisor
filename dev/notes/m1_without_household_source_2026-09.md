@@ -10,7 +10,7 @@ Question asked: **how does M1's DoD get met without dad's SDG&E bills?**
 kWh) and `bill_tou_detail.csv` (216 rows of per-statement, per-season, per-segment,
 per-TOU-period kWh **and printed $/kWh**). Session 23 used it to corroborate our EV-TOU-5
 rates. It looked like the cheapest possible M1 route: bucketed kWh plus printed dollars is
-exactly what `RECRUITING.md`'s "Ask 1" says is enough to test the charge layer without any
+exactly what `dev/RECRUITING.md`'s "Ask 1" says is enough to test the charge layer without any
 interval data.
 
 **It is not enough, and the reason is structural rather than fixable.** Priced four ways over

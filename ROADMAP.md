@@ -9,12 +9,12 @@ Parse own Green Button CSV (PG&E, Santa Cruz account) into a canonical 15-min in
 ## M1 — SDG&E engine + CCA overlay
 Add SDG&E Green Button parser quirks. Implement the relevant SDG&E residential schedules (standard TOU + EV schedules) and the San Diego Community Power generation overlay as separable spec layers (delivery vs generation).
 
-**DoD — split into two halves, amended 2026-09-16 (session 28).** The original read "dad's last 3 SDG&E bills reconciled within ±$2". Dad is no longer a source, and a DoD naming one person is unreachable by anyone else; more importantly the two halves of it **fail independently** and were being hidden behind one checkbox. Split, so partial progress is recordable:
+**DoD — split into two halves, amended 2026-09-16 (session 28).** The original read "a family member's last 3 SDG&E bills reconciled within ±$2". That source is no longer available, and a DoD naming one person is unreachable by anyone else; more importantly the two halves of it **fail independently** and were being hidden behind one checkbox. Split, so partial progress is recordable:
 
 - **M1a — charge layer.** Three real SDG&E statements' printed dollars reproduced within ±$2 **from the statements' own per-TOU-period kWh**, no interval data required, including correct CCA generation line items. Needs bills only — one ordinary (non-solar, non-NEM) household's statements. Reconciliation table published in the README.
 - **M1b — interval layer.** One household's Green Button export priced end to end against one of its own bills, within ±$2. This is the half that tests `src/greenbutton/sdge.py` and the interval→TOU-bucket step, and it needs an export and a bill from the *same* household.
 
-_Why the split is not a lowering of the bar: M1a cannot be met by the public 26-bill corpus, whose statements are NEM-2 true-up accruals rather than payable bills — measured, not assumed, in `notes/m1_without_dad_2026-09.md`. Invariant 1 is unchanged under both halves: until a real SDG&E statement reconciles, no San Diego user is shown a dollar figure._
+_Why the split is not a lowering of the bar: M1a cannot be met by the public 26-bill corpus, whose statements are NEM-2 true-up accruals rather than payable bills — measured, not assumed, in `dev/notes/m1_without_household_source_2026-09.md`. Invariant 1 is unchanged under both halves: until a real SDG&E statement reconciles, no San Diego user is shown a dollar figure._
 
 ## M2 — Rate optimizer
 Re-simulate a household's full year of intervals under every eligible schedule (both IOUs; CCA on/off where applicable). Rank by annual cost; report savings vs current plan and the usage-pattern conditions under which the ranking flips.

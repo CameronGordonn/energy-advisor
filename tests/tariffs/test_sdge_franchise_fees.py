@@ -1,7 +1,7 @@
 """SDG&E's city-dependent franchise fees and the CCA's CEC surcharge (sessions 31-32).
 
 The lines were found missing by pricing SDCP's published specimen statement
-(``notes/sdcp_specimen_bill_2026-10.md``): every rate on it matched the specs to the fifth
+(``dev/notes/sdcp_specimen_bill_2026-10.md``): every rate on it matched the specs to the fifth
 decimal and the bill still came out ~$11 short. The specimen is NOT a golden bill — its
 account number is a placeholder and its own SDCP lines do not equal kWh x rate — so it is
 used here the way ``tests/published_impacts/`` uses rate alerts: to pin the *structure*

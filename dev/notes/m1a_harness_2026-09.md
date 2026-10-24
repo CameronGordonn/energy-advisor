@@ -67,7 +67,7 @@ attached.
 **This is an M1a scope finding, and it is the one that can bite on the day a bill
 arrives.** If a real SDG&E statement spans a rate change and does **not** itemise its own
 sub-periods, that month is not reconcilable without interval data, and no amount of harness
-work fixes it. Two consequences for the ask in `RECRUITING.md`:
+work fixes it. Two consequences for the ask in `dev/RECRUITING.md`:
 
 1. Prefer statements whose billing period lies inside one rate vintage. For the 2026
    vintages that means periods contained in 1/1–3/31, 4/1–4/30, 5/1–5/31, 6/1–7/31 or
@@ -293,7 +293,7 @@ same household. A green M1a does not retire the super-off-peak caveat in
 
 1. **Unchanged and still the binding constraint:** one ordinary (non-solar, non-NEM) SDG&E
    residential statement. Three of them close M1a. The harness is now genuinely
-   transcription-only — the claim `notes/m1_without_dad_2026-09.md` made about session 24's
+   transcription-only — the claim `dev/notes/m1_without_household_source_2026-09.md` made about session 24's
    work was true of the interval path and false of the bill-only one, and that gap is what
    this session closed.
 2. When asking, add the two items from §1b: prefer a period inside one rate vintage, and
