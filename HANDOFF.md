@@ -90,9 +90,9 @@ published a wrong one. What stays true as it ages: **11/11 PG&E golden bills wit
    **The site prices** (session 28) for households the PG&E specs can be shown to describe
    (territory T, all-electric, 3CE, PCIA 2018) and refuses by name for everyone else, with
    four blocker codes and `RECONCILED_UTILITIES` tied by test to the golden-bill corpus.
-   Session 30 did the visual overhaul: two stamps (claim in the hero, disclaimer at
-   `#priceOut` — **Cameron's call; do not re-merge without asking**), three a11y defects
-   fixed, `scripts/audit_layout.py` and `scripts/contrast_matrix.py` added.
+   Session 30 fixed three a11y defects and added `scripts/audit_layout.py` and
+   `scripts/contrast_matrix.py`. **Session 32 (2026-10-23) replaced the whole visual
+   system** at Cameron's request — see "The site and its design" below.
 
 6. **ACC tables re-imported 2026-09-16, byte-identical.** The floating NBT00 table expires
    **2026-12-31** for both utilities; a test fails on 2027-01-01. No 2027 vintage published.
@@ -302,8 +302,8 @@ a California bill wrong.
 ## The site and its design
 
 Four pages in `docs/`, served by GitHub Pages: `index.html` (the tool), `methodology.html`,
-`privacy.html`, `terms.html`. Shared `site.css` (tokens + chrome) and `fonts.css`
-(`@font-face` only). **Fonts are self-hosted; the site requests nothing from Google.**
+`privacy.html`, `terms.html`. Shared `site.css` (tokens + chrome). **No web fonts at all**
+(system font stack); `docs/fonts/` and `fonts.css` were deleted in session 32.
 
 - **The tool runs the REAL Python parsers** under Pyodide/WebAssembly — not a JS port, so there
   is one tested implementation. Nothing is uploaded because there is no server.
@@ -317,15 +317,14 @@ Four pages in `docs/`, served by GitHub Pages: `index.html` (the tool), `methodo
   `$<digit>` and separately asserts `#planTable` IS dollar-denominated, and the `Inspection`
   model may carry no money-shaped field. ⚠ `docs/case-study.json` is built from gitignored
   `data/` and pins the engine digest — **regenerate it whenever `docs/engine.js` changes**.
-- **Design (session 12): the site is built as the document it is about — a tariff sheet.**
-  Two-colour offset print on manila (oxblood + sulphur), **zero border-radius anywhere**, a
-  left rail of mono section numbers, ledger rows instead of stat cards, and **two** rotated
-  stamps since session 30 — the claim (`RECONCILED ±$2 / 11 OF 11 REAL BILLS`) in the hero,
-  the disclaimer at `#priceOut` beside the verdict. Cameron's call; do not re-merge. Type is **Archivo** (variable *width* axis — one file
-  gives the expanded display voice and the body) plus **Space Mono** for every number and label.
-- **Two colour rules are load-bearing.** `--sul` is a **FILL, never text** (1.89:1 on paper);
-  accent text is always `--ox`. And **`--ox` means "the expensive hours" and nothing else** —
-  Fig. 2's month bars are `--mark` for exactly this reason.
+- **Design (session 32): plain and content-first.** Cameron found the session-12 "tariff
+  sheet" (manila, oxblood/sulphur, uppercase wide display type, mono labels, margin rails,
+  rotated stamps) overdone and distracting from the content. Now: white page, system fonts,
+  one 52rem column, sentence case, modest radius. The two stamps became plain sentences in
+  the same places (`.proof` in the hero, `.notabill` under the verdict). **Don't bring
+  bespoke ornament back.** Details in the `design-system` skill.
+- **One colour rule is load-bearing: `--accent` (= `--ox`) means "the expensive hours"** —
+  peak bars and the peak caption. Links are `--link`; every other bar is `--mark`.
 - **`T = 64`, `BAND_LIFT = 6` and `LABEL_LIFT = 16` on the hour chart are not spare
   whitespace.** They stop the peak-band caption and the band's own overhang colliding with the
   "busiest hour" label, which happens whenever the busiest hour falls inside the band — the

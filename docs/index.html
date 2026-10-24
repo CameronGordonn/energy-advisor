@@ -9,251 +9,169 @@
 <meta property="og:title" content="Home Energy Advisor">
 <meta property="og:description" content="See when you actually use electricity. Your file never leaves your computer.">
 <meta property="og:type" content="website">
-<link rel="stylesheet" href="./fonts.css">
 <link rel="stylesheet" href="./site.css">
 <style>
-/* ---- hero: the headline is the largest thing on the page by a wide margin, and it is
-   allowed to run wider than the text column below it. Density contrast is the point. ---- */
-.hero h1{font-size:clamp(1.95rem,6.6vw,5.4rem)}
-/* Sized so the intake form below is on the first screen at 1280x800. At 7.6rem the
-   headline alone filled it, and a visitor's first scroll was spent finding the tool. */
-.hero .lede{font-size:1.12rem;line-height:1.5;max-width:46ch;margin:0;color:var(--ink-2)}
-.hero .lede b{color:var(--ink);font-weight:700}
-.hero-foot{display:flex;gap:2.5rem;align-items:flex-start;margin-top:1.6rem;flex-wrap:wrap}
-/* The stamp is pushed to the far edge so it lands under the end of the headline rather than
-   trailing the lede with half the row left empty. It is the only thing out there, so it has
-   to be placed on purpose. */
-.hero-foot .stamp{margin-left:auto}
+/* ---- hero ---- */
+.hero .lede{font-size:1.15rem;line-height:1.55;max-width:56ch;margin:1rem 0 0;color:var(--ink-2)}
+.hero .lede b{color:var(--ink);font-weight:650}
+.proof{margin:1rem 0 0;font-size:.92rem;color:var(--ink-3)}
+.proof a{color:inherit}
 
-/* ---- intake: a form, with a ruled header, not a floating card ---- */
-#drop{border:2px solid var(--ink);background:var(--paper-2);padding:2.6rem 1.5rem;
-  text-align:center;cursor:pointer;transition:background .12s}
-#drop:hover,#drop.over{background:var(--band)}
-#drop:hover .big,#drop.over .big,#drop:hover .small,#drop.over .small{color:#191510}
-#drop .big{font-family:var(--display);font-stretch:112%;font-weight:700;text-transform:uppercase;
-  font-size:1.5rem;line-height:1;margin:0 0 .5rem;letter-spacing:-.01em}
-#drop .small{font-family:var(--mono);font-size:.72rem;color:var(--ink-3);margin:0;
-  letter-spacing:.03em}
-.btnrow{display:flex;gap:.6rem;justify-content:center;margin-top:1.5rem;flex-wrap:wrap}
-.assure{font-family:var(--mono);font-size:.8rem;line-height:1.6;color:var(--ink-2);
-  margin:1rem 0 0;letter-spacing:.02em}
-.assure b{color:var(--ink)}
+/* ---- intake ---- */
+#drop{border:2px dashed var(--rule-2);border-radius:12px;background:var(--paper-2);
+  padding:2.25rem 1.5rem;text-align:center;cursor:pointer;transition:border-color .12s}
+#drop:hover,#drop.over{border-color:var(--link)}
+#drop .big{font-size:1.25rem;font-weight:650;line-height:1.3;margin:0 0 .3rem}
+#drop .small{font-size:.92rem;color:var(--ink-3);margin:0}
+.btnrow{display:flex;gap:.6rem;justify-content:center;margin-top:1.25rem;flex-wrap:wrap}
+.assure{font-size:.95rem;line-height:1.6;color:var(--ink-2);margin:1rem 0 0}
+.assure b{color:var(--ink);font-weight:600}
 
 /* ---- status ---- */
-#status{margin:1.4rem 0 0;padding:.8rem 1rem;border:1px solid var(--rule-2);
-  background:var(--paper-2);font-family:var(--mono);font-size:.78rem;color:var(--ink-2)}
-#status.err{border-color:var(--ox);border-left-width:3px;color:var(--ink)}
-#status pre{margin:.5rem 0 0;font-size:.72rem;white-space:pre-wrap;color:var(--ink-2)}
-.spin{display:inline-block;width:.75em;height:.75em;margin-right:.55em;
-  border:2px solid var(--rule-2);border-top-color:var(--ox);border-radius:50%;
+#status{margin:1.25rem 0 0;padding:.8rem 1rem;border-radius:8px;background:var(--paper-2);
+  font-size:.92rem;color:var(--ink-2)}
+#status.err{box-shadow:inset 3px 0 0 var(--ox);color:var(--ink)}
+#status pre{margin:.5rem 0 0;font-size:.8rem;white-space:pre-wrap;color:var(--ink-2)}
+.spin{display:inline-block;width:.8em;height:.8em;margin-right:.55em;vertical-align:-.05em;
+  border:2px solid var(--rule-2);border-top-color:var(--ink-2);border-radius:50%;
   animation:sp .7s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.spin{animation:none}#drop{transition:none}}
 
-/* ---- steps as ruled ledger entries ---- */
-.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:0}
-.step{border-left:1px solid var(--rule);padding:0 1.4rem}
-.step:first-child{border-left:0;padding-left:0}
-.step .n{font-family:var(--mono);font-size:.68rem;letter-spacing:.06em;color:var(--ox);
-  font-weight:700;display:block;margin-bottom:.7rem}
-.step h3{font-family:var(--display);font-stretch:108%;font-weight:700;text-transform:uppercase;
-  font-size:.98rem;line-height:1.15;margin:0 0 .45rem}
-.step p{margin:0;font-size:.88rem;color:var(--ink-2)}
+/* ---- steps ---- */
+.steps{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.5rem 2rem}
+.step .n{font-size:.85rem;color:var(--ink-3);display:block;margin-bottom:.2rem}
+.step h3{font-size:1.05rem;font-weight:650;margin:0 0 .3rem}
+.step p{margin:0;font-size:.95rem;color:var(--ink-2)}
 
 /* ---- report ----
-   #results is focused programmatically when it is revealed, so a keyboard user lands in
-   it rather than back at the top of the document — and Chromium then paints the global
-   :focus-visible ring around the whole region, which at full report length is a 4,700px
-   oxblood box that reads as an error state. The ring is suppressed HERE ONLY: #results is
-   a scroll-and-focus target with tabindex="-1", not a keyboard-reachable control, so the
-   rule that every interactive control shows a focus ring is untouched. The arrival is
-   still announced through #announcer, and the report head below is the visible landmark. */
+   #results is focused programmatically when it is revealed (tabindex="-1"), so a keyboard
+   user lands in it; without this Chromium paints a focus ring round the whole report.
+   It is a focus target, not a control, so no control loses its ring. */
 #results:focus{outline:none}
 
-.report-head{border-bottom:3px solid var(--ink);padding-bottom:.7rem;margin-bottom:2rem;
-  display:flex;justify-content:space-between;align-items:flex-end;gap:1.5rem;flex-wrap:wrap}
-.report-head h2{font-family:var(--display);font-stretch:118%;font-weight:700;
-  text-transform:uppercase;font-size:clamp(1.5rem,3.6vw,2.5rem);line-height:.92;margin:0}
-/* Where a reader goes next from the top of a long report: on to the prices, or back to
-   the start with another file. Plain ruled buttons; the link is the document accent. */
-.report-actions{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center}
-.report-actions a{font-family:var(--mono);font-size:.78rem;letter-spacing:.03em}
-#reportMeta{font-family:var(--mono);font-size:.68rem;letter-spacing:.05em;text-transform:uppercase;
-  color:var(--ink-3);margin:0 0 .5rem}
-.demo-banner{border:1px solid var(--ox);border-left-width:3px;padding:.85rem 1.1rem;
-  margin-bottom:1.6rem;font-size:.88rem;color:var(--ink);background:var(--paper-2)}
+.report-head{margin-bottom:1.75rem;display:flex;justify-content:space-between;
+  align-items:flex-end;gap:1rem 1.5rem;flex-wrap:wrap}
+.report-head h2{font-size:1.75rem;font-weight:700;line-height:1.2;margin:0}
+.report-actions{display:flex;gap:.9rem;flex-wrap:wrap;align-items:center;font-size:.95rem}
+#reportMeta{font-size:.9rem;color:var(--ink-3);margin:0 0 .3rem}
+.demo-banner{border-radius:10px;padding:.9rem 1.1rem;margin-bottom:1.5rem;font-size:.95rem;
+  color:var(--ink);background:var(--paper-2)}
 
-/* headline figure + supporting ledger, side by side: density contrast again */
-.headline{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.35fr);gap:2.5rem;
-  align-items:start;margin-bottom:2.6rem}
-.figure-lead .v{font-family:var(--display);font-stretch:125%;font-weight:700;
-  font-size:clamp(4rem,11vw,8rem);line-height:.82;color:var(--ox);letter-spacing:-.02em}
-.figure-lead .k{font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;
-  color:var(--ink-2);margin-top:.7rem;max-width:22ch;line-height:1.5}
+.headline{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:2.5rem;
+  align-items:start;margin-bottom:2.5rem}
+.figure-lead .v{font-size:clamp(2.75rem,7vw,3.75rem);font-weight:700;line-height:1;
+  letter-spacing:-.02em;color:var(--ink)}
+.figure-lead .k{font-size:.95rem;color:var(--ink-2);margin-top:.5rem;max-width:26ch;line-height:1.45}
 
-/* findings as numbered notes, number hanging in the margin */
-.findings-head{font-family:var(--display);font-stretch:112%;font-weight:700;
-  text-transform:uppercase;font-size:1.15rem;line-height:1;margin:0 0 .9rem}
-.findings{display:grid;gap:0;margin-bottom:2.6rem;border-top:1px solid var(--rule)}
-.finding{display:grid;grid-template-columns:2.6rem 1fr;gap:1rem;padding:1.15rem 0;
-  border-bottom:1px solid var(--rule)}
-.finding::before{content:counter(fnote,decimal-leading-zero);counter-increment:fnote;
-  font-family:var(--mono);font-size:.74rem;color:var(--ink-3);padding-top:.3rem}
-.findings{counter-reset:fnote}
-.finding h4{font-family:var(--display);font-stretch:106%;font-weight:700;text-transform:uppercase;
-  font-size:1rem;line-height:1.2;margin:0 0 .4rem;letter-spacing:.005em}
-.finding p{margin:0;font-size:.92rem;color:var(--ink-2);max-width:70ch}
-.finding .tag{display:block;margin-bottom:.35rem}
-.finding.good .tag{color:var(--ox)}
-.finding.watch .tag{color:var(--ox);font-weight:700}
-.finding.good h4,.finding.watch h4{color:var(--ink)}
+.findings-head{font-size:1.25rem;font-weight:700;margin:0 0 .5rem}
+.findings{margin-bottom:2.5rem}
+.finding{padding:1rem 0;border-bottom:1px solid var(--rule)}
+.finding:last-child{border-bottom:0}
+.finding h4{font-size:1.05rem;font-weight:650;line-height:1.35;margin:0 0 .3rem;color:var(--ink)}
+.finding p{margin:0;font-size:.95rem;color:var(--ink-2);max-width:70ch}
+.finding .tag{display:block;margin-bottom:.15rem}
+.finding.watch .tag{color:var(--ox);font-weight:600}
 
-.plate + .plate{margin-top:1.4rem}
-details.data{margin-top:1rem;border-top:1px solid var(--rule-2);padding-top:.7rem}
-details.data summary{font-family:var(--mono);font-size:.72rem;text-transform:uppercase;
-  letter-spacing:.05em;color:var(--ink-3);cursor:pointer}
-details.data summary:hover{color:var(--ox)}
-.data table{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:.76rem;
-  margin-top:.8rem}
+.plate + .plate{margin-top:1.25rem}
+details.data{margin-top:1rem}
+details.data summary{font-size:.9rem;color:var(--link);cursor:pointer}
+.data table{width:100%;border-collapse:collapse;font-size:.88rem;margin-top:.75rem}
 .data th,.data td{padding:.35rem .5rem;border-bottom:1px solid var(--rule);text-align:left}
 .data td{text-align:right}
-.data thead th{color:var(--ink-3);font-weight:700;text-transform:uppercase;font-size:.66rem}
-#fileTable{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:.8rem}
+.data thead th{color:var(--ink-3);font-weight:600}
+#fileTable{width:100%;border-collapse:collapse;font-size:.92rem}
 #fileTable th,#fileTable td{padding:.4rem 0;border-bottom:1px solid var(--rule);
   text-align:left;font-weight:400;color:var(--ink-2)}
 #fileTable td{text-align:right;color:var(--ink);padding-left:1.5rem}
 
-/* trust figures: a ruled ledger strip, not four equal tiles */
-.trust-figs{display:grid;grid-template-columns:repeat(4,1fr);gap:0;margin-top:1.4rem;
-  border-top:1px solid var(--ink)}
-.tfig{border-left:1px solid var(--rule);padding:1rem 1.1rem}
-.tfig:first-child{border-left:0;padding-left:0}
-.tfig .v{font-family:var(--display);font-stretch:118%;font-weight:700;font-size:1.7rem;
-  line-height:1;color:var(--ink)}
-.tfig .k{font-family:var(--mono);font-size:.64rem;letter-spacing:.06em;text-transform:uppercase;
-  color:var(--ox);margin-top:.5rem}
-.tfig .s{font-size:.8rem;color:var(--ink-2);margin-top:.25rem;line-height:1.4}
+/* trust figures */
+.trust-figs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1.25rem;margin-top:1.5rem}
+.tfig .v{font-size:1.6rem;font-weight:700;line-height:1.1;color:var(--ink)}
+.tfig .k{font-size:.9rem;font-weight:600;color:var(--ink);margin-top:.3rem}
+.tfig .s{font-size:.85rem;color:var(--ink-2);line-height:1.4}
 
-.prose{max-width:64ch;color:var(--ink-2);font-size:.95rem}
+.prose{max-width:66ch;color:var(--ink-2);font-size:1rem}
 .prose b,.prose strong{color:var(--ink)}
 
-/* ---- pricing (section 03): the half of the page that is allowed to say dollars ---- */
-/* A verdict is a stamped conclusion, not a card. Heavy top rule, oxblood left edge. */
-.answer-head{display:flex;gap:2rem;align-items:flex-start;flex-wrap:wrap;margin:0 0 1.8rem}
-.answer-head .stamp{margin-top:1.1rem}
-.verdict{border-top:3px solid var(--ink);border-left:3px solid var(--ox);
-  background:var(--paper-2);padding:1.2rem 1.3rem;margin:0;flex:1 1 32rem;
-  font-size:1.05rem;line-height:1.45;color:var(--ink);max-width:70ch}
-.verdict b{font-weight:700}
-.verdict .lbl{display:block;font-family:var(--mono);font-size:.64rem;letter-spacing:.08em;
-  text-transform:uppercase;color:var(--ox);margin-bottom:.5rem}
+/* ---- pricing: the half of the page that is allowed to say dollars ---- */
+.answer-head{margin:0 0 1.5rem}
+.verdict{background:var(--paper-2);border-radius:12px;padding:1.25rem 1.35rem;margin:0;
+  font-size:1.05rem;line-height:1.5;color:var(--ink)}
+.verdict b{font-weight:650}
+.verdict .lbl{display:block;font-size:.9rem;font-weight:600;color:var(--ink-2);margin-bottom:.25rem}
+/* The saving: --ink, never --ox. The accent means the expensive hours; a saving is the
+   opposite. */
+.verdict .save{display:block;font-size:clamp(2.25rem,6vw,3rem);font-weight:700;line-height:1.1;
+  letter-spacing:-.02em;color:var(--ink);margin-bottom:.4rem}
+.notabill{font-size:.88rem;color:var(--ink-3);margin:.6rem 0 0}
 
-/* The questions only a bill can answer. Ruled fields, never floating inputs. */
-.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem 1.6rem;
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.1rem 1.6rem;
   margin:1.4rem 0 1.2rem}
-.fields label{display:block;font-family:var(--mono);font-size:.68rem;letter-spacing:.05em;
-  text-transform:uppercase;color:var(--ink-3)}
-.fields select{display:block;width:100%;margin-top:.4rem;padding:.5rem .55rem;
-  font-family:var(--mono);font-size:.82rem;color:var(--ink);background:var(--paper-2);
-  border:1px solid var(--rule-2);border-radius:0;text-transform:none;letter-spacing:0}
-.fields select:hover{border-color:var(--ox)}
-/* Where on the bill each answer is printed. A homeowner has never seen "baseline
-   territory" until the form asks; the hint names the exact words on the statement. */
-.fields .hint{display:block;margin-top:.35rem;font-family:var(--sans);font-size:.8rem;
-  line-height:1.4;letter-spacing:0;text-transform:none;color:var(--ink-2)}
-.fields .hint i{font-style:normal;font-family:var(--mono);font-size:.76rem;color:var(--ink)}
-.formlede{max-width:64ch;color:var(--ink-2);font-size:.95rem}
+.fields label{display:block;font-size:.95rem;font-weight:600;color:var(--ink)}
+.fields select{display:block;width:100%;margin-top:.35rem;padding:.5rem .6rem;
+  font-family:inherit;font-size:.95rem;font-weight:400;color:var(--ink);background:var(--paper);
+  border:1px solid var(--rule-2);border-radius:8px}
+.fields select:hover{border-color:var(--ink-3)}
+/* Where on the bill each answer is printed: the exact words on the statement. */
+.fields .hint{display:block;margin-top:.35rem;font-size:.85rem;font-weight:400;line-height:1.45;
+  color:var(--ink-2)}
+.fields .hint i{font-style:normal;font-weight:600;color:var(--ink)}
+.formlede{max-width:66ch;color:var(--ink-2)}
 .formlede b{color:var(--ink)}
-/* The saving, as a figure — the one number the visitor came for, set in the ledger voice
-   above the sentence that qualifies it. --ink, not --ox: oxblood means the expensive
-   hours in this document's data, and a saving is the opposite. */
-.verdict .save{display:block;font-family:var(--display);font-stretch:118%;font-weight:700;
-  font-size:clamp(2rem,4.6vw,3rem);line-height:1;color:var(--ink);letter-spacing:-.01em}
-.verdict .save-k{display:block;font-family:var(--mono);font-size:.72rem;letter-spacing:.04em;
-  color:var(--ink-2);margin:.35rem 0 .8rem}
-#planTable .pdesc{display:block;font-family:var(--sans);font-size:.76rem;color:var(--ink-3);
-  font-weight:400;margin-top:.15rem}
-#planTable tr.win .pdesc{color:var(--ink-2)}
+#factsForm .small{font-size:.9rem;color:var(--ink-3)}
+#planTable .pdesc{display:block;font-size:.84rem;color:var(--ink-3);font-weight:400;margin-top:.1rem}
 .btnrow.left{justify-content:flex-start;margin-top:1.2rem}
 /* A refusal reason: the plain sentence leads, the engine's own reasoning folds away. */
-.reasons li .why{margin-top:.45rem}
-.reasons li .why summary{font-family:var(--mono);font-size:.7rem;letter-spacing:.04em;
-  color:var(--ink-3);cursor:pointer;text-transform:uppercase}
-.reasons li .why summary:hover{color:var(--ox)}
-.reasons li .why p{margin:.4rem 0 0;font-size:.86rem}
-.cando{margin:1.4rem 0 0;max-width:64ch}
-.cando h3{font-family:var(--display);font-stretch:112%;font-weight:700;text-transform:uppercase;
-  font-size:1rem;margin:0 0 .5rem}
-.cando ul{margin:0;padding-left:1.1rem;color:var(--ink-2);font-size:.92rem}
+.reasons li .why{margin-top:.4rem}
+.reasons li .why summary{font-size:.88rem;color:var(--link);cursor:pointer}
+.reasons li .why p{margin:.4rem 0 0;font-size:.9rem}
+.cando{margin:1.4rem 0 0;max-width:66ch}
+.cando h3{font-size:1.05rem;font-weight:650;margin:0 0 .4rem}
+.cando ul{margin:0;color:var(--ink-2)}
 .cando li{margin:.25rem 0}
 
-/* Refusals and assumptions read as a list of stated reasons, each with a hanging rule. */
-.reasons{list-style:none;margin:1.2rem 0;padding:0;max-width:70ch}
-.reasons li{border-top:1px solid var(--rule);padding:.8rem 0 .8rem 1rem;
-  border-left:2px solid var(--ox);font-size:.92rem;color:var(--ink-2)}
-.reasons li b{color:var(--ink);font-family:var(--mono);font-size:.72rem;letter-spacing:.05em;
-  display:block;margin-bottom:.3rem;text-transform:uppercase}
+.reasons{list-style:none;margin:1rem 0;padding:0;max-width:70ch}
+.reasons li{border-top:1px solid var(--rule);padding:.8rem 0;color:var(--ink-2)}
+.reasons li:first-child{border-top:0}
+/* The engine's own name for the reason: a small label, below the plain sentence's weight. */
+.reasons li b{display:block;color:var(--ink-3);font-size:.8rem;font-weight:600;
+  letter-spacing:.03em;margin-bottom:.15rem}
 
-#planTable,#whyTable{width:100%;border-collapse:collapse;font-family:var(--mono);
-  font-size:.82rem}
-#planTable th,#planTable td,#whyTable th,#whyTable td{padding:.5rem .4rem;
-  border-bottom:1px solid var(--rule);text-align:right}
+#planTable,#whyTable{width:100%;border-collapse:collapse;font-size:.95rem}
+#planTable th,#planTable td,#whyTable th,#whyTable td{padding:.6rem .5rem;
+  border-bottom:1px solid var(--rule);text-align:right;vertical-align:top}
 #planTable th:first-child,#planTable td:first-child,
 #whyTable th:first-child,#whyTable td:first-child{text-align:left}
-#planTable tbody th,#whyTable tbody th{font-weight:400;color:var(--ink-2)}
-#planTable thead th,#whyTable thead th{color:var(--ink-3);font-size:.66rem;font-weight:700;
-  text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--ink)}
-/* Hierarchy, corrected. Until session 30 the loudest row in the ranking was the reader's
-   CURRENT plan — a full-width sulphur fill — and the RECOMMENDED plan was merely bold, so
-   the table shouted the status quo at a page whose entire job is to rank against it. The
-   winner now carries oxblood rules top and bottom (the document accent used as a RULE, the
-   way site.css already uses it for links, rail numbers and the stamp), and the current plan
-   keeps the sulphur as a highlighter mark on its NAME rather than a fill across the row. */
-#planTable tr.win th,#planTable tr.win td{color:var(--ink);font-weight:700;
-  border-top:2px solid var(--ox);border-bottom:2px solid var(--ox)}
+#planTable tr:last-child th,#planTable tr:last-child td{border-bottom:0}
+#planTable tbody th,#whyTable tbody th{font-weight:400;color:var(--ink)}
+#planTable thead th,#whyTable thead th{color:var(--ink-3);font-size:.85rem;font-weight:600;
+  vertical-align:bottom}
+#planTable td{white-space:nowrap}
+@media (min-width:560px){#planTable thead th{white-space:nowrap}}
+/* The winner outranks the status quo: a tinted, bold row. The current plan is named in
+   words in the last column. */
+#planTable tr.win th,#planTable tr.win td{background:var(--paper-2);font-weight:650}
+#planTable tr.win th{border-radius:8px 0 0 8px}
+#planTable tr.win td:last-child{border-radius:0 8px 8px 0}
+#planTable tr.mine .pname{font-weight:600}
+#planTable .cond{color:var(--ink-2);font-size:.82rem;display:block}
 
-/* The magnitude bar. Six figures spanning $281 do not read as a ranking in type alone, and
-   the one quantity the table leaves the reader to subtract — how much more than the
-   cheapest plan each option costs — is the decision. Zero-based on that difference, so the
-   winner's bar is correctly empty. It grows right-to-left, anchored under the right-aligned
-   figure, the way a ledger sets a column.
-   ⚠ It is --mark and never --ox. --ox means "the expensive hours" as a DATA colour, so
-   painting the CHEAPEST plan oxblood would invert the one chart rule the site has. */
-.mbar{display:flex;justify-content:flex-end;height:5px;margin-top:.4rem}
-.mbar i{display:block;height:100%;background:var(--mark)}
-/* The sulphur band is a FILL and never carries text, so where it lands behind the plan
-   name the ink is set explicitly rather than inherited. Computed, not eyeballed, by
-   scripts/contrast_matrix.py: --ink on --band is 11.62 light / 11.26 dark; --ink-3 would
-   have been 4.15 / 3.66 and failed in the dark. The conditional-plan note is oxblood
-   everywhere else, but oxblood on band is 3.62 in the dark, so on this one row it steps to
-   --ink-2 — 5.86 light / 6.61 dark. (This comment used to quote 6.61 alone, which is the
-   DARK figure; light is the tighter of the two and is the one that has to clear 4.5.) */
-/* The highlighter hugs the NAME, not the cell. Filling a 380px column with sulphur put
-   the reader's current plan back in charge of the table, which is the inversion this was
-   meant to undo. --ink on --band is 11.62 light / 11.26 dark.
-   ⚠ The 2px --ink-2 edge is not trim. --band against the plate is 1.09 light / 1.25 dark —
-   the sulphur reads instantly in light because the HUE shift is large, but luminance is
-   what survives dark mode, greyscale and most CVD, and in dark the fill all but vanishes.
-   The edge is the part of the marker that is actually visible: --ink-2 on the plate is
-   6.38 / 8.25, clear of the 3.0 non-text threshold in both themes. The state is also
-   written in words in the "vs. yours" column, so it was never carried by colour alone. */
-#planTable tr.mine .pname{background:var(--band);color:var(--ink);
-  padding:.15em .4em;margin-left:-.4em;box-shadow:inset 2px 0 0 var(--ink-2)}
-#planTable tr.mine .cond{color:var(--ink-2)}
-#planTable tr.mine td{border-bottom-color:var(--rule-2)}
-#planTable .cond{color:var(--ox);font-size:.66rem;letter-spacing:.04em;display:block}
+/* Gap to the cheapest plan, zero-based so the winner's bar is empty. --mark, never --ox:
+   the accent means the expensive hours, not the cheapest plan. */
+.mbar{display:flex;justify-content:flex-end;height:4px;margin-top:.4rem}
+.mbar i{display:block;height:100%;background:var(--mark);border-radius:2px}
 
-@media (max-width:1060px){
-  .steps{grid-template-columns:1fr 1fr;row-gap:1.4rem}
-  .step:nth-child(3){border-left:0;padding-left:0}
-}
-@media (max-width:820px){
+@media (max-width:720px){
   .fields{grid-template-columns:1fr}
-  .steps{grid-template-columns:1fr;gap:1.4rem}
-  .step{border-left:0;padding:0}
-  .headline{grid-template-columns:1fr;gap:1.6rem}
+  .steps{grid-template-columns:1fr}
+  .headline{grid-template-columns:1fr;gap:1.5rem}
   .trust-figs{grid-template-columns:1fr 1fr}
-  .tfig{border-left:0;padding-left:0;border-top:1px solid var(--rule)}
+}
+@media (max-width:480px){
+  #priceOut .plate{padding:.75rem .5rem}
+  #planTable{font-size:.88rem}
+  #planTable th,#planTable td{padding:.5rem .3rem}
 }
 </style>
 </head>
@@ -273,23 +191,18 @@ details.data summary:hover{color:var(--ox)}
 
 <!-- ============================ HERO ============================ -->
 <section class="row heavy hero">
-  <div class="rail"><b>00</b>Independent<br>California<br>IOU customers</div>
   <div>
-    <h1 class="display">When you<br>actually use<br>electricity</h1>
-    <div class="hero-foot">
-      <p class="lede">Find out which electricity rate plan is cheapest for <b>the way your
-      household actually uses power</b>. Download your hourly usage file from your utility,
-      drop it in below, and this re-bills a year of it under every plan you could be on
-      &mdash; or tells you plainly why it can&rsquo;t. No account. Nothing leaves your
-      computer.</p>
-      <div class="stamp">Reconciled &plusmn;&#36;2<span>11 of 11 real bills</span></div>
-    </div>
+    <h1 class="display">Which electricity plan is cheapest for the way you actually use power?</h1>
+    <p class="lede">Download your hourly usage file from your utility and drop it in below.
+    This re-bills a year of it under every plan you could be on &mdash; or tells you plainly
+    why it can&rsquo;t. No account. Nothing leaves your computer.</p>
+    <p class="proof">The bill engine reproduces 11 of 11 real PG&amp;E bills to within
+    &plusmn;&#36;2. <a href="./methodology.html">How that&rsquo;s checked</a></p>
   </div>
 </section>
 
 <!-- ============================ INTAKE ============================ -->
 <section class="row">
-  <div class="rail"><b>01</b>Intake<br>Form A</div>
   <div>
     <div id="drop" tabindex="0" role="button" aria-label="Choose or drop your usage file">
       <p class="big">Drop your usage file here</p>
@@ -320,7 +233,6 @@ details.data summary:hover{color:var(--ox)}
 <!-- ============================ RESULTS ============================ -->
 <div id="results" tabindex="-1" hidden>
  <section class="row heavy">
-  <div class="rail"><b>R1</b>Findings<br>Your meter</div>
   <div>
 
   <div class="demo-banner" id="demoBanner" hidden>
@@ -354,7 +266,7 @@ details.data summary:hover{color:var(--ox)}
   <div class="findings" id="findings"></div>
 
   <div class="plate">
-    <div class="plate-head"><span>Fig. 1 &mdash; usage by hour of day</span><span>share of total</span></div>
+    <div class="plate-head"><span>Usage by hour of day</span><span>share of total</span></div>
     <figure>
       <svg id="hourChart" viewBox="0 0 760 300" role="img" aria-labelledby="hourChartDesc"></svg>
       <p id="hourChartDesc" class="cap">The taller the bar, the more electricity you use in
@@ -370,7 +282,7 @@ details.data summary:hover{color:var(--ox)}
   </div>
 
   <div class="plate" id="monthSection">
-    <div class="plate-head"><span>Fig. 2 &mdash; usage by calendar month</span><span>kWh</span></div>
+    <div class="plate-head"><span>Usage by month</span><span>kWh</span></div>
     <figure>
       <svg id="monthChart" viewBox="0 0 760 240" role="img" aria-labelledby="monthChartDesc"></svg>
       <p id="monthChartDesc" class="cap">Seasons change what you use, and a plan judged on
@@ -383,8 +295,8 @@ details.data summary:hover{color:var(--ox)}
     </details>
   </div>
 
-  <details class="fine" style="margin-top:2rem">
-    <summary>Schedule A &mdash; did it read my file correctly?</summary>
+  <details class="fine" style="margin-top:2.5rem">
+    <summary>Did it read my file correctly?</summary>
     <div class="body">
       <p>Nothing above means anything if the file was misread. This is exactly what was
       found in it.</p>
@@ -394,7 +306,7 @@ details.data summary:hover{color:var(--ox)}
   </details>
 
   <details class="fine">
-    <summary>Schedule B &mdash; when does this show dollars, and when does it refuse?</summary>
+    <summary>When does this show dollars, and when does it refuse?</summary>
     <div class="body">
       <p>Everything above is arithmetic on your own meter readings, which is safe to compute
       for anybody. Turning it into money means modelling a specific tariff, and the project
@@ -408,7 +320,7 @@ details.data summary:hover{color:var(--ox)}
       <p><strong>Passing that gate is necessary and not sufficient.</strong> The rate specs
       describe a particular household &mdash; one baseline territory, one heat source, one
       generation supplier, one PCIA vintage. A PG&amp;E customer outside those is refused
-      too, by name, in section 03, because the same arithmetic run against the wrong
+      too, by name, in the pricing section below, because the same arithmetic run against the wrong
       allowance is not approximately right &mdash; it is wrong by real money.
       <a href="./methodology.html">The full method is written up here.</a></p>
     </div>
@@ -419,7 +331,6 @@ details.data summary:hover{color:var(--ox)}
 
  <!-- ======================== PRICING ======================== -->
  <section class="row" id="priceSection">
-  <div class="rail"><b>R2</b>Pricing<br>Your plans</div>
   <div>
    <h2 class="sec">What it would cost you, plan by plan</h2>
 
@@ -503,15 +414,14 @@ details.data summary:hover{color:var(--ox)}
 
    <!-- (c) the answer -->
    <div id="priceOut" hidden>
-     <!-- The stamp that used to sit in the hero. It belongs here now: this is the only
-          place on the site that prints money, so this is the only place the disclaimer
-          answers a question the reader is actually asking. -->
+     <!-- The disclaimer sits with the money: this is the only place the site prints any. -->
      <div class="answer-head">
        <div class="verdict" id="verdict"></div>
-       <div class="stamp due">Not a bill<span>No amount due</span></div>
+       <p class="notabill">A modelled estimate from your own usage &mdash; not a bill, and no
+       amount is due.</p>
      </div>
      <div class="plate">
-       <div class="plate-head"><p>Annual cost by plan, cheapest first</p></div>
+       <div class="plate-head"><p>Cost by plan, cheapest first</p></div>
        <table id="planTable">
          <caption class="vh">Every eligible plan, re-simulated on this household's own
          interval data, ranked by modelled annual cost.</caption>
@@ -538,28 +448,27 @@ details.data summary:hover{color:var(--ox)}
 
 <!-- ============================ HOW ============================ -->
 <section class="row">
-  <div class="rail"><b>02</b>Procedure</div>
   <div>
   <h2 class="sec">What happens, start to finish</h2>
   <div class="steps">
     <div class="step">
-      <span class="n">Step 01</span>
+      <span class="n">Step 1</span>
       <h3>Ask your utility</h3>
       <p>Free, about two minutes, and it is your data by law. Utilities call it
       <strong>Green Button</strong>.</p>
     </div>
     <div class="step">
-      <span class="n">Step 02</span>
+      <span class="n">Step 2</span>
       <h3>Drop it in</h3>
       <p>Nothing is uploaded and nothing is stored. Close the tab and it is gone.</p>
     </div>
     <div class="step">
-      <span class="n">Step 03</span>
+      <span class="n">Step 3</span>
       <h3>Read your patterns</h3>
       <p>When you use power, how much, and whether it lands in the expensive hours.</p>
     </div>
     <div class="step">
-      <span class="n">Step 04</span>
+      <span class="n">Step 4</span>
       <h3>See what each plan costs</h3>
       <p>Every eligible plan re-billed on <em>your</em> intervals, cheapest first, with the
       usage shift that would overturn the answer &mdash; or a plain statement of why this
@@ -571,7 +480,6 @@ details.data summary:hover{color:var(--ox)}
 
 <!-- ============================ HELP ============================ -->
 <section class="row" id="help">
-  <div class="rail"><b>03</b>Obtaining<br>the file</div>
   <div>
     <h2 class="sec">How to download it</h2>
     <p class="prose" style="margin:0 0 1.4rem">You want the <b>interval usage</b> export
@@ -619,7 +527,6 @@ details.data summary:hover{color:var(--ox)}
 
 <!-- ============================ TRUST ============================ -->
 <section class="row">
-  <div class="rail"><b>04</b>Accuracy<br>record</div>
   <div>
     <h2 class="sec">Checked against real bills, in public</h2>
     <p class="prose" style="margin:0">The code running in your browser is the same Python the
@@ -869,10 +776,9 @@ details.data summary:hover{color:var(--ox)}
     // the same number the verdict sentence states, never an annualised extrapolation.
     var top = rec.plans[0];
     var saving = top && top.delta_vs_current < 0 ? -top.delta_vs_current : 0;
-    $("verdict").innerHTML = '<span class="lbl">The answer</span>' +
+    $("verdict").innerHTML =
       (saving > 0
-        ? '<span class="save">' + money(saving) + '</span><span class="save-k">less over the ' +
-          rec.days_modeled + " days modelled, by switching to " + escapeHtml(top.name) + "</span>"
+        ? '<span class="save">' + money(saving) + "</span>"
         : "") +
       escapeHtml(rec.verdict);
     $("redoOut").hidden = !!isDemo;
@@ -1128,9 +1034,9 @@ details.data summary:hover{color:var(--ox)}
     }));
     svg.appendChild(svgEl("text", {
       x: L + band * 18.5, y: T - 40, "text-anchor": "middle",
-      "font-family": "var(--mono)", "font-size": "10", fill: "var(--ox)",
-      "font-weight": "700", "letter-spacing": ".1em"
-    }, "4–9 P.M. · PRICIEST"));
+      "font-family": "var(--sans)", "font-size": "11.5", fill: "var(--ox)",
+      "font-weight": "600"
+    }, "4–9 p.m. · priciest hours"));
 
     [0, max / 2, max].forEach(function (t) {
       svg.appendChild(svgEl("line", {
@@ -1138,7 +1044,7 @@ details.data summary:hover{color:var(--ox)}
       }));
       svg.appendChild(svgEl("text", {
         x: L - 10, y: y(t) + 3.5, "text-anchor": "end",
-        "font-family": "var(--mono)", "font-size": "9.5", fill: "var(--ink-3)"
+        "font-family": "var(--sans)", "font-size": "11", fill: "var(--ink-3)"
       }, Math.round(t * 100) + "%"));
     });
 
@@ -1153,7 +1059,7 @@ details.data summary:hover{color:var(--ox)}
       if (h % 3 === 0) {
         svg.appendChild(svgEl("text", {
           x: x + bw / 2, y: base + 17, "text-anchor": "middle",
-          "font-family": "var(--mono)", "font-size": "9", fill: "var(--ink-3)"
+          "font-family": "var(--sans)", "font-size": "10.5", fill: "var(--ink-3)"
         }, hourLabel(h).replace(/ /g, "")));
       }
     });
@@ -1161,17 +1067,16 @@ details.data summary:hover{color:var(--ox)}
     var LABEL_LIFT = 16;
     var labelX = Math.min(Math.max(L + band * peakHour + band / 2, L + 38), W - R - 38);
     svg.appendChild(svgEl("text", {
-      x: labelX, y: y(max) - LABEL_LIFT, "text-anchor": "middle", "font-family": "var(--mono)",
-      "font-size": "10.5", "font-weight": "700", fill: "var(--ink)"
-    }, "BUSIEST · " + hourLabel(peakHour).toUpperCase()));
+      x: labelX, y: y(max) - LABEL_LIFT, "text-anchor": "middle", "font-family": "var(--sans)",
+      "font-size": "12", "font-weight": "700", fill: "var(--ink)"
+    }, "Busiest: " + hourLabel(peakHour)));
 
     svg.appendChild(svgEl("line", {
       x1: L, y1: base, x2: W - R, y2: base, stroke: "var(--ink)", "stroke-width": 1.5
     }));
     svg.appendChild(svgEl("text", {
-      x: L, y: H - 8, "font-family": "var(--mono)", "font-size": "9.5", fill: "var(--ink-3)",
-      "letter-spacing": ".06em"
-    }, "HOUR OF DAY · LOCAL TIME"));
+      x: L, y: H - 8, "font-family": "var(--sans)", "font-size": "11", fill: "var(--ink-3)",
+    }, "Hour of day (local time)"));
   }
 
   // Axis ticks only. The engine's own "2025-07" stays in the tooltip and in #monthTable,
@@ -1205,7 +1110,7 @@ details.data summary:hover{color:var(--ox)}
       }));
       svg.appendChild(svgEl("text", {
         x: L - 10, y: y(t) + 3.5, "text-anchor": "end",
-        "font-family": "var(--mono)", "font-size": "9.5", fill: "var(--ink-3)"
+        "font-family": "var(--sans)", "font-size": "11", fill: "var(--ink-3)"
       }, Math.round(t)));
     });
 
@@ -1219,7 +1124,7 @@ details.data summary:hover{color:var(--ox)}
       if (ms.length <= 14 || i % 2 === 0) {
         svg.appendChild(svgEl("text", {
           x: x + bw / 2, y: base + 18, "text-anchor": "middle",
-          "font-family": "var(--mono)", "font-size": "9", fill: "var(--ink-3)"
+          "font-family": "var(--sans)", "font-size": "10.5", fill: "var(--ink-3)"
         }, monthLabel(m.month)));
       }
     });
@@ -1227,9 +1132,8 @@ details.data summary:hover{color:var(--ox)}
       x1: L, y1: base, x2: W - R, y2: base, stroke: "var(--ink)", "stroke-width": 1.5
     }));
     svg.appendChild(svgEl("text", {
-      x: L, y: H - 4, "font-family": "var(--mono)", "font-size": "9.5", fill: "var(--ink-3)",
-      "letter-spacing": ".06em"
-    }, "KWH PER CALENDAR MONTH"));
+      x: L, y: H - 4, "font-family": "var(--sans)", "font-size": "11", fill: "var(--ink-3)",
+    }, "kWh per month"));
   }
 
   // --- the same data as text: role="img" hides per-bar <title> from screen readers -------

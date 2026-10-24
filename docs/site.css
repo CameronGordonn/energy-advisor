@@ -1,202 +1,153 @@
 /* Home Energy Advisor — shared tokens and page chrome.
    ------------------------------------------------------------------------------------
-   THE IDEA: this product exists to reproduce a utility bill to within $2, so the site is
-   built as the document it is about — a tariff sheet. Two-colour offset print on manila:
-   ink plus oxblood, with sulphur reserved for the live/expensive hours. Zero radius
-   anywhere; rules and ledger columns do the structural work that cards would otherwise do.
+   THE IDEA: get out of the way of the numbers. White page, system type, one column,
+   sentence-case headings. The content — what you use, what each plan costs, why — is the
+   design; nothing here should be noticed before it.
 
-   COLOUR RULE, and it is a hard one: --sul is a FILL, never a text colour. On paper it
-   sits at 1.89:1. Accent TEXT is always --ox (5.60 light / 4.88 dark). Every ink token
-   clears WCAG AA 4.5 on both surfaces in both themes; --mark clears 3:1 because it paints
-   chart bars, which are data. See .claude/skills/design-system/SKILL.md for the matrix.
+   COLOUR RULE: --accent (= --ox) means one thing, the expensive hours. It paints the peak
+   bars and the peak-window caption, and little else. Links are --link. Everything else is
+   greyscale. See .claude/skills/design-system/SKILL.md for the contrast matrix.
+
+   Token names (--paper, --ox, --band, --mark, …) are kept from the previous system because
+   the chart code, the render test and scripts/contrast_matrix.py address them by name.
    ------------------------------------------------------------------------------------ */
 
 :root{
-  --paper:#EAE3D3; --paper-2:#DFD7C2; --band:#E7CF4E;
-  --ink:#191510; --ink-2:#4F4739; --ink-3:#665D4E;
-  --rule:#C9BFA6; --rule-2:#A89C7E;
-  --ox:#9E3220; --accent:#9E3220;
-  --sul:#C8A310; --mark:#867859;
-  --display:"Archivo",'Arial Narrow',Helvetica,sans-serif;
-  --sans:"Archivo",-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
-  --mono:"Space Mono",ui-monospace,Menlo,Consolas,monospace;
+  --paper:#FFFFFF; --paper-2:#F5F5F3; --band:#FCEBDD;
+  --ink:#1B1B1B; --ink-2:#4A4A4A; --ink-3:#686868;
+  --rule:#E4E4E0; --rule-2:#CFCFCA;
+  --ox:#B93F0E; --accent:#B93F0E;
+  --mark:#7C818A;
+  --link:#1F5BB5;
+  --sans:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --display:var(--sans);
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
 }
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --paper:#15120D; --paper-2:#1E1A14; --band:#332C19;
-  --ink:#EFE7D5; --ink-2:#BDB29C; --ink-3:#8C8272;
-  --rule:#332E24; --rule-2:#4C4638;
-  --ox:#CA654F; --accent:#CA654F;
-  --sul:#E3C93F; --mark:#6E6553;
+  --paper:#141517; --paper-2:#1D1F22; --band:#3A2416;
+  --ink:#ECECEA; --ink-2:#BDBDBA; --ink-3:#97978F;
+  --rule:#2C2E32; --rule-2:#41444A;
+  --ox:#F0884E; --accent:#F0884E;
+  --mark:#70757E;
+  --link:#86AEF0;
 }}
 :root[data-theme="dark"]{
-  --paper:#15120D; --paper-2:#1E1A14; --band:#332C19;
-  --ink:#EFE7D5; --ink-2:#BDB29C; --ink-3:#8C8272;
-  --rule:#332E24; --rule-2:#4C4638;
-  --ox:#CA654F; --accent:#CA654F;
-  --sul:#E3C93F; --mark:#6E6553;
+  --paper:#141517; --paper-2:#1D1F22; --band:#3A2416;
+  --ink:#ECECEA; --ink-2:#BDBDBA; --ink-3:#97978F;
+  --rule:#2C2E32; --rule-2:#41444A;
+  --ox:#F0884E; --accent:#F0884E;
+  --mark:#70757E;
+  --link:#86AEF0;
 }
 
 *{box-sizing:border-box}
+html{scroll-padding-top:1rem}
 body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
-  font-size:16px;line-height:1.55;-webkit-font-smoothing:antialiased}
+  font-size:16.5px;line-height:1.6;-webkit-font-smoothing:antialiased;
+  font-variant-numeric:tabular-nums;overflow-wrap:break-word}
 img{max-width:100%}
 [hidden]{display:none!important}
-::selection{background:var(--band);color:#191510}
-:focus-visible{outline:2px solid var(--ox);outline-offset:2px}
-a{color:var(--ox);text-underline-offset:2px}
-strong{font-weight:700}
+:focus-visible{outline:2px solid var(--link);outline-offset:2px}
+a{color:var(--link);text-underline-offset:2px}
+strong{font-weight:650}
 
-/* Display voice: Archivo pushed to its widest axis. Uppercase, very tight, ranged left. */
-.display{font-family:var(--display);font-stretch:125%;font-weight:700;text-transform:uppercase;
-  line-height:.9;letter-spacing:-.005em;margin:0}
+h1,h2,h3,h4{line-height:1.25;letter-spacing:-.01em}
+.display{font-weight:700;font-size:clamp(1.9rem,4.4vw,2.6rem);line-height:1.15;
+  letter-spacing:-.02em;margin:0}
+h2.sec{font-size:1.5rem;font-weight:700;margin:0 0 1rem}
 
-/* Section heading inside a .row — the display voice one step below the page's h1.
-   Shared by index.html and methodology.html; do not re-declare it inline. */
-h2.sec{font-family:var(--display);font-stretch:115%;font-weight:700;text-transform:uppercase;
-  font-size:clamp(1.3rem,2.6vw,1.9rem);line-height:1;margin:0 0 .9rem}
-
-/* Ledger voice: everything numeric, every label, every stamp. */
 .mono{font-family:var(--mono)}
-.tag{font-family:var(--mono);font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;
-  color:var(--ink-3)}
+.tag{font-size:.82rem;color:var(--ink-3)}
 
-/* ---- the sheet: a left rail of margin annotations, content to its right --------------
-   This is what stops the page being a stack of centred blocks. The rail carries section
-   numbers the way a tariff sheet carries them, and the content hangs off it. */
-.sheet{max-width:76rem;margin:0 auto;padding:0 1.75rem}
-.row{display:grid;grid-template-columns:8.5rem 1fr;gap:2rem;
-  border-top:1px solid var(--rule);padding:2.6rem 0}
-.row.heavy{border-top:3px solid var(--ink)}
-/* A grid item's min-width is auto, i.e. min-content, so one unbreakable child — a <pre>,
-   a wide table — drags the whole column past the viewport and the PAGE scrolls sideways
-   instead of the block. Caught at 200% and 400% zoom by scripts/screenshot_site.py's
-   sibling audit; jsdom cannot see it. Keep this: it is what makes overflow-x:auto on
-   .scroll and <pre> actually contain anything (WCAG 1.4.10 reflow). */
+/* ---- layout: one centred column ---- */
+.sheet{max-width:52rem;margin:0 auto;padding:0 1.25rem}
+.row{padding:2.75rem 0;border-top:1px solid var(--rule)}
+.row.heavy{border-top:0}
+/* A grid or flex item's min-width is auto (= min-content), so one unbreakable child — a
+   <pre>, a wide table — can drag its column past the viewport and the PAGE scrolls
+   sideways instead of the block. Keep this (WCAG 1.4.10 reflow). */
 .row>*{min-width:0}
-.rail{font-family:var(--mono);font-size:.7rem;line-height:1.5;letter-spacing:.04em;
-  text-transform:uppercase;color:var(--ink-3);position:sticky;top:3.6rem;align-self:start}
-.rail b{display:block;color:var(--ox);font-weight:700;font-size:.78rem}
 
-/* ---- masthead: a document header, not a nav bar ---- */
-.masthead{border-bottom:3px solid var(--ink);background:var(--paper);
-  position:sticky;top:0;z-index:30}
-/* The masthead is sticky, so every in-page jump — an anchor, or the tool's own
-   scrollIntoView on results and prices — has to stop short of it, or the heading it
-   jumped to lands underneath. The masthead wraps to two lines on a phone. */
-html{scroll-padding-top:4.5rem}
-@media (max-width:640px){html{scroll-padding-top:6.5rem}}
-.masthead .in{max-width:76rem;margin:0 auto;padding:.55rem 1.75rem;display:flex;
-  align-items:baseline;justify-content:space-between;gap:1.5rem;flex-wrap:wrap;
-  font-family:var(--mono);font-size:.68rem;letter-spacing:.05em;text-transform:uppercase}
-.masthead .brand{color:var(--ink);font-weight:700;text-decoration:none}
-.masthead nav{display:flex;gap:1.1rem}
-.masthead a{color:var(--ink-3);text-decoration:none}
-.masthead a:hover{color:var(--ox);text-decoration:underline}
-.masthead a[aria-current="page"]{color:var(--ink);text-decoration:underline;
-  text-decoration-thickness:2px;text-underline-offset:4px}
+/* ---- masthead ---- */
+.masthead{border-bottom:1px solid var(--rule);background:var(--paper)}
+.masthead .in{max-width:52rem;margin:0 auto;padding:.9rem 1.25rem;display:flex;
+  align-items:baseline;justify-content:space-between;gap:.5rem 1.5rem;flex-wrap:wrap;
+  font-size:.92rem}
+.masthead .brand{color:var(--ink);font-weight:650;text-decoration:none}
+.masthead nav{display:flex;gap:1.1rem;flex-wrap:wrap}
+.masthead a{color:var(--ink-2);text-decoration:none}
+.masthead a:hover{color:var(--ink);text-decoration:underline}
+.masthead a[aria-current="page"]{color:var(--ink);font-weight:600}
 
-/* ---- the stamp: the signature device. A document asserts its own status in the margin,
-   so the page does too. There are TWO of them and they say different things, because the
-   site now answers in dollars (session 28) and the two questions a reader has are not the
-   same question. The hero stamps the CLAIM — reconciled, 11 of 11, within ±$2 — because
-   that is what earns the right to the figures further down. The pricing section stamps the
-   DISCLAIMER — not a bill, no amount due — because that is where the figures actually are,
-   and a disclaimer 2,000px away from what it qualifies is decoration.
-   `.stamp.due` is the disclaimer variant: it leans the other way so the two read as a pair
-   of impressions rather than a repeated motif. ---- */
-.stamp{display:inline-block;border:2px solid var(--ox);color:var(--ox);
-  font-family:var(--mono);font-weight:700;text-transform:uppercase;letter-spacing:.1em;
-  font-size:.74rem;line-height:1.25;padding:.5rem .8rem;transform:rotate(-3deg);
-  text-align:center}
-.stamp span{display:block;font-size:.6rem;letter-spacing:.08em;font-weight:400;
-  border-top:1px solid var(--ox);margin-top:.35rem;padding-top:.3rem}
-.stamp.due{transform:rotate(2.5deg)}
-
-/* ---- ledger rows: dot leaders, right-aligned figures ---- */
-.ledger{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:.82rem}
-.ledger th,.ledger td{padding:.42rem 0;border-bottom:1px solid var(--rule);text-align:left;
+/* ---- key-value tables ---- */
+.ledger{width:100%;border-collapse:collapse;font-size:.92rem}
+.ledger th,.ledger td{padding:.45rem 0;border-bottom:1px solid var(--rule);text-align:left;
   font-weight:400;vertical-align:baseline}
-.ledger th{color:var(--ink-2);width:auto;text-transform:none;letter-spacing:0;font-size:.82rem}
+.ledger th{color:var(--ink-2)}
 .ledger td{text-align:right;color:var(--ink);white-space:nowrap;padding-left:1.5rem}
 .ledger tr:last-child th,.ledger tr:last-child td{border-bottom:0}
 
-/* ---- plates: bordered blocks for charts. A border, not a card: no radius, no shadow. ---- */
-.plate{border:1px solid var(--rule-2);background:var(--paper-2);padding:1.4rem}
-.plate-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:.4rem 1rem;
-  border-bottom:1px solid var(--rule-2);padding-bottom:.6rem;margin-bottom:1.2rem;
-  font-family:var(--mono);font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;
-  color:var(--ink-3)}
+/* ---- plates: a bordered box around a chart or table ---- */
+.plate{border:1px solid var(--rule);border-radius:10px;background:var(--paper);padding:1.25rem}
+.plate-head{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;
+  gap:.25rem 1rem;margin-bottom:1rem;font-size:.92rem;font-weight:600;color:var(--ink)}
+.plate-head>:last-child:not(:first-child){font-weight:400;color:var(--ink-3)}
+.plate-head p{margin:0}
 figure{margin:0}
 svg{display:block;width:100%;height:auto;overflow:visible}
-.cap{font-size:.84rem;line-height:1.5;color:var(--ink-2);margin:1rem 0 0;max-width:66ch}
+.cap{font-size:.9rem;line-height:1.55;color:var(--ink-2);margin:1rem 0 0;max-width:66ch}
 
 /* ---- disclosure ---- */
 details.fine{border-top:1px solid var(--rule)}
-details.fine>summary{padding:.9rem 0;cursor:pointer;font-family:var(--mono);font-size:.78rem;
-  text-transform:uppercase;letter-spacing:.05em;color:var(--ink);list-style:none;
-  display:flex;justify-content:space-between;gap:1rem;align-items:center}
+details.fine:last-of-type{border-bottom:1px solid var(--rule)}
+details.fine>summary{padding:.85rem 0;cursor:pointer;font-weight:600;color:var(--ink);
+  list-style:none;display:flex;justify-content:space-between;gap:1rem;align-items:center}
 details.fine>summary::-webkit-details-marker{display:none}
-details.fine>summary::after{content:"[+]";color:var(--ox)}
-details.fine[open]>summary::after{content:"[\2212]"}
-details.fine>summary:hover{color:var(--ox)}
-details.fine .body{padding:0 0 1.4rem;font-size:.92rem;color:var(--ink-2);max-width:68ch}
+details.fine>summary::after{content:"+";color:var(--ink-3);font-weight:400;font-size:1.2rem;
+  line-height:1}
+details.fine[open]>summary::after{content:"\2212"}
+details.fine>summary:hover{color:var(--link)}
+details.fine .body{padding:0 0 1.25rem;font-size:.95rem;color:var(--ink-2);max-width:68ch}
 details.fine .body p{margin:0 0 .8rem}
 details.fine .body p:last-child{margin-bottom:0}
-/* The quoted rule. It sets the same measure as the prose it qualifies — it ran to the
-   full content column before, which made a refusal's headline wider than its reasons. */
-.gate{border-left:3px solid var(--ox);background:var(--paper-2);padding:.8rem 1rem;
-  font-family:var(--mono);font-size:.82rem;line-height:1.5;color:var(--ink);margin:.6rem 0 1rem;
-  max-width:78ch}
+/* A quoted rule. */
+.gate{background:var(--paper-2);border-radius:8px;padding:.85rem 1rem;font-size:.95rem;
+  line-height:1.5;color:var(--ink);margin:.6rem 0 1rem;max-width:68ch}
 
-button{font-family:var(--mono);font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;
-  padding:.7rem 1.1rem;border:1px solid var(--ink);background:transparent;color:var(--ink);
+button{font-family:inherit;font-size:.95rem;font-weight:500;padding:.6rem 1.05rem;
+  border:1px solid var(--rule-2);border-radius:8px;background:var(--paper);color:var(--ink);
   cursor:pointer}
-button:hover{background:var(--ink);color:var(--paper)}
-button.primary{background:var(--ox);border-color:var(--ox);color:#F7F2E6;font-weight:700}
-button.primary:hover{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+button:hover{border-color:var(--ink-3)}
+button.primary{background:var(--ink);border-color:var(--ink);color:var(--paper);font-weight:600}
+button.primary:hover{opacity:.88}
 
-code{font-family:var(--mono);font-size:.86em;background:var(--paper-2);padding:.05em .3em}
-ol,ul{margin:.4rem 0 0;padding-left:1.1rem}
+code{font-family:var(--mono);font-size:.88em;background:var(--paper-2);padding:.1em .35em;
+  border-radius:4px}
+ol,ul{margin:.4rem 0 0;padding-left:1.25rem}
 ol li,ul li{margin-bottom:.4rem}
 
-footer{border-top:3px solid var(--ink);margin-top:3rem;padding:1.6rem 0 3rem;
-  font-size:.82rem;color:var(--ink-2)}
-footer p{margin:0 0 .7rem;max-width:74ch}
-footer .legal{display:flex;gap:1.1rem;flex-wrap:wrap;font-family:var(--mono);font-size:.68rem;
-  letter-spacing:.05em;text-transform:uppercase}
+footer{border-top:1px solid var(--rule);margin-top:2rem;padding:1.5rem 0 3rem;
+  font-size:.88rem;color:var(--ink-2)}
+footer p{margin:0 0 .7rem;max-width:68ch}
+footer .legal{display:flex;gap:1.1rem;flex-wrap:wrap}
 
-/* ---- prose documents (privacy, terms) ------------------------------------------------
-   These wear the same ruled rail as the tool and the methodology page: every h2 is its own
-   .row, so its number sits in the margin the way a numbered clause sits on paper, and the
-   left gutter carries something. Until session 30 both pages were a single 42rem column
-   adrift in a 76rem sheet with an empty gutter beside it — the one place on the site that
-   stopped looking like the document it is about. The measure is unchanged; only the
-   scaffolding around it is. */
+/* ---- prose documents (privacy, terms) ---- */
 .doc{max-width:42rem}
 .doc>:first-child{margin-top:0}
-.doc h1{font-family:var(--display);font-stretch:125%;font-weight:700;text-transform:uppercase;
-  font-size:clamp(2rem,5vw,3.2rem);line-height:.92;margin:0 0 .6rem}
-.doc .updated{font-family:var(--mono);font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;
-  color:var(--ink-3);margin:0 0 2rem;border-bottom:1px solid var(--rule);padding-bottom:1rem}
-.doc h2{font-family:var(--display);font-stretch:110%;font-weight:700;text-transform:uppercase;
-  font-size:1.25rem;letter-spacing:.01em;margin:0 0 .8rem}
-.doc h3{font-family:var(--mono);font-size:.82rem;text-transform:uppercase;letter-spacing:.05em;
-  color:var(--ox);margin:1.6rem 0 .4rem;font-weight:700}
+.doc h1{font-size:clamp(1.9rem,4.4vw,2.4rem);font-weight:700;letter-spacing:-.02em;
+  margin:0 0 .4rem}
+.doc .updated{font-size:.9rem;color:var(--ink-3);margin:0 0 1.75rem}
+.doc h2{font-size:1.3rem;font-weight:700;margin:0 0 .75rem}
+.doc h3{font-size:1.02rem;font-weight:650;color:var(--ink);margin:1.5rem 0 .4rem}
 .doc p{margin:0 0 1rem;color:var(--ink-2)}
 .doc li{color:var(--ink-2)}
 .doc strong{color:var(--ink)}
-.doc .callout{border:1px solid var(--ink);padding:1.1rem 1.2rem;margin:1.4rem 0;
-  background:var(--paper-2)}
+.doc .callout{background:var(--paper-2);border-radius:10px;padding:1.1rem 1.2rem;margin:1.4rem 0}
 .doc .callout p{margin:0;color:var(--ink)}
-/* The terms callout runs to two paragraphs and they were butted together, because the
-   rule above zeroes the margin to keep a one-paragraph callout tight. */
 .doc .callout p+p{margin-top:.8rem}
 
-@media (max-width:820px){
-  .row{grid-template-columns:1fr;gap:1rem;padding:2rem 0}
-  .rail{position:static;display:flex;gap:.9rem;align-items:baseline}
-  .rail b{display:inline}
-  .sheet{padding:0 1.1rem}
+@media (max-width:640px){
+  .row{padding:2rem 0}
 }
 
 /* Visually hidden, still announced. Shared: methodology.html's table captions and

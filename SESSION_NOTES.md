@@ -2,10 +2,38 @@
 
 Running log of decisions made and decisions pending. Newest first.
 
+## 2026-10-23 — Session 32 (site visual system replaced: plain, content-first)
+
+**Cameron: "I hate the look of the site … it way overdoes it, it isn't simple and … takes
+away from the meaningful and insightful content by trying to look super bespoke."** That
+overrides the session-12 tariff-sheet design and the session-30 "two stamps, do not
+re-merge" note. UI only — no `src/`, `engine.js` or `case-study.json` change.
+
+- **Removed:** manila/oxblood/sulphur palette, Archivo 125%-width uppercase display type,
+  Space Mono labels, left margin rails (41 across four pages), both rotated stamps, the
+  zero-radius rule, "Fig. 1 / Schedule A / Form A / Step 01" numbering, self-hosted fonts
+  (`docs/fonts/`, `fonts.css`), the `--sul` token.
+- **Now:** white page (dark theme kept, all three theme states written), system-ui, one 52rem
+  column, sentence-case headings, `--link` blue links, `--accent` warm orange kept **only**
+  for the expensive hours. Token names kept so the chart code / render test / contrast
+  script still address them.
+- **Copy touched (flag if unwanted):** hero h1 is now "Which electricity plan is cheapest
+  for the way you actually use power?" (was "When you actually use electricity", set for the
+  display face). Hero stamp → `.proof` sentence; pricing stamp → `.notabill` sentence. The
+  verdict's "The answer" label and the `.save-k` line under the saving (which repeated the
+  verdict sentence) were dropped. Chart captions de-uppercased. **Privacy page:** the
+  self-hosted-typefaces paragraph was no longer true and now says no web fonts are loaded;
+  "Last updated" bumped to 23 October 2026.
+- **Verified:** jsdom render test passes; wasm parity passes; `tests/report` 48 passed;
+  contrast matrix clean in both themes (`--link` pairs added); `audit_layout.py` clean at
+  1280/640/320 after two fixes it caught (a long URL on privacy/terms; `#planTable` header
+  nowrap at 320px). Screenshots looked at in both themes, priced, refused and phone states.
+- **Both design skills rewritten** so the next session doesn't "restore" the old system.
+- **Committed on `site-plain-redesign`** (PR #2), stacked on `sdge-fee-lines` (PR #1)
+  because it builds on that branch's site commit. Merge #1 first.
 ## 2026-10-23 — Session 32 (franchise fee differential on every SDG&E schedule)
 
-Branch `sdge-fee-lines`. (The same session's site redesign is on `site-plain-redesign`,
-recorded in that branch's notes.) Cameron chose the comprehensive fix over a blanket
+Branch `sdge-fee-lines`. Cameron chose the comprehensive fix over a blanket
 refusal for the gap session 31 left: TOU-DR2 / EV-TOU-5 / TOU-DR-P billed in the City of
 San Diego with no differential and no refusal. Full write-up:
 `notes/sdcp_specimen_bill_2026-10.md` § "Closed in session 32".
