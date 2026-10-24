@@ -16,11 +16,11 @@ figure has to be earned against one.
 Session 29 added a second entry point and a second plumbing gate below it. M1a's DoD is a
 statement reconciled **from its own printed per-TOU-period kWh, with no interval export**,
 because the ask that closes it is one redacted bill rather than a year of 15-minute data
-(``notes/m1_without_dad_2026-09.md``). The same rule applies to that path: its tests need
-no data, they fail loudly when a spec starts demanding something new, and they assert no
-SDG&E dollar. What they *do* assert is parity — given identical bucketed kWh the two
-paths produce identical dollars — which is measured on the PG&E golden bills, the only
-place this repo holds both an interval export and a real statement.
+(``dev/notes/m1_without_household_source_2026-09.md``). The same rule applies to that
+path: its tests need no data, they fail loudly when a spec starts demanding something new,
+and they assert no SDG&E dollar. What they *do* assert is parity — given identical bucketed
+kWh the two paths produce identical dollars — which is measured on the PG&E golden bills,
+the only place this repo holds both an interval export and a real statement.
 """
 
 from __future__ import annotations
@@ -179,7 +179,7 @@ def test_the_real_sdge_export_filenames_are_matched(tmp_path, filename):
     """Every SDG&E export name actually observed in the wild.
 
     The first three are the Home Energy Analytics files surveyed in
-    notes/sdge_public_exports_2026-09.md; the fourth is the documented range shape.
+    dev/notes/sdge_public_exports_2026-09.md; the fourth is the documented range shape.
     """
     (tmp_path / filename).write_text("placeholder")
     assert [p.name for p in interval_files_for(Utility.SDGE, tmp_path)] == [filename]

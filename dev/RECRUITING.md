@@ -5,7 +5,7 @@ deliberately: `docs/` is served by GitHub Pages and may be being edited by anoth
 It is still in a public repository, so nothing here may contain a real person's data, and see
 the contact decision below before pasting a personal address into it.
 
-Read alongside HANDOFF.md ("READ BEFORE STARTING M5") and ROADMAP.md M5.
+Read alongside dev/HANDOFF.md ("READ BEFORE STARTING M5") and ROADMAP.md M5.
 
 ---
 
@@ -370,7 +370,7 @@ must be stated explicitly:
 
 ## 6. What a bill must tell us
 
-From HANDOFF.md next action 0. Each of these changes which spec loads or how much money moves;
+From dev/HANDOFF.md next action 0. Each of these changes which spec loads or how much money moves;
 several are things a generic calculator silently gets wrong. If a bill can't answer one, ask —
 don't infer it.
 
@@ -427,4 +427,4 @@ charging** (price point, objections, repeat-question patterns) — so the conver
 deliverable, not overhead. For each contact record: which ask they came in on, what they asked
 before sending anything, what confused them in the output, what they assumed the tool was for,
 whether they'd pay and what for, and every objection in their own words. Append to
-SESSION_NOTES.md as they happen; a summary written from memory at the end is worth much less.
+dev/SESSION_NOTES.md as they happen; a summary written from memory at the end is worth much less.

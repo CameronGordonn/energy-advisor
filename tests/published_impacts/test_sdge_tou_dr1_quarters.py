@@ -216,7 +216,7 @@ def test_no_single_territory_fits_every_quarter():
     that a future spec edit which made one territory fit every quarter surfaces as a failure
     to be understood rather than as a silent improvement.
 
-    See notes/published_impacts_corpus.md for the cross-quarter measurement.
+    See dev/notes/published_impacts_corpus.md for the cross-quarter measurement.
     """
     fits = [
         territory

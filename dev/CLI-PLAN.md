@@ -1,7 +1,7 @@
 # CLI-PLAN — learning the Claude Code CLI against this repo
 
 Cameron is learning the Claude Code CLI by wiring it into energy-advisor.
-**This file is the resume point for a cold session.** Read with HANDOFF.md.
+**This file is the resume point for a cold session.** Read with dev/HANDOFF.md.
 
 ## Rules for the assistant
 

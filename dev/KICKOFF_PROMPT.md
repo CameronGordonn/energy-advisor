@@ -14,4 +14,4 @@ Constraints, non-negotiable: never invent a rate value — leave UNVERIFIED mark
 
 Differentiation check, ongoing: CLAUDE.md lists the invariants that distinguish this product from SDG&E's free tool, nem3calculator.com, and installer software. If any implementation choice would make us more generic relative to those invariants, or you see an opportunity to make the product more distinctive (an output, a check, a transparency artifact competitors lack), raise it in the moment rather than deferring.
 
-Work in small increments and keep a running SESSION_NOTES.md of decisions made and decisions pending.
+Work in small increments and keep a running dev/SESSION_NOTES.md of decisions made and decisions pending.

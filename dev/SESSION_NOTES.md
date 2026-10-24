@@ -36,7 +36,7 @@ re-merge" note. UI only — no `src/`, `engine.js` or `case-study.json` change.
 Branch `sdge-fee-lines`. Cameron chose the comprehensive fix over a blanket
 refusal for the gap session 31 left: TOU-DR2 / EV-TOU-5 / TOU-DR-P billed in the City of
 San Diego with no differential and no refusal. Full write-up:
-`notes/sdcp_specimen_bill_2026-10.md` § "Closed in session 32".
+`dev/notes/sdcp_specimen_bill_2026-10.md` § "Closed in session 32".
 
 - **⭐ Schedule EECC has its own 5.78% clause** (Sheet 30030-E), which settles the bundled
   case session 31 refused: a bundled city household pays the differential on delivery AND on
@@ -57,7 +57,7 @@ San Diego with no differential and no refusal. Full write-up:
 
 ## 2026-10-01 — Session 31 (status check; the SDCP specimen bill priced; the 09-20 notes merged)
 
-Full working: `notes/sdcp_specimen_bill_2026-10.md`.
+Full working: `dev/notes/sdcp_specimen_bill_2026-10.md`.
 
 **No milestone moved. `data/` is still PG&E-only (unchanged since 2026-07-19).** Measured at
 session start: 1,772 passed, ruff clean, `origin/main..main` = 0, tree clean. Sessions 29 and
@@ -128,7 +128,7 @@ statements, and the already-known NEM-2 corpus. **None is usable**: page 1 only,
 faulty-meter dispute, plus see-through redaction / full PII on the public ones. Forums 403.
 The r/solar page does show the **$36.18 PG&E climate credit on a 2026-09-10 statement** —
 outside corroboration of `climate_credit.yaml`'s 2026 Aug/Sep move. Table and reasoning in
-`notes/sdcp_specimen_bill_2026-10.md` § "Second pass". **Do not re-run.**
+`dev/notes/sdcp_specimen_bill_2026-10.md` § "Second pass". **Do not re-run.**
 
 ### ⭐ Built: the SDG&E fee lines (branch `sdge-fee-lines`, Cameron approved)
 
@@ -136,7 +136,7 @@ City of San Diego Franchise Fee Differential (5.78%), Schedule CCA's Franchise F
 Equivalent Surcharge (6.88% in the city / 1.1% elsewhere, on **imputed** EECC), and the CEC
 surcharge on the SDCP specs. On the specimen: **4.74 exact, 3.35 vs 3.42, 0.08 exact**;
 modelled $137.97, and with the three still-unmodelled lines observed, $140.71 vs $140.64.
-Design and every decision in `notes/sdcp_specimen_bill_2026-10.md` § "Built". The calls:
+Design and every decision in `dev/notes/sdcp_specimen_bill_2026-10.md` § "Built". The calls:
 
 - **`jurisdiction` is a new customer fact**, refused when missing — the `territory`
   pattern. Every SDG&E TOU-DR1 caller now states one; synthetic/demo callers say `other`.
@@ -295,7 +295,7 @@ Baseline before this session: 1,711 passed, both node checks green. Node checks 
 
 ## 2026-09-20 — Session 29 (the bill-only path: M1a can be reconciled by transcription)
 
-Full working: `notes/m1a_harness_2026-09.md`. Branch `m1a-bill-harness`, not merged.
+Full working: `dev/notes/m1a_harness_2026-09.md`. Branch `m1a-bill-harness`, not merged.
 
 **No milestone moved and no SDG&E dollar was earned.** `data/` is still PG&E-only. What
 moved is the harness, and the reason it needed to move is a repeat of session 24's lesson
@@ -499,10 +499,10 @@ identifying field.
 
 ### ⭐ M1 without dad: the public bill corpus is measured shut, and the real ask is smaller
 
-Full working: `notes/m1_without_dad_2026-09.md`.
+Full working: `dev/notes/m1_without_household_source_2026-09.md`.
 
 The obvious route — `ookla-ariel-ride/SDGE-Analysis`'s 26 itemised statements, which publish
-per-TOU-period kWh **and** printed $/kWh, exactly what `RECRUITING.md`'s "Ask 1" says is
+per-TOU-period kWh **and** printed $/kWh, exactly what `dev/RECRUITING.md`'s "Ask 1" says is
 enough — **does not reconcile, and cannot.** Four decompositions over the seven 2026
 statements leave residuals swinging −$67 to +$63; the generation side agrees to $0.32 on one
 statement and is $59.27 out on another. Sign-swinging residuals rule out a missing line item.
@@ -532,7 +532,7 @@ unchanged under all three.
 
 **1,694 tests green (+5 over session 27), ruff clean, 11/11 PG&E golden bills unchanged, node
 render checks pass.** No milestone moved; `data/` is still PG&E-only. Full working detail and
-the re-run commands: `notes/acc_reimport_2026-09.md`.
+the re-run commands: `dev/notes/acc_reimport_2026-09.md`.
 
 ### The brief, and what it actually returned
 
@@ -1173,7 +1173,7 @@ nothing — but it is a live constraint on the report milestone.
 
 Hunted the public internet for real SDG&E Green Button exports, because M1's DoD is blocked
 on SDG&E data and dad is a single point of failure. **Session 13's "the corpus is one file"
-is retired.** Full survey in `notes/sdge_public_exports_2026-09.md`; the parser fix and its
+is retired.** Full survey in `dev/notes/sdge_public_exports_2026-09.md`; the parser fix and its
 7 tests are the code half.
 
 ### ⭐ THE FIND — steevschmidt/NEC-220.87-Methods, Apache-2.0, four real exports
@@ -1285,7 +1285,7 @@ per session 17), so no lane's files could be folded into another's.
 
 ### ⭐ FOUR published test counts, all different, all wrong
 `docs/index.html` said **418**, `docs/methodology.html` said **1,498**, and `README.md` /
-`docs/METHODOLOGY.md` / `HANDOFF.md` said **860**. Every one of them was honest when written
+`docs/METHODOLOGY.md` / `dev/HANDOFF.md` said **860**. Every one of them was honest when written
 and stale within hours, because five lanes were adding parametrized tests concurrently. The
 real number is **1,519**; all five files now say so.
 
@@ -1435,7 +1435,7 @@ exists). **That file also holds session 18's uncommitted 8/1 work**, so committi
 pathspec would have committed their unfinished changes too. The hunk is applied in the
 working tree and left for whoever commits that file next. Committed state is consistent
 either way: with the filter still in place the pair test simply skips TOU-DR-P and passes.
-Same for `HANDOFF.md` and this file — both are shared and were left uncommitted.
+Same for `dev/HANDOFF.md` and this file — both are shared and were left uncommitted.
 
 This is the session-17 lesson biting again from the other side: the fix for a shared INDEX is
 `git commit -- <paths>`, but there is no pathspec that isolates two sessions inside **one
@@ -1628,7 +1628,7 @@ disagrees somewhere *else* fails loudly.
 Session 17 recorded the lesson: parallel sessions share the git **index**, so a path-scoped
 `git add` followed by `git commit` is not isolated. It happened again here, in the direction
 that is harder to notice. Session 18's commit `d0045a8` ("SDG&E 8/1/2026") **swept up this
-session's in-flight HANDOFF.md edit** — the PG&E vintage-asymmetry block under "tariff facts
+session's in-flight dev/HANDOFF.md edit** — the PG&E vintage-asymmetry block under "tariff facts
 that cost real money" is committed under a message about SDG&E rate vintages, and that
 commit's "measured in a clean HEAD checkout with only these files applied" does not describe
 what it actually contains.
@@ -1762,7 +1762,7 @@ Two consequences for whoever reads this next:
 
 Housekeeping, no engine change. **719 tests green, ruff clean, wasm parity and render checks
 pass.** Sessions 13-16 ran **in the same working tree at the same time** and all four patched
-HANDOFF.md independently, which reproduced exactly the drift session 12 had just cleaned up:
+dev/HANDOFF.md independently, which reproduced exactly the drift session 12 had just cleaned up:
 
 - **Two contradictory test counts inside one file** — the status header said 719, the "How to
   run" block still said 418.
@@ -1896,7 +1896,7 @@ real SDG&E household anyway (invariant 1 — no SDG&E dollar figure before recon
 
 ## 2026-09-08 — Session 15 (independent cross-check of the SDG&E specs: zero errors found)
 
-Full writeup in `notes/spec_crosscheck_2026-09.md`. **No spec was changed** — the read-only
+Full writeup in `dev/notes/spec_crosscheck_2026-09.md`. **No spec was changed** — the read-only
 constraint held because nothing in `src/tariffs/specs/` turned out to be wrong. 436 tests
 still green.
 
@@ -2132,7 +2132,7 @@ kWh), which is free proof every row was read. It is still reported rather than e
 semantics on a *solar* account are unverified (consumption sum or net sum?), and a file with
 legitimately missing rows could undershoot a total computed over the requested range. Turning
 one observation into a rejection rule is how a valid export gets refused — the exact failure
-mode HANDOFF.md warns against.
+mode dev/HANDOFF.md warns against.
 
 ### What changed
 - `_common.split_header_and_table` now finds the table by **signature** (a row with a date
@@ -3377,7 +3377,7 @@ not available yet; asked whether to build CLI/API/Docker/deployment. **Decided N
 those are roadmap "Later" (gated behind the M5 demand verdict); building delivery infra
 for one household with no validated demand is exactly what the roadmap guards against.
 Instead, next session runs **two parallel, data-unblocked workstreams** (full detail in
-HANDOFF.md "Plan for next session"):
+dev/HANDOFF.md "Plan for next session"):
 - **A: Build M1 from public sources** — SDG&E Green Button parser + SDG&E residential
   schedule specs (TOU-DR1/2/-P, EV-TOU-5) + San Diego CCA generation overlay, all from
   public tariff sheets with citations. Only the reconciliation DoD is blocked (needs dad's
@@ -3625,7 +3625,7 @@ energy is misplaced per transition — **zero TOU impact** under current schedul
 15-min meter (finer folds). Cameron: flag if you disagree with folding vs. gap.
 
 ### Done (scaffold)
-- Read CLAUDE.md, ROADMAP.md, KICKOFF_PROMPT.md. Scope confirmed: **M0 only**.
+- Read CLAUDE.md, ROADMAP.md, dev/KICKOFF_PROMPT.md. Scope confirmed: **M0 only**.
 - Scaffolded repo: flat package layout under `src/` (`greenbutton`, `tariffs`,
   `tariffs/specs`, `nem3`, `scenarios`, `uncertainty`, `report`), `pyproject.toml`
   (ruff + pytest config, `pythonpath=src`), `.gitignore`, README stub whose first

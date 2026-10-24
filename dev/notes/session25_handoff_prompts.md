@@ -28,7 +28,7 @@ exist in this repo and cannot be substituted.
 | D — scoring loop | Not started |
 | E — hooks, MCP, subagents | Not started |
 
-Decisions D1-D5 are settled and recorded in CLI-PLAN.md. **D2-D4 are hypotheses about what a
+Decisions D1-D5 are settled and recorded in dev/CLI-PLAN.md. **D2-D4 are hypotheses about what a
 generator gets wrong; nobody has measured them.** Expect phase C calibration to revise them.
 
 ### tests/published_impacts (new, session 25)
@@ -56,7 +56,7 @@ Ordered by value. Note that #0 is not a session.
 ## Parallel streams
 
 ⚠ **File ownership, to avoid merge conflicts.** Parallel sessions must not all edit
-`SESSION_NOTES.md` and `HANDOFF.md`. Assign: stream A owns SESSION_NOTES.md and HANDOFF.md.
+`dev/SESSION_NOTES.md` and `dev/HANDOFF.md`. Assign: stream A owns dev/SESSION_NOTES.md and dev/HANDOFF.md.
 Streams B and C write to their own notes file under `notes/` and hand their findings to A.
 
 ---
@@ -66,7 +66,7 @@ Streams B and C write to their own notes file under `notes/` and hand their find
 Touches the pricing path and a live invariant boundary. Not a place to economise.
 
 ```
-Read CLAUDE.md, then HANDOFF.md, then the session 25 entry in SESSION_NOTES.md, then
+Read CLAUDE.md, then dev/HANDOFF.md, then the session 25 entry in dev/SESSION_NOTES.md, then
 tests/published_impacts/README.md and tests/published_impacts/sdge_2026-04_tou_dr1.yaml.
 Do not re-derive anything recorded there.
 
@@ -94,7 +94,7 @@ reach a user-facing output. If a test you write would blur that line, stop and s
 The published figures are whole dollars; derived quantities inherit +/-$1 per operand. Get
 the error bands right or the test fails on correct specs.
 
-Then append to SESSION_NOTES.md and update HANDOFF.md's next-action list.
+Then append to dev/SESSION_NOTES.md and update dev/HANDOFF.md's next-action list.
 ```
 
 ---
@@ -105,7 +105,7 @@ Mechanical fetch-and-measure with a real analytical question at the end. Bounded
 
 ```
 Read tests/published_impacts/README.md and sdge_2026-04_tou_dr1.yaml, and the session 25
-entry in SESSION_NOTES.md. Do not re-derive them.
+entry in dev/SESSION_NOTES.md. Do not re-derive them.
 
 Two jobs.
 
@@ -123,12 +123,12 @@ Each rate change is an independent regression point.
 
 Rules. Sources go in data/sources/ (gitignored). Extract with `pdftotext -layout` ONLY —
 raw pdftotext destroys the column labels and makes the text useless as evidence; see
-CLI-PLAN.md D5. PG&E's figures are a residential CLASS AVERAGE across every schedule and
+dev/CLI-PLAN.md D5. PG&E's figures are a residential CLASS AVERAGE across every schedule and
 territory, NOT reproducible from any single spec — fixture them for provenance, mark them
 non-testable, and do not write an assertion against them.
 
-Write findings to notes/published_impacts_corpus.md. Do NOT edit SESSION_NOTES.md or
-HANDOFF.md; stream A owns those.
+Write findings to dev/notes/published_impacts_corpus.md. Do NOT edit dev/SESSION_NOTES.md or
+dev/HANDOFF.md; stream A owns those.
 ```
 
 ---
@@ -139,7 +139,7 @@ Bash and config, no pricing path. Do not use Haiku — this stream's whole job i
 permission-rule details exactly right, which is a precision task.
 
 ```
-Read CLI-PLAN.md in full, especially the Rules, the Permissions findings, and decisions
+Read dev/CLI-PLAN.md in full, especially the Rules, the Permissions findings, and decisions
 D1-D5. The rules there are binding: do not write the project's algorithmic code, never run
 `claude` yourself, and verify every flag and config key against
 https://code.claude.com/docs/llms.txt before stating it — never from memory.
@@ -161,8 +161,8 @@ Build the parts of phase C that do NOT depend on the JSON schema (Cameron is wri
 Note: a `Write(path)` permission rule is accepted but NEVER consulted and warns at
 startup; `Edit(path)` is the rule that governs the Write tool. Verify this yourself.
 
-Write findings to notes/phase_c_scaffolding.md. Do NOT edit SESSION_NOTES.md or
-HANDOFF.md; stream A owns those.
+Write findings to dev/notes/phase_c_scaffolding.md. Do NOT edit dev/SESSION_NOTES.md or
+dev/HANDOFF.md; stream A owns those.
 ```
 
 ---

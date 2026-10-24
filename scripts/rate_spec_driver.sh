@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# CLI-PLAN.md phase C driver SKELETON. Loops the author-rate-spec skill over a list of
+# dev/CLI-PLAN.md phase C driver SKELETON. Loops the author-rate-spec skill over a list of
 # (source, schedule_id, provider) inputs, headlessly, and gates each result.
 #
-# Cameron runs this — CLI-PLAN.md rule 2 ("Don't run `claude` — Cameron runs every CLI
+# Cameron runs this — dev/CLI-PLAN.md rule 2 ("Don't run `claude` — Cameron runs every CLI
 # exercise and pastes output back") is why this script is written, not executed, here.
 #
 # Phase B landed (session 27), so items 1-3 of this header are now DONE:
@@ -26,13 +26,13 @@
 #      the span and compare NUMERICALLY, not by string equality (the committed 3CE spec
 #      holds 0.119 where the sheet prints 0.11900).
 #   5. The calibration diff (parsed pydantic object vs. the committed ground-truth spec,
-#      per CLI-PLAN.md phase C — "diff the parsed object, not file bytes") is scoring
+#      per dev/CLI-PLAN.md phase C — "diff the parsed object, not file bytes") is scoring
 #      logic and belongs in phase D's scoring loop, not here. What this script calls a
-#      PASS is schema validity only, per its own "Done when" line in CLI-PLAN.md.
+#      PASS is schema validity only, per its own "Done when" line in dev/CLI-PLAN.md.
 #
 # Verified against https://code.claude.com/docs/en/headless.md and
 # https://code.claude.com/docs/en/cli-reference.md (2026-09-15) — see
-# notes/phase_c_scaffolding.md for what was checked and why each flag is here.
+# dev/notes/phase_c_scaffolding.md for what was checked and why each flag is here.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -51,7 +51,7 @@ MAX_TURNS=8
 
 # One line per (source .layout.txt, schedule_id, provider), space-separated — matches
 # author-rate-spec's `argument-hint: <source-layout-txt> <schedule-id> <provider>`.
-# The two rows below are the phase-C calibration targets CLI-PLAN.md names (an
+# The two rows below are the phase-C calibration targets dev/CLI-PLAN.md names (an
 # already-authored spec re-derived from its own cited source): committed ground truth
 # already exists for both, at src/tariffs/specs/cea_tou_dr1_generation_2026-06-01.yaml
 # and (D1: pre-migration, namespaced) src/tariffs/specs/cce_etou_d_generation_2026-02-15.yaml
@@ -86,13 +86,13 @@ for input in "${INPUTS[@]}"; do
   # posture for an unattended run); --permission-prompts none additionally tells Claude
   # nobody can approve a denied request and not to retry it, which is the one that saves
   # turns/cost. --max-turns is the hard stop under both. All three measured together in
-  # CLI-PLAN.md's "Permissions" section — using only one of the first two still works but
+  # dev/CLI-PLAN.md's "Permissions" section — using only one of the first two still works but
   # burns turns retrying denials.
   #
   # No --add-dir: the skill lives in this repo's own .claude/skills/, loaded normally
   # without --bare. --add-dir only matters for --bare's skill-loading exception
   # (code.claude.com/docs/en/headless.md), and --bare itself is still blocked on a
-  # Console ANTHROPIC_API_KEY (CLI-PLAN.md phase A).
+  # Console ANTHROPIC_API_KEY (dev/CLI-PLAN.md phase A).
   claude -p "/author-rate-spec $source $schedule $provider" \
     --output-format json \
     --json-schema "$JSON_SCHEMA" \
@@ -101,7 +101,7 @@ for input in "${INPUTS[@]}"; do
     --max-turns "$MAX_TURNS" \
     >"$run_log" 2>"$LOG_DIR/${name}.stderr" || true
   # `|| true`: a non-zero exit is one of the gate's own inputs below, not a script error —
-  # CLI-PLAN.md measured that exit code alone (and even is_error:false alone) doesn't mean
+  # dev/CLI-PLAN.md measured that exit code alone (and even is_error:false alone) doesn't mean
   # the task succeeded, so every signal is read from the JSON, not from $?.
 
   if ! jq -e . "$run_log" >/dev/null 2>&1; then
@@ -114,7 +114,7 @@ for input in "${INPUTS[@]}"; do
   session_id="$(jq -r '.session_id // "<none>"' "$run_log")"
   # NOT `.is_error // true` -- jq's `//` falls through on `false` as well as `null`, so
   # that form would silently read a genuine `is_error: false` as `true`. Verified against
-  # a mock (notes/phase_c_scaffolding.md) before writing it this way.
+  # a mock (dev/notes/phase_c_scaffolding.md) before writing it this way.
   is_error="$(jq -r 'if .is_error == null then true else .is_error end' "$run_log")"
   denials="$(jq -c '.permission_denials // []' "$run_log")"
   structured="$(jq -c '.structured_output // empty' "$run_log")"

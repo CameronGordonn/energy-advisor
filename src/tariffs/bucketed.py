@@ -3,8 +3,8 @@
 M1a's definition of done is a bill reconciled **from the statement's own bucketed kWh**,
 because the ask that closes it is "one redacted SDG&E bill" rather than "a year of
 15-minute data plus a bill from the same household" (see
-``notes/m1_without_dad_2026-09.md``). ``tariffs.bill.compute_bill`` cannot serve that: it
-takes an :class:`~greenbutton.models.IntervalSeries` and buckets it itself.
+``dev/notes/m1_without_household_source_2026-09.md``). ``tariffs.bill.compute_bill`` cannot
+serve that: it takes an :class:`~greenbutton.models.IntervalSeries` and buckets it itself.
 
 **This module supplies the missing input, not a second engine.** Every dollar it produces
 comes out of :func:`tariffs.bill.charge_lines` and :func:`tariffs.bill.minimum_bill_line`
@@ -31,7 +31,7 @@ Three things printed buckets cannot do, each a refusal rather than a guess:
    the customer's intervals, so pricing it tests this repo's *rates* and *charge
    structure* and cannot test ``tou.rules`` — the year-round super-off-peak window, the
    weekend table, the holiday calendar. That is not a defect in this module; it is the
-   line between M1a and M1b, and it is written down in ``notes/m1a_harness_2026-09.md``.
+   line between M1a and M1b, and it is written down in ``dev/notes/m1a_harness_2026-09.md``.
 """
 
 from __future__ import annotations

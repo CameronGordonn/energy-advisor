@@ -90,7 +90,7 @@ measured_2026_09_15:
   # in every quarter". They are not — June CARE puts inland_basic $1.41 off. What DOES hold
   # in all six cells is weaker and is what the test asserts: the two nearest territories are
   # always the coastal pair, and the third-nearest is a further $0.98-$1.77 out.
-  # See notes/published_impacts_corpus.md and test_sdge_tou_dr1_quarters.py.
+  # See dev/notes/published_impacts_corpus.md and test_sdge_tou_dr1_quarters.py.
 
   # Generation envelope at 400 kWh/month (min = all super-off-peak, max = all on-peak),
   # averaged over 12 months. The implied $71 is feasible and mid-range — so the

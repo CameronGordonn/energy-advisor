@@ -67,7 +67,7 @@ measured_2026_09_15:
   #                                     PCIA table, which moved again since January's)
   #     + PCIA vintage 2018    134.54  (0.03670 * 400 = 14.68 added)
   pcia_treatment: EXCLUDED_BY_INFERENCE   # settled cross-quarter — see
-                                          # notes/published_impacts_corpus.md
+                                          # dev/notes/published_impacts_corpus.md
 
 # ---------------------------------------------------------------------------
 # Re-measured through compute_bill() 2026-09-15: 12 calendar months from the
@@ -95,4 +95,4 @@ measured_by_engine_2026_09_15:
   # (verified by full sweep), so the real contest is always this pair. CARE mildly prefers
   # all_electric too here (0.29 off vs 0.43 off) — the first quarter where CARE does not
   # clearly favor coastal_basic. Full cross-quarter writeup:
-  # notes/published_impacts_corpus.md.
+  # dev/notes/published_impacts_corpus.md.

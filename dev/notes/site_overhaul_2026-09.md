@@ -253,5 +253,5 @@ PYTHONPATH=src python scripts/screenshot_site.py   # 18 images, looked at in bot
 - **`src/` untouched**, per the brief.
 - **`docs/engine.js` and `docs/case-study.json` untouched**, per the brief — no UI change
   here can move either.
-- **`HANDOFF.md` not rewritten and `SESSION_NOTES.md` not prepended to**, per the brief. The
+- **`dev/HANDOFF.md` not rewritten and `dev/SESSION_NOTES.md` not prepended to**, per the brief. The
   session-notes entry is in `notes/_pending_session_notes_site.md` for merging.

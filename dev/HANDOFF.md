@@ -1,4 +1,4 @@
-# HANDOFF — read this first, with SESSION_NOTES.md
+# HANDOFF — read this first, with dev/SESSION_NOTES.md
 
 _Rewrite this whole file whenever you finish a milestone or pause. Keep it current: state,
 how to run, open decisions, exact next action._
@@ -21,7 +21,7 @@ published a wrong one. What stays true as it ages: **11/11 PG&E golden bills wit
 | M2 — Rate optimizer | **Done for PG&E** | the SDG&E half, gated on M1 |
 | M3 — NEM 3.0 solar + battery | **Engine complete, DoD blocked** | one real household with export data |
 | M4 — Public methodology + site | **Done, live; site prices for the reconciled scope** | — |
-| M5 — First external users | **Materials drafted** (`RECRUITING.md`), nothing sent | gated on M1 — see the warning below |
+| M5 — First external users | **Materials drafted** (`dev/RECRUITING.md`), nothing sent | gated on M1 — see the warning below |
 
 - **Repo:** https://github.com/CameronGordonn/energy-advisor (public, AGPL-3.0)
 - **Site:** https://camerongordonn.github.io/energy-advisor/ — a working tool, four pages.
@@ -58,7 +58,7 @@ published a wrong one. What stays true as it ages: **11/11 PG&E golden bills wit
      1/1, 4/1, 5/1, 6/1, 8/1; summer starts 6/1), or one that prints its sub-period blocks.
 
 2. ⭐ **Session 31: M1a is NOT "transcription only" — a real SDCP bill would fail ±$2 today.**
-   SDCP publishes a complete specimen 2026 TOU-DR1 statement (`notes/sdcp_specimen_bill_2026-10.md`).
+   SDCP publishes a complete specimen 2026 TOU-DR1 statement (`dev/notes/sdcp_specimen_bill_2026-10.md`).
    Every rate on it matches our specs to the fifth decimal, but it carries **~$8.41 of fee
    lines the engine did not model** (City of San Diego Franchise Fee Differential 5.78%,
    Franchise Fee Equivalent Surcharge 6.88%, State Regulatory Fee $0.001/kWh) plus the CEC
@@ -69,9 +69,9 @@ published a wrong one. What stays true as it ages: **11/11 PG&E golden bills wit
    $140.71 with the three unmodelled lines observed, vs $140.64 printed.
 
 3. **The public internet is exhausted for M1.** Session 23: six real SDG&E exports across two
-   repos, none paired with bills (`notes/sdge_public_exports_2026-09.md`). Session 28: the
+   repos, none paired with bills (`dev/notes/sdge_public_exports_2026-09.md`). Session 28: the
    26-bill `ookla-ariel-ride/SDGE-Analysis` corpus is NEM-2 true-up accruals, measured shut
-   (`notes/m1_without_dad_2026-09.md`). Session 31: utility/CCA bill-explainer pages hold one
+   (`dev/notes/m1_without_household_source_2026-09.md`). Session 31: utility/CCA bill-explainer pages hold one
    specimen and nothing real; a second pass for a *real homeowner's solar bill* found several
    (r/solar PG&E NBT page 1, two CPUC complaint dockets) and none usable — partial, NEM-2,
    disputed-meter, or unredacted. **Do not re-run these searches.** M3 needs a recruited NBT
@@ -115,7 +115,7 @@ landed it outranks everything below.
 
 **1. Get ONE ordinary SDG&E bill.** One redacted statement from one non-solar, non-NEM SDG&E
 household — no export, no year of data. A friend, a colleague, one post. Three such bills
-close M1a. `RECRUITING.md` Ask 1/Ask 2 is still the fuller framing. **This is the only thing
+close M1a. `dev/RECRUITING.md` Ask 1/Ask 2 is still the fuller framing. **This is the only thing
 that moves a milestone.**
 
 **2. SDG&E fee lines — BUILT (session 31, branch `sdge-fee-lines`); what is left.**
@@ -123,7 +123,7 @@ The City of San Diego Franchise Fee Differential, the CCA Franchise Fee Equivale
 (on imputed EECC) and the CEC surcharge are modelled, cited and tested
 (`tests/tariffs/test_sdge_franchise_fees.py`). **`jurisdiction` is now a required customer
 fact** for TOU-DR1 (`city_of_san_diego` | `other`), in both fixture templates. Remaining, in
-order — detail in `notes/sdcp_specimen_bill_2026-10.md` § "Built":
+order — detail in `dev/notes/sdcp_specimen_bill_2026-10.md` § "Built":
   1. ✔ **Extended to TOU-DR2 / TOU-DR-P, and bundled-in-city settled (session 32).**
      Schedule EECC (Sheet 30030-E) has its own 5.78% clause, so bundled households pay it on
      generation too, as a second line. **EV-TOU-5 still refuses in the city**: its schedule
@@ -157,7 +157,7 @@ forecasting event days. Gated behind an SDG&E candidate set, which is gated on M
 If `test_sdge_vintages_are_one_table_wearing_three_labels` or
 `test_pge_vintages_that_collapse_into_one_table[2026-current]` fails, restate the ⭐ vintage
 findings (here, `test_acc_pge.py`'s docstring, finding 01 of `docs/METHODOLOGY.md` +
-`methodology.html`) rather than patching them. `notes/acc_reimport_2026-09.md` has the commands.
+`methodology.html`) rather than patching them. `dev/notes/acc_reimport_2026-09.md` has the commands.
 
 > **⚠ READ BEFORE STARTING M5 — M1 and M5 are coupled.** M5 targets San Diego users, and **the
 > engine has never reproduced a single real SDG&E bill.** Sending dollar figures to strangers
@@ -457,7 +457,7 @@ cell for cell.
      customer-facing publications plus dated CCA sheets (SDCP's, whose body reads "Effective
      May 1, 2026", is the strongest single document).
    Our per-vintage split is right *because* it survives being wrong about the date: one file
-   changes. Full detail in `notes/spec_crosscheck_2026-09.md`.
+   changes. Full detail in `dev/notes/spec_crosscheck_2026-09.md`.
 2. **TOU-DR-P — RESOLVED session 21, both halves.** It loads and bills; the schedule now has
    delivery *and* generation layers and is inside every structural gate.
    - **Windows: sourced, not inferred.** The old note said the sheet was undiscoverable. It
@@ -560,7 +560,7 @@ cell for cell.
   - **M1a — charge layer:** three real SDG&E statements' printed dollars within ±$2 **from
     their own per-TOU-period kWh**, no interval data. Needs bills only — *one ordinary
     non-solar household*. ⚠ The public 26-bill corpus **cannot** meet this: its statements
-    are NEM-2 true-up accruals, measured in `notes/m1_without_dad_2026-09.md`.
+    are NEM-2 true-up accruals, measured in `dev/notes/m1_without_household_source_2026-09.md`.
   - **M1b — interval layer:** one household's export priced end to end against its own bill.
     The half that tests the parser and the interval→TOU-bucket step.
   - Both harness paths exist (sessions 24 and 29). What still stands between a real SDCP

@@ -2,14 +2,14 @@
 
 ## Session continuity (READ FIRST, every session)
 
-Before doing anything else in a new session, read **HANDOFF.md** (latest state + the
-exact next action) and **SESSION_NOTES.md** (running decision log, newest first). These
+Before doing anything else in a new session, read **dev/HANDOFF.md** (latest state + the
+exact next action) and **dev/SESSION_NOTES.md** (running decision log, newest first). These
 carry context that isn't derivable from the code: pending decisions, flagged modeling
 choices, and what the previous instance was mid-way through. Do not re-derive or
 re-litigate anything already settled there.
 
-Keep them current as you work: append decisions to SESSION_NOTES.md, and **rewrite
-HANDOFF.md whenever you finish a milestone or pause** so the next instance can resume
+Keep them current as you work: append decisions to dev/SESSION_NOTES.md, and **rewrite
+dev/HANDOFF.md whenever you finish a milestone or pause** so the next instance can resume
 cold. When context runs long, proactively offer the user a fresh handoff prompt.
 
 ## What this is

@@ -59,7 +59,7 @@ CENT_ROUNDING_BOUND = 0.015
 # published figures only reconcile with the PCIA excluded, in all three quarters. So we ask
 # the engine for the CCA line set MINUS the PCIA, which is exactly what Service.BUNDLED
 # selects on the delivery layer. `test_the_pcia_exclusion_is_load_bearing` pins how much
-# rides on it; notes/published_impacts_corpus.md has the cross-quarter evidence.
+# rides on it; dev/notes/published_impacts_corpus.md has the cross-quarter evidence.
 PCIA_EXCLUDED_BY_INFERENCE = Service.BUNDLED
 
 

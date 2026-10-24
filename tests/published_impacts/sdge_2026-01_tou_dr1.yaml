@@ -71,7 +71,7 @@ measured_2026_09_15:
   #     no PCIA               123.60   (published $123)  <-- matches within model residual
   #     + PCIA vintage 2026    143.51  (0.04977 * 400 = 19.91 added)
   #     + PCIA vintage 2009    129.74  (0.01535 * 400 = 6.14 added)
-  pcia_treatment: EXCLUDED_BY_INFERENCE   # see notes/published_impacts_corpus.md for the
+  pcia_treatment: EXCLUDED_BY_INFERENCE   # see dev/notes/published_impacts_corpus.md for the
                                           # settled, cross-quarter version of this finding
 
 # ---------------------------------------------------------------------------
@@ -100,4 +100,4 @@ measured_by_engine_2026_09_15:
   # it the other way (coastal_basic $0.48 off, all_electric $0.65 off — a 17-cent margin).
   # The CARE figures still favor coastal_basic clearly (0.14 off vs 0.88 off), which is the
   # more informative half of this fixture. Full cross-quarter writeup:
-  # notes/published_impacts_corpus.md.
+  # dev/notes/published_impacts_corpus.md.
