@@ -187,8 +187,27 @@ the FFES base gap). Design:
 - Tier 2 strips these surcharges before pricing SDG&E's rate alerts: the alerts price the
   Total Rates Table, which contains no franchise fee.
 
-**Known gap, not silent only because it is written here:** the lines are on the five
-**TOU-DR1** delivery vintages only. TOU-DR2, EV-TOU-5 and TOU-DR-P carry no CCA generation
-specs in this repo, so a bundled household on them inside the City of San Diego is billed
-with **no differential and no refusal**. Adding the line there (unverified for bundled, so
-it would refuse in the city) is the follow-up.
+**Closed in session 32 (2026-10-23).** The gap was TOU-DR1-only lines: TOU-DR2, EV-TOU-5 and
+TOU-DR-P billed a City of San Diego household with no differential and no refusal. Reading
+the sheets closed it, and also settled the bundled case refused above:
+
+- **Schedule EECC carries its own clause** (Sheet 13, Cal. P.U.C. Sheet 30030-E): "A Franchise
+  Fee Differential of 5.78% will be applied to the total bills calculated under this
+  schedule, including DWR charges, for all customers residing within the corporate limits of
+  the City of San Diego." Applicability (30018-E): all bundled customers. So a bundled bill
+  pays 5.78% on delivery (the delivery schedule's clause) **and** on generation (EECC's), as
+  two lines. Cross-check: Schedule CCA's 6.88% in-city vs 1.1% outside is a 5.78-point gap.
+- Delivery clauses read: TOU-DR2 Sheet 29959-E; TOU-DR (TOU-DR-P's delivery) Sheet 29915-E;
+  EECC-TOU-DR-P Sheet 29436-E for TOU-DR-P generation. All say the same as TOU-DR1.
+- **EV-TOU-5's own schedule sheet was not found** (the obvious URL 404s; searches return
+  only rate tables). Its delivery line is `unverified_for: [bundled, cca, care]`, so a city
+  household on it refuses. Every sheet read has the clause, but analogy is not a citation.
+- **Still refused:** CARE on any line (Schedule E-CARE is silent on franchise fees); a CCA
+  customer on TOU-DR2 / TOU-DR-P / EV-TOU-5 in the city (those specs carry no PCIA to
+  exclude).
+- Engine: the imputed EECC layer is priced with `surcharges=False`, so EECC's own
+  differential never enters the Schedule CCA base (still 48.76 on the specimen).
+- `test_every_sdge_spec_carries_the_city_differential` fails for any SDG&E spec without the
+  line, so the gap cannot quietly come back with a new schedule or vintage.
+- **Not validated against a real bundled statement** — none exists. The first bundled City of
+  San Diego bill should check whether SDG&E prints one combined line or two.

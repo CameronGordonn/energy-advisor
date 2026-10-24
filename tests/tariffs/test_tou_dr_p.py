@@ -64,6 +64,9 @@ def _specs():
 # SDG&E publishes baseline allowances per climate zone, so `territory` is required too;
 # supplied here so the exceptions under test are the event-day ones and not that.
 ZONE = "coastal_basic"
+# Both layers now carry the City of San Diego franchise fee differential, which needs the
+# household's city; outside the city it bills nothing, which keeps these totals as they were.
+CITY = "other"
 
 # TOU-DR-P is BUNDLED-ONLY by tariff — Schedule EECC-TOU-DR-P is closed to Direct Access
 # and CCA customers — so every comparison in this file is a bundled one. It also keeps the
@@ -88,6 +91,7 @@ def test_billing_without_event_days_raises():
             date(2026, 9, 30),
             territory=ZONE,
             service=BUNDLED,
+            jurisdiction=CITY,
         )
     msg = str(exc.value)
     assert "event_days" in msg
@@ -105,6 +109,7 @@ def test_the_zero_event_case_must_be_asked_for_explicitly():
         date(2026, 9, 30),
         territory=ZONE,
         service=BUNDLED,
+        jurisdiction=CITY,
         event_days=[],
     )
     gen = next(layer for layer in bill.layers if layer.layer is Layer.GENERATION)
@@ -124,6 +129,7 @@ def test_supplying_more_events_than_the_tariff_allows_raises():
             date(2026, 9, 30),
             territory=ZONE,
             service=BUNDLED,
+            jurisdiction=CITY,
             event_days=too_many,
         )
 
@@ -142,6 +148,7 @@ def test_the_adder_bills_only_the_event_hours_of_the_event_days():
         date(2026, 9, 30),
         territory=ZONE,
         service=BUNDLED,
+        jurisdiction=CITY,
         event_days=[date(2026, 9, 5), date(2026, 9, 6), date(2026, 9, 9)],
     )
     gen = next(layer for layer in bill.layers if layer.layer is Layer.GENERATION)
@@ -158,6 +165,7 @@ def test_care_customers_pay_the_printed_care_adder_not_the_standard_one():
         date(2026, 9, 30),
         territory=ZONE,
         service=BUNDLED,
+        jurisdiction=CITY,
         event_days=[date(2026, 9, 5)],
         care=True,
     )
@@ -175,6 +183,7 @@ def test_event_days_outside_the_billing_period_are_ignored_not_rejected():
         date(2026, 8, 31),
         territory=ZONE,
         service=BUNDLED,
+        jurisdiction=CITY,
         event_days=whole_year,
     )
     gen = next(layer for layer in bill.layers if layer.layer is Layer.GENERATION)
@@ -200,6 +209,7 @@ def test_delivery_alone_can_still_be_billed_without_event_days():
         date(2026, 9, 30),
         territory=ZONE,
         service=BUNDLED,
+        jurisdiction=CITY,
     )
     assert layer.total > 0
 
@@ -234,9 +244,13 @@ def test_the_event_count_decides_the_recommendation_not_the_rates():
         jurisdiction="other",
     ).total
     args = (load, _specs(), start, end)
-    no_events = compute_bill(*args, territory=ZONE, service=BUNDLED, event_days=[]).total
+    no_events = compute_bill(
+        *args, territory=ZONE, service=BUNDLED, jurisdiction=CITY, event_days=[]
+    ).total
     cap = [start + pd.Timedelta(days=i).to_pytimedelta() for i in range(18)]
-    at_cap = compute_bill(*args, territory=ZONE, service=BUNDLED, event_days=cap).total
+    at_cap = compute_bill(
+        *args, territory=ZONE, service=BUNDLED, jurisdiction=CITY, event_days=cap
+    ).total
 
     assert no_events < dr_1, "TOU-DR-P should win the zero-event case on this load"
     assert at_cap > dr_1, "18 events should flip the verdict"

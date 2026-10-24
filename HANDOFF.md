@@ -124,15 +124,18 @@ The City of San Diego Franchise Fee Differential, the CCA Franchise Fee Equivale
 (`tests/tariffs/test_sdge_franchise_fees.py`). **`jurisdiction` is now a required customer
 fact** for TOU-DR1 (`city_of_san_diego` | `other`), in both fixture templates. Remaining, in
 order — detail in `notes/sdcp_specimen_bill_2026-10.md` § "Built":
-  1. **Extend the differential to TOU-DR2 / EV-TOU-5 / TOU-DR-P.** Today a bundled household
-     on those inside the city is billed without it *and without a refusal* — the one silent
-     gap this work leaves.
+  1. ✔ **Extended to TOU-DR2 / TOU-DR-P, and bundled-in-city settled (session 32).**
+     Schedule EECC (Sheet 30030-E) has its own 5.78% clause, so bundled households pay it on
+     generation too, as a second line. **EV-TOU-5 still refuses in the city**: its schedule
+     sheet was not found. Find it, then drop `bundled` from its `unverified_for`.
   2. **State Regulatory Fee** ($0.001/kWh) — find the authority; until then it is an
      observed adjustment in fixtures (the bill-only template says so).
   3. **FFES base gap** — Schedule CCA says imputed EECC (48.76 on the specimen), the
      specimen prints 49.71. Settle against a real CCA statement; do not fit.
-  4. **Refused branches** (`UnverifiedChargeError`): bundled-in-city differential; CARE on
-     either line. Each needs a real statement of that kind.
+  4. **Refused branches** (`UnverifiedChargeError`): CARE on any franchise line; a CCA
+     customer in the city on TOU-DR2 / TOU-DR-P / EV-TOU-5 (no PCIA in those specs); EV-TOU-5
+     in the city. The first bundled city bill should also show whether SDG&E prints the
+     delivery and generation differentials as one line or two.
   5. Economic Development Program Credit, SDCP Power100 — observed adjustments for now.
 
 **3. Small corrections from session 31 (no data needed):**

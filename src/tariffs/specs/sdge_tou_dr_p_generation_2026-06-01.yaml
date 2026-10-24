@@ -138,8 +138,30 @@ event_adder:
 #    Shadow Billing (SC 16) still runs, and it shows the customer the comparison without
 #    refunding the difference. A model that assumed CPP-style bill protection would floor
 #    the downside at zero, which is wrong by the whole event exposure.
-#  - Franchise Fee Differential 5.78% (Sheet 29436-E, Sheet 2) — City of San Diego only, a
-#    per-customer fact, handled the same way as on TOU-DR1.
 #  - TOU Period Grandfathering (SC 21) rates and its separate semi-peak period structure
 #    (Sheets 29440-E / 30039-E). Applies only to pre-2017 solar customer generators and
 #    expires 2027-07-31 at the latest; a distinct schedule shape, not a variant of this one.
+
+# --- FRANCHISE FEE DIFFERENTIAL on generation (session 32) -------------------------------
+# Schedule EECC-TOU-DR-P carries its own 5.78% clause, so a BUNDLED household in the City of San Diego
+# pays the differential on its generation as well as on its delivery (the delivery spec's
+# line). This is what settled the bundled case TOU-DR1's delivery line used to refuse.
+# Consistent with Schedule CCA: a CCA customer pays 6.88% of imputed EECC in the city and
+# 1.1% outside it; the 5.78-point difference is this differential.
+# NOT on the imputed layer: Schedule CCA imputes EECC's *charges*, and this is a fee on
+# them, so compute_bill prices the imputed layer with surcharges=False.
+# Not yet checked against a real bundled statement; none exists in this repo.
+surcharges:
+  - name: City of San Diego Franchise Fee Differential (generation)
+    applies_to: bundled
+    rate_by_jurisdiction: {city_of_san_diego: 0.0578, other: 0.0}
+    of: pretax
+    # care: whether the base is before or after the CARE discount is not settled; Schedule
+    #   E-CARE says nothing about franchise fees.
+    unverified_for: [care]
+    citation: >-
+      SDG&E Schedule EECC-TOU-DR-P, "Franchise Fee Differential", Sheet 2, Cal. P.U.C.
+      Sheet 29436-E (Advice 3130-E): "A Franchise Fee Differential of 5.78% will be applied
+      to the total bills calculated under this Schedule for all customers residing within
+      the corporate limits of the City of San Diego." Retrieved 2026-10-23
+      (sdge.com/sites/default/files/elec_elec-scheds_eecc-tou-dr-p.pdf).

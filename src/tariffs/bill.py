@@ -401,6 +401,7 @@ def charge_lines(
     territory: str | None = None,
     vintage: str | None = None,
     jurisdiction: str | None = None,
+    surcharges: bool = True,
 ) -> list[LineItem]:
     """Every line one ``(spec version, season)`` run bills, from bucketed kWh and a day count.
 
@@ -422,6 +423,11 @@ def charge_lines(
     ``days`` is the run's length, not the statement's: the baseline allowance and the
     fixed charge are both per-day, so a caller that merges two runs into one call would
     misprice both.
+
+    ``surcharges=False`` bills the schedule's charges without its trailing surcharges. It
+    exists for the imputed generation layer: SDG&E Schedule CCA imputes Schedule EECC's
+    *charges*, and EECC's own franchise fee differential is a fee on those charges, not
+    one of them.
     """
     total_kwh = sum(usage.values())
     tag = season.value
@@ -564,7 +570,7 @@ def charge_lines(
     # this sub-period's own subtotal.
     pretax = sum(li.amount for li in sub)
     energy_sub = sum(li.amount for li in sub if li.name.startswith("Energy "))
-    for sur in spec.surcharges:
+    for sur in spec.surcharges if surcharges else ():
         if not sur.applies_to.covers(service) or sur.bill_level:
             continue  # bill-level lines are added by _bill_level_surcharges
         sur.check_verified(service=service, care=care, jurisdiction=jurisdiction)
@@ -741,6 +747,7 @@ def compute_layer(
     jurisdiction: str | None = None,
     event_days: Sequence[date] | None = None,
     allow_before_effective: bool = False,
+    surcharges: bool = True,
 ) -> LayerBill:
     """Itemize one layer (delivery or generation) over an inclusive date period.
 
@@ -800,6 +807,7 @@ def compute_layer(
                 territory=territory,
                 vintage=vintage,
                 jurisdiction=jurisdiction,
+                surcharges=surcharges,
             )
         )
 
@@ -872,6 +880,7 @@ def compute_bill(
             territory=territory,
             event_days=event_days,
             allow_before_effective=allow_before_effective,
+            surcharges=False,  # the base is EECC's charges, not the fees on them
         )
     layers = _bill_level_surcharges(
         layers,

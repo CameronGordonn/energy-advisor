@@ -108,3 +108,30 @@ non_bypassable:
     2026-09-08. Classed non-bypassable per PG&E Schedule NBT Cal. P.U.C. Sheet 57359-E
     SC 2.f. CARE WF-NBC exemption: Schedule TOU-DR1 Cal. P.U.C. Sheet 29953-E note 3.
     CARE values = 0.65 x standard per the printed "CARE Discount 35%".
+
+# --- FRANCHISE FEE DIFFERENTIAL (session 32) --------------------------------------------
+# The same city-dependent line TOU-DR1 carries (see that spec for the specimen measurement
+# that fixed its base): ⚠ EXCEPT that the EV-TOU-5 schedule sheet
+# itself was not found (session 32: elec_elec-scheds_ev-tou-5.pdf 404s, and searches
+# return only its rate tables). Every SDG&E sheet that WAS read — TOU-DR, TOU-DR1,
+# TOU-DR2, EV-TOU, EV-TOU-2, EECC, EECC-TOU-DR-P, CCA — carries the same 5.78% clause,
+# but analogy is not a citation. So every case in the city REFUSES until the sheet is
+# read; outside the city the rate is 0 and nothing is billed or refused.
+# `jurisdiction` (city_of_san_diego | other) is supplied at bill time and raises when
+# omitted. Not in the Total Rates Tables, so it does not move tier-2 figures.
+surcharges:
+  - name: City of San Diego Franchise Fee Differential
+    rate_by_jurisdiction: {city_of_san_diego: 0.0578, other: 0.0}
+    of: pretax
+    # Base = delivery charges less the Wildfire Fund / DWR Bond component, as measured on
+    # TOU-DR1. A bundled household's generation pays its own line on the generation spec.
+    exclude:
+      - Wildfire Fund / DWR Bond
+    # Every service: the clause itself is unverified for this schedule (see above).
+    unverified_for: [bundled, cca, care]
+    citation: >-
+      NOT VERIFIED for this schedule: SDG&E Schedule EV-TOU-5's tariff sheet was not
+      located (session 32, 2026-10-23). The 5.78% City of San Diego differential is printed
+      on every other SDG&E schedule read, e.g. Schedule TOU-DR1 Cal. P.U.C. Sheet 29955-E
+      and Schedule EV-TOU-2 Sheet 2, Cal. P.U.C. Sheet 29943-E; it is carried here so a City of San
+      Diego household refuses instead of being billed without it.

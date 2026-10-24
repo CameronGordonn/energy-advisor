@@ -232,6 +232,7 @@ def compute_layer_from_usage(
     vintage: str | None = None,
     jurisdiction: str | None = None,
     allow_before_effective: bool = False,
+    surcharges: bool = True,
 ) -> LayerBill:
     """:func:`tariffs.bill.compute_layer`, taking printed buckets instead of a series.
 
@@ -270,6 +271,7 @@ def compute_layer_from_usage(
                 territory=territory,
                 vintage=vintage,
                 jurisdiction=jurisdiction,
+                surcharges=surcharges,
             )
         )
 
@@ -332,6 +334,7 @@ def compute_bill_from_usage(
             service=Service.BUNDLED,
             territory=territory,
             allow_before_effective=allow_before_effective,
+            surcharges=False,  # the base is EECC's charges, not the fees on them
         )
     layers = _bill_level_surcharges(
         layers,

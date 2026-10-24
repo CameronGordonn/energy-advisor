@@ -2,6 +2,31 @@
 
 Running log of decisions made and decisions pending. Newest first.
 
+## 2026-10-23 — Session 32 (franchise fee differential on every SDG&E schedule)
+
+Branch `sdge-fee-lines`. (The same session's site redesign is on `site-plain-redesign`,
+recorded in that branch's notes.) Cameron chose the comprehensive fix over a blanket
+refusal for the gap session 31 left: TOU-DR2 / EV-TOU-5 / TOU-DR-P billed in the City of
+San Diego with no differential and no refusal. Full write-up:
+`notes/sdcp_specimen_bill_2026-10.md` § "Closed in session 32".
+
+- **⭐ Schedule EECC has its own 5.78% clause** (Sheet 30030-E), which settles the bundled
+  case session 31 refused: a bundled city household pays the differential on delivery AND on
+  generation. 25 specs gained a line (delivery: TOU-DR2 ×4, TOU-DR-P, EV-TOU-5 ×5;
+  generation: all 15 SDG&E EECC specs); TOU-DR1 delivery's `unverified_for` dropped
+  `bundled`. Sheet numbers in every citation were read from the PDFs, retrieved 2026-10-23.
+- **Material dollar impact, flagged:** a bundled City of San Diego bill goes from a refusal
+  to ~5.78% above an outside-city one. Sourced, not chosen — but unvalidated against a real
+  bundled bill.
+- **EV-TOU-5 refuses in the city**: its schedule sheet was not found. CARE stays refused
+  everywhere (E-CARE is silent). CCA on the three non-DR1 schedules in the city refuses (no
+  PCIA in those specs).
+- Engine: `surcharges=False` on the imputed layer (`compute_layer`,
+  `compute_layer_from_usage`, `charge_lines`) so EECC's differential stays out of the
+  Schedule CCA base. Specimen still 48.76 / 3.35 / 137.97.
+- Verified: 1,831 passed; ruff clean; wasm parity; render test; 11/11 PG&E unchanged;
+  bundle + case study rebuilt (digest only).
+
 ## 2026-10-01 — Session 31 (status check; the SDCP specimen bill priced; the 09-20 notes merged)
 
 Full working: `notes/sdcp_specimen_bill_2026-10.md`.

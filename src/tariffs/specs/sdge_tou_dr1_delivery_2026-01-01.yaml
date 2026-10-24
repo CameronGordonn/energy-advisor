@@ -209,12 +209,14 @@ surcharges:
     exclude:
       - Power Charge Indifference Adjustment (vintaged)
       - Wildfire Fund / DWR Bond
-    # bundled: the sheet applies 5.78% to "the monthly billings calculated under this
-    #   Schedule", and whether a bundled bill's EECC generation is in that base is not
-    #   settled — the CCA specimen cannot say, because its EECC line and the matching
-    #   credit net to zero inside the base either way.
-    # care: whether the base is before or after the CARE discount is not settled.
-    unverified_for: [bundled, care]
+    # bundled (settled session 32): this sheet applies 5.78% to "the monthly billings
+    #   calculated under this Schedule", i.e. the delivery charges. A bundled household's
+    #   generation is billed under Schedule EECC, which carries its own identical clause
+    #   (Sheet 30030-E) — so it is billed on the GENERATION spec, as its own line, and this
+    #   base stays delivery-only. Not yet checked against a real bundled statement.
+    # care: whether the base is before or after the CARE discount is not settled; Schedule
+    #   E-CARE says nothing about franchise fees.
+    unverified_for: [care]
     citation: >-
       SDG&E Schedule TOU-DR1, "Franchise Fee Differential", Cal. P.U.C. Sheet 29955-E
       ("A Franchise Fee Differential of 5.78% will be applied to the monthly billings

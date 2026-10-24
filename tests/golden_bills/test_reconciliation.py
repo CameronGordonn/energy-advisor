@@ -873,6 +873,7 @@ def test_tou_dr_p_cannot_be_reconciled_from_printed_buckets_at_all():
             date(2026, 6, 30),
             service=Service.BUNDLED,
             territory="coastal_basic",
+            jurisdiction="other",
         )
     msg = str(e.value)
     assert "RYU" in msg and "16:00-21:00" in msg and "interval data" in msg
@@ -893,6 +894,7 @@ def test_the_interval_path_still_bills_the_event_adder(tmp_path):
         date(2026, 1, 31),
         service=Service.BUNDLED,
         territory="coastal_basic",
+        jurisdiction="other",
         event_days=[date(2026, 1, 15)],
         allow_before_effective=True,
     )

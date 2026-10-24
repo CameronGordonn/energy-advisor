@@ -1,4 +1,4 @@
-"""SDG&E's city-dependent franchise fees and the CCA's CEC surcharge (session 31).
+"""SDG&E's city-dependent franchise fees and the CCA's CEC surcharge (sessions 31-32).
 
 The lines were found missing by pricing SDCP's published specimen statement
 (``notes/sdcp_specimen_bill_2026-10.md``): every rate on it matched the specs to the fifth
@@ -15,8 +15,8 @@ from datetime import date
 import pytest
 
 from tariffs.bill import MissingImputedGenerationError
-from tariffs.bucketed import UsageSegment, compute_bill_from_usage
-from tariffs.loader import load_spec_versions
+from tariffs.bucketed import UsageSegment, compute_bill_from_usage, compute_layer_from_usage
+from tariffs.loader import SPECS_DIR, load_spec_file, load_spec_versions
 from tariffs.schema import (
     Layer,
     MissingJurisdictionError,
@@ -26,6 +26,7 @@ from tariffs.schema import (
 )
 
 FFD = "City of San Diego Franchise Fee Differential"
+FFD_GEN = "City of San Diego Franchise Fee Differential (generation)"
 FFES = "Franchise Fee Equivalent Surcharge"
 
 # SDCP "Understanding your bill" specimen, pages 2-3 (retrieved 2026-10-01).
@@ -136,16 +137,150 @@ def test_a_cca_bill_without_the_imputed_generation_is_refused(specs):
 # --- the unverified branches raise instead of guessing ---------------------------------
 
 
-def test_a_bundled_city_customer_is_refused_because_the_base_is_unsettled(specs):
-    """Does a bundled bill's EECC sit inside the 5.78% base? The CCA specimen cannot say:
-    its EECC line and the matching credit net to zero inside the base either way."""
+def _bundled(specs, **kw):
+    kw.setdefault("territory", "coastal_basic")
+    return compute_bill_from_usage(
+        [UsageSegment(start=PS, end=PE, kwh=KWH)],
+        [specs["delivery"], specs["eecc"]],
+        PS,
+        PE,
+        service=Service.BUNDLED,
+        **kw,
+    )
+
+
+def test_a_bundled_city_customer_pays_the_differential_on_delivery_and_on_generation(specs):
+    """Settled session 32 by Schedule EECC's own clause (Sheet 30030-E): 5.78% of "the total
+    bills calculated under this schedule". So a bundled household in the city pays it twice
+    over, once per schedule — TOU-DR1's on delivery (less the Wildfire Fund charge, as on
+    the specimen) and EECC's on generation. Session 31 refused this case because the
+    delivery sheet alone could not say whether generation was in the base."""
+    bill = _bundled(specs, jurisdiction="city_of_san_diego")
+    d, g = bill.layers[0].bucket(), bill.layers[1].bucket()
+    delivery_base = sum(v for k, v in d.items() if k != FFD) - 251 * 0.00591
+    assert d[FFD] == pytest.approx(0.0578 * delivery_base, abs=0.005)
+    assert g[FFD_GEN] == pytest.approx(
+        0.0578 * sum(v for k, v in g.items() if k != FFD_GEN), abs=0.005
+    )
+    assert FFES not in d  # a CCA-only line
+
+
+def test_the_generation_differential_stays_out_of_the_imputed_base(specs):
+    """Schedule CCA imputes EECC's charges; EECC's differential is a fee on them. The bundled
+    EECC layer less its own differential IS the imputed base — 48.76, the specimen's
+    printed generation line — and the CCA customer never sees the bundled line at all."""
+    eecc = _bundled(specs, jurisdiction="city_of_san_diego").layers[1]
+    assert round(eecc.total - eecc.bucket()[FFD_GEN], 2) == 48.76
+    cca = _bill(specs, jurisdiction="city_of_san_diego")
+    assert FFD_GEN not in cca.layers[1].bucket()
+    assert next(li for li in cca.layers[0].line_items if li.name == FFES).quantity == 48.76
+
+
+def test_the_cca_surcharge_and_the_bundled_differential_are_the_same_fee(specs):
+    """A cross-check between two sheets that were read separately: a CCA customer pays 6.88%
+    of imputed EECC in the city and 1.1% outside it, and the 5.78-point difference is
+    exactly the differential EECC charges a bundled customer."""
+    ffes = next(x for x in specs["delivery"][-1].surcharges if x.name == FFES)
+    gen = next(x for x in specs["eecc"][-1].surcharges if x.name == FFD_GEN)
+    in_city = ffes.rate_by_jurisdiction["city_of_san_diego"]
+    outside = ffes.rate_by_jurisdiction["other"]
+    assert in_city - outside == pytest.approx(gen.rate_by_jurisdiction["city_of_san_diego"])
+
+
+def test_a_bundled_care_customer_in_the_city_is_refused(specs):
+    """Before or after the CARE discount? Schedule E-CARE says nothing about franchise fees."""
     with pytest.raises(UnverifiedChargeError, match=FFD):
-        compute_bill_from_usage(
-            [UsageSegment(start=PS, end=PE, kwh=KWH)],
-            [specs["delivery"], specs["eecc"]],
-            PS,
-            PE,
-            service=Service.BUNDLED,
+        _bundled(specs, jurisdiction="city_of_san_diego", care=True)
+
+
+# --- every SDG&E schedule, not just TOU-DR1 -------------------------------------------
+# Session 31 built these lines on TOU-DR1 only, which left TOU-DR2, EV-TOU-5 and TOU-DR-P
+# billing a City of San Diego household with no differential AND no refusal. These tests
+# make that class of gap impossible to reintroduce with a new schedule or vintage.
+
+SDGE_SPECS = sorted(SPECS_DIR.glob("sdge_*.yaml"))
+
+
+@pytest.mark.parametrize("path", SDGE_SPECS, ids=lambda p: p.stem)
+def test_every_sdge_spec_carries_the_city_differential(path):
+    spec = load_spec_file(path)
+    want = FFD if spec.layer is Layer.DELIVERY else FFD_GEN
+    sur = next((x for x in spec.surcharges if x.name == want), None)
+    assert sur is not None, f"{path.name} bills a City of San Diego household without {want}"
+    assert sur.rate_by_jurisdiction == {"city_of_san_diego": 0.0578, "other": 0.0}
+    if spec.layer is Layer.GENERATION:
+        assert sur.applies_to.value == "bundled"  # Schedule EECC is bundled service
+
+
+AUG, AUG_END = date(2026, 8, 1), date(2026, 8, 31)
+
+
+def _sdge(schedule, kwh, service=Service.BUNDLED, **kw):
+    return compute_bill_from_usage(
+        [UsageSegment(start=AUG, end=AUG_END, kwh=kwh)],
+        [
+            load_spec_versions(schedule, Layer.DELIVERY),
+            load_spec_versions(schedule, Layer.GENERATION, provider="SDG&E"),
+        ],
+        AUG,
+        AUG_END,
+        service=service,
+        territory="coastal_basic",
+        **kw,
+    )
+
+
+def test_tou_dr2_bills_both_lines_in_the_city():
+    """Schedule TOU-DR2 Sheet 29959-E prints TOU-DR1's clause word for word."""
+    bill = _sdge("TOU-DR2", {"on_peak": 80, "off_peak": 300}, jurisdiction="city_of_san_diego")
+    assert FFD in bill.layers[0].bucket()
+    assert FFD_GEN in bill.layers[1].bucket()
+
+
+def test_tou_dr_p_delivery_bills_the_differential_in_the_city():
+    """TOU-DR-P's delivery is Schedule TOU-DR (Sheet 29915-E). Its generation carries an
+    event adder the bill-only path refuses, so only the delivery layer is billed here; the
+    generation line's presence is pinned by the every-spec test above."""
+    layer = compute_layer_from_usage(
+        [
+            UsageSegment(
+                start=AUG, end=AUG_END, kwh={"on_peak": 80, "off_peak": 200, "super_off_peak": 100}
+            )
+        ],
+        load_spec_versions("TOU-DR-P", Layer.DELIVERY),
+        AUG,
+        AUG_END,
+        service=Service.BUNDLED,
+        territory="coastal_basic",
+        jurisdiction="city_of_san_diego",
+    )
+    assert FFD in layer.bucket()
+
+
+EV_KWH = {"on_peak": 80, "off_peak": 200, "super_off_peak": 300}
+
+
+def test_ev_tou_5_in_the_city_is_refused_until_its_own_sheet_is_read():
+    """The EV-TOU-5 schedule sheet was not found; every other sheet's clause is analogy, and
+    analogy is not a citation. Refuse in the city rather than bill without the fee."""
+    with pytest.raises(UnverifiedChargeError, match="NOT VERIFIED"):
+        _sdge("EV-TOU-5", EV_KWH, jurisdiction="city_of_san_diego")
+
+
+def test_ev_tou_5_outside_the_city_still_bills():
+    bill = _sdge("EV-TOU-5", EV_KWH, jurisdiction="other")
+    assert FFD not in bill.layers[0].bucket() and bill.total > 0
+
+
+def test_a_cca_customer_on_tou_dr2_in_the_city_is_refused():
+    """The CCA base excludes the PCIA, and these specs carry none to exclude."""
+    with pytest.raises(UnverifiedChargeError, match=FFD):
+        compute_layer_from_usage(
+            [UsageSegment(start=AUG, end=AUG_END, kwh={"on_peak": 80, "off_peak": 300})],
+            load_spec_versions("TOU-DR2", Layer.DELIVERY),
+            AUG,
+            AUG_END,
+            service=Service.CCA,
             territory="coastal_basic",
             jurisdiction="city_of_san_diego",
         )
