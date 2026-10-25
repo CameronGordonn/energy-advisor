@@ -653,7 +653,7 @@ def reconcile(
     return ReconResult(
         statement_date=fixture["statement_date"],
         utility=fixture_utility(fixture).value,
-        schedule_label=f"{label} (CARE)" if care else label,
+        schedule_label=label,
         period_start=ps,
         period_end=pe,
         rows=rows,
