@@ -2,8 +2,9 @@
 
 ## Session continuity (READ FIRST, every session)
 
-Before doing anything else in a new session, read **dev/HANDOFF.md** (latest state + the
-exact next action) and **dev/SESSION_NOTES.md** (running decision log, newest first). These
+`dev/` is gitignored and lives only in the working checkout (backed up privately). Before
+doing anything else in a new session, read **dev/HANDOFF.md** (latest state + the exact next
+action) and **dev/SESSION_NOTES.md** (running decision log, newest first). These
 carry context that isn't derivable from the code: pending decisions, flagged modeling
 choices, and what the previous instance was mid-way through. Do not re-derive or
 re-litigate anything already settled there.

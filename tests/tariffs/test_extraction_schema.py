@@ -1,6 +1,6 @@
 """The author-rate-spec extraction schema: does it accept ground truth and reject the gaps?
 
-`.claude/skills/author-rate-spec/extraction-schema.json` is the JSON Schema the generator is
+`src/tariffs/extraction-schema.json` is the JSON Schema the generator is
 constrained by (dev/CLI-PLAN.md phase B). It exists to close the three gaps CLI-PLAN measured in
 `src/tariffs/schema.py` — pydantic enforces structure thoroughly and content not at all:
 
@@ -25,7 +25,7 @@ import pytest
 jsonschema = pytest.importorskip("jsonschema")
 
 REPO = Path(__file__).parents[2]
-SCHEMA_PATH = REPO / ".claude/skills/author-rate-spec/extraction-schema.json"
+SCHEMA_PATH = REPO / "src/tariffs/extraction-schema.json"
 
 
 @pytest.fixture(scope="module")

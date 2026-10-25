@@ -45,7 +45,7 @@ mkdir -p "$LOG_DIR" "$CANDIDATES_DIR"
 # under build/ — build/ is gitignored, and a designed contract that vanishes on a fresh
 # clone is not a contract. It sits beside the skill because the two are one artifact: the
 # schema constrains the shape, the skill body carries the rules a shape cannot express.
-JSON_SCHEMA_FILE="$REPO_ROOT/.claude/skills/author-rate-spec/extraction-schema.json"
+JSON_SCHEMA_FILE="$REPO_ROOT/src/tariffs/extraction-schema.json"
 
 MAX_TURNS=8
 

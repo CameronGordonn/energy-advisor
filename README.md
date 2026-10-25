@@ -106,7 +106,8 @@ PYTHONPATH=src python scripts/nem3_report.py        # solar + battery under the 
 Package layout lives under `src/` (`greenbutton`, `tariffs`, `nem3`, `scenarios`,
 `uncertainty`, `report`). Real Green Button exports and bills live in `data/` and
 `tests/golden_bills/raw/`, both git-ignored, so nothing personally identifiable is ever
-committed. Development notes from building it are in [`dev/`](dev/).
+committed. The session logs and agent notes from building it are kept in a private
+repository; code comments that cite `dev/` or `.claude/` refer to those.
 
 ## License
 
