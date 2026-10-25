@@ -44,3 +44,7 @@ coverage.xml
 
 # Node deps for the browser-tool tests (tools/)
 node_modules/
+
+# --- Agent working files: kept locally, never published (backed up privately) ---
+dev/
+.claude/
